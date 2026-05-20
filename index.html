@@ -650,6 +650,9 @@
                         if (player.frontWheel.vy > 0) player.frontWheel.vy *= 0.5;
                         
                         isScraping = true;
+                        
+                        player.rearWheel.onSurface = true;
+                        player.frontWheel.onSurface = true;
                     }
                 }
             }
