@@ -151,7 +151,6 @@
             e.stopPropagation(); 
             
             const elem = document.documentElement;
-            
             const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
 
             if (!isFullscreen) {
@@ -200,9 +199,14 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        // Audio System (Web Audio API fuer Effekte)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let musicInterval = null;
         let hasPlayedSplatSound = false;
+
+        // Integration der MP3-Hintergrundmusik
+        const bgMusic = new Audio('background.mp3');
+        bgMusic.loop = true;
+        bgMusic.volume = 0.4; // Lautstaerke auf 40% setzen
 
         function initAudio() {
             if (audioCtx.state === 'suspended') {
@@ -291,24 +295,15 @@
             osc.stop(audioCtx.currentTime + 0.05);
         }
 
-        const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 196.00,
-                        293.66, 349.23, 440.00, 587.33, 440.00, 349.23, 293.66, 220.00];
-        let noteIndex = 0;
-        
-        function playMusicStep() {
-            if (!isGameRunning || isGameOver || isCrashing) return;
-            playTone(melody[noteIndex], 'triangle', 0.15, 0.08);
-            noteIndex = (noteIndex + 1) % melody.length;
-        }
-
         function startMusic() {
-            if (musicInterval) clearInterval(musicInterval);
-            noteIndex = 0;
-            musicInterval = setInterval(playMusicStep, 150);
+            bgMusic.currentTime = 0;
+            bgMusic.play().catch(err => {
+                console.warn("Autoplay von Audio durch Browser blockiert bis zur ersten Interaktion.", err);
+            });
         }
 
         function stopMusic() {
-            if (musicInterval) clearInterval(musicInterval);
+            bgMusic.pause();
         }
 
         const keys = {
