@@ -107,6 +107,33 @@
             text-align: center;
         }
 
+        /* Visuelle Touch-Zonen */
+        #touch-zones {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-wrap: wrap;
+            z-index: 5;
+        }
+
+        .zone {
+            width: 50%;
+            height: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-sizing: border-box;
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
         @media (max-width: 600px), (max-height: 400px) {
             h1 { font-size: 1.5rem; }
             p { font-size: 0.8rem; }
@@ -116,6 +143,9 @@
                 padding: 4px 8px;
                 font-size: 0.8rem;
             }
+            .zone {
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
@@ -123,6 +153,14 @@
 
     <div id="game-container">
         <canvas id="gameCanvas" width="400" height="200"></canvas>
+        
+        <div id="touch-zones" class="hidden">
+            <div class="zone">SPRINGEN<br>(HINTEN)</div>
+            <div class="zone">SPRINGEN<br>(VORN)</div>
+            <div class="zone">BREMSE<br>(HALTEN)</div>
+            <div class="zone">GAS<br>(HALTEN)</div>
+        </div>
+
         <button id="fullscreen-btn">Vollbild</button>
         <div id="msg-box" class="hidden"></div>
         <div id="ui-layer">
@@ -139,6 +177,12 @@
         const instructionEl = document.getElementById('instruction');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         const msgBox = document.getElementById('msg-box');
+        const touchZones = document.getElementById('touch-zones');
+
+        // Zeigt die Touch-Bereiche auf mobilen Geraeten an
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            touchZones.classList.remove('hidden');
+        }
 
         function showCustomMessage(msg) {
             msgBox.innerText = msg;
