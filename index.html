@@ -2,18 +2,18 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Bohnen-Bike</title>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
             background-color: #1a1a1a;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             overflow: hidden;
+            touch-action: none;
+            overscroll-behavior: none;
             font-family: 'Courier New', Courier, monospace;
         }
 
@@ -21,8 +21,8 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
         }
 
         canvas {
@@ -47,6 +47,9 @@
             pointer-events: none;
             color: white;
             text-shadow: 2px 2px 0 #000;
+            text-align: center;
+            padding: 10px;
+            box-sizing: border-box;
         }
 
         h1 {
@@ -103,6 +106,17 @@
             z-index: 100;
             text-align: center;
         }
+
+        @media (max-width: 600px), (max-height: 400px) {
+            h1 { font-size: 1.5rem; }
+            p { font-size: 0.8rem; }
+            #fullscreen-btn {
+                top: 5px;
+                right: 5px;
+                padding: 4px 8px;
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -132,14 +146,12 @@
             setTimeout(() => msgBox.classList.add('hidden'), 3500);
         }
 
-        // Umschalten des Vollbildmodus mit Cross-Browser Support
         fullscreenBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation(); 
             
             const elem = document.documentElement;
             
-            // Pruefen, ob bereits Vollbild aktiv ist (Cross-Browser)
             const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
 
             if (!isFullscreen) {
@@ -166,7 +178,6 @@
             }
         });
 
-        // Aktualisiert den Button-Text basierend auf dem aktuellen Zustand (Cross-Browser)
         const updateBtnText = () => {
             const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
             if (isFullscreen) {
@@ -181,7 +192,6 @@
         document.addEventListener('mozfullscreenchange', updateBtnText);
         document.addEventListener('MSFullscreenChange', updateBtnText);
 
-        // Canvas dynamisch an Fenster anpassen, um den Bildschirm auszufuellen
         function resizeCanvas() {
             canvas.height = 200;
             canvas.width = 200 * (window.innerWidth / window.innerHeight);
@@ -190,7 +200,6 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Audio System (Web Audio API)
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let musicInterval = null;
         let hasPlayedSplatSound = false;
@@ -265,7 +274,6 @@
             playTone(100, 'square', 0.2, 0.2);
         }
 
-        // Neuer, leiser Sound fuer die Tretbewegung
         function playPedalSound() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
@@ -274,7 +282,7 @@
             osc.frequency.setValueAtTime(80, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.05);
             
-            gain.gain.setValueAtTime(0.02, audioCtx.currentTime); // Sehr geringe Lautstaerke
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime); 
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
             
             osc.connect(gain);
@@ -303,7 +311,6 @@
             if (musicInterval) clearInterval(musicInterval);
         }
 
-        // Status der Tasten fuer Gas und Bremse
         const keys = {
             up: false,
             down: false
@@ -320,7 +327,6 @@
         let lastTime = 0; 
         let pedalAngle = 0; 
         
-        // Variablen fuer die Crash-Animation
         let crashType = '';
         let crashAngle = 0;
         let crashBikeLength = 0;
@@ -481,7 +487,6 @@
                 const isLeft = touch.clientX < midX;
                 const isTop = touch.clientY < midY;
 
-                // Unten: Gas oder Bremse halten
                 if (!isTop) {
                     if (isLeft) touchBrake = true;
                     else touchGas = true;
@@ -494,7 +499,6 @@
                     const isLeft = touch.clientX < midX;
                     const isTop = touch.clientY < midY;
                     
-                    // Oben: Springen antippen
                     if (isTop) {
                         if (isLeft) jump('rear');
                         else jump('front');
@@ -515,7 +519,6 @@
                 resetGame();
                 return;
             }
-            // Mauseingabe ebenfalls in obere Haelfte verschieben, passend zum Touch
             const midY = window.innerHeight / 2;
             if (e.clientY < midY) {
                 if (e.clientX < window.innerWidth / 2) {
@@ -579,7 +582,6 @@
                     if (obs.type === 'block' && wheel.x < obs.x + 8 && wheel.y > obs.y - 2) {
                         wheel.isHittingWall = true;
                     } else if (obs.type === 'round' && wheel.x < obs.x + 8 && wheel.y > obs.y + (obs.height * 0.4)) {
-                        // Prueft auf Kollision am steilen, fast vertikalen Anfang des runden Hindernisses
                         wheel.isHittingWall = true;
                     } else if (surface < currentSurface) {
                         currentSurface = surface;
@@ -613,12 +615,10 @@
             }
         }
 
-        // Loest Frame-Kollisionen auf und erzeugt Reibung beim Darueberrutschen
         function handleFrameCollision(timeScale) {
             let isScraping = false;
             
             for (let obs of obstacles) {
-                // Rampen duerfen sanft ueberfahren werden, Bloecke und Rundungen erzeugen Reibung
                 if (obs.type === 'ramp') continue;
 
                 const minX = Math.min(player.frontWheel.x, player.rearWheel.x);
@@ -627,14 +627,12 @@
                 if (obs.x < maxX && obs.x + obs.width > minX) {
                     let maxPenetration = 0;
                     
-                    // Prueft Punkte entlang des Fahrradrahmens
                     for (let i = 0.1; i <= 0.9; i += 0.1) {
                         let px = player.rearWheel.x + (player.frontWheel.x - player.rearWheel.x) * i;
                         let py = player.rearWheel.y + (player.frontWheel.y - player.rearWheel.y) * i;
                         
                         if (px >= obs.x && px <= obs.x + obs.width) {
                             let surfaceY = getObstacleSurface(px, obs);
-                            // Berechnet die Eindringtiefe in das Hindernis
                             if (surfaceY !== null && py > surfaceY) {
                                 let penetration = py - surfaceY;
                                 if (penetration > maxPenetration) {
@@ -644,12 +642,10 @@
                         }
                     }
                     
-                    // Schiebt das Fahrrad nach oben, um ein Hindurchgleiten zu verhindern
                     if (maxPenetration > 0) {
                         player.rearWheel.y -= maxPenetration;
                         player.frontWheel.y -= maxPenetration;
                         
-                        // Daempft die Abwaertsbewegung leicht
                         if (player.rearWheel.vy > 0) player.rearWheel.vy *= 0.5;
                         if (player.frontWheel.vy > 0) player.frontWheel.vy *= 0.5;
                         
@@ -658,13 +654,11 @@
                 }
             }
             
-            // Wenn der Rahmen aufschlaegt oder kratzt, wird das Fahrrad abgebremst (nach hinten gezogen)
             if (isScraping) {
                 player.targetBikeX -= (gameSpeed * 1.2) * timeScale;
             }
         }
 
-        // Leitet die Crash-Animation ein
         function startCrash(type) {
             isCrashing = true;
             crashType = type;
@@ -672,50 +666,42 @@
             
             if (type === 'flip') {
                 playHit();
-                // Fahrrad-Crash-Werte initialisieren (Ueberschlag)
                 crashAngle = Math.atan2(player.frontWheel.y - player.rearWheel.y, player.frontWheel.x - player.rearWheel.x);
                 if (crashAngle < 0) crashAngle += Math.PI * 2;
                 crashBikeLength = Math.hypot(player.frontWheel.x - player.rearWheel.x, player.frontWheel.y - player.rearWheel.y);
             } else if (type === 'tear') {
                 playTear();
-                // Fahrrad zerreisst in zwei Haelften
                 bikeParts = {
                     rear: { x: player.rearWheel.x, y: player.rearWheel.y, vx: -4, vy: -4, rot: 0, rotV: -0.2 },
                     front: { x: player.frontWheel.x, y: player.frontWheel.y, vx: gameSpeed * 2, vy: -6, rot: 0, rotV: 0.3 }
                 };
             }
             
-            // Bohnen-Crash-Werte initialisieren
             const cx = (player.rearWheel.x + player.frontWheel.x) / 2;
             const cy = (player.rearWheel.y + player.frontWheel.y) / 2;
             beanCrash.x = cx;
             beanCrash.y = cy - 20;
-            beanCrash.vx = gameSpeed * 2.5; // Fliegt nach vorn
-            beanCrash.vy = -5; // Fliegt nach oben
+            beanCrash.vx = gameSpeed * 2.5; 
+            beanCrash.vy = -5; 
             beanCrash.rotation = 0;
             beanCrash.isSplat = false;
         }
 
-        // Berechnet Physik waehrend des Crashes
         function updateCrashAnimation(timeScale) {
             if (crashType === 'flip') {
-                // Fahrrad ueberschlaegt sich
-                let targetAngle = Math.PI; // 180 Grad
+                let targetAngle = Math.PI; 
                 if (crashAngle < targetAngle) {
                     crashAngle += 0.08 * timeScale;
                     if (crashAngle > targetAngle) crashAngle = targetAngle;
                 }
 
-                // Vorderrad faellt zu Boden, falls es in der Luft war
                 if (player.frontWheel.y < player.groundY) {
                     player.frontWheel.y += player.gravity * timeScale;
                 }
 
-                // Hinterrad dreht sich um das Vorderrad
                 player.rearWheel.x = player.frontWheel.x - Math.cos(crashAngle) * crashBikeLength;
                 player.rearWheel.y = player.frontWheel.y - Math.sin(crashAngle) * crashBikeLength;
             } else if (crashType === 'tear') {
-                // Fahrradteile fliegen auseinander
                 ['rear', 'front'].forEach(part => {
                     let p = bikeParts[part];
                     p.vy += player.gravity * timeScale;
@@ -723,7 +709,6 @@
                     p.y += p.vy * timeScale;
                     p.rot += p.rotV * timeScale;
                     
-                    // Bodenkollision der Einzelteile
                     if (p.y > player.groundY + 5) {
                         p.y = player.groundY + 5;
                         p.vy = -p.vy * 0.4;
@@ -732,7 +717,6 @@
                 });
             }
 
-            // Bohne fliegt und zerplatzt
             if (!beanCrash.isSplat) {
                 beanCrash.vy += player.gravity * timeScale;
                 beanCrash.x += beanCrash.vx * timeScale;
@@ -748,7 +732,6 @@
                     }
                 }
             } else {
-                // Wartezeit nach dem Zerplatzen, bevor der Game Over Screen kommt
                 gameOverTimer += timeScale * 16.66;
                 if (gameOverTimer > 1200) {
                     isGameOver = true;
@@ -782,24 +765,20 @@
             ctx.fillRect(0, player.groundY + 5, canvas.width, 4);
         }
 
-        // Zeichnet das zerfliessende Bohnenmus oder die fliegende Bohne
         function drawCrashBean() {
             if (beanCrash.isSplat) {
                 ctx.fillStyle = '#FFF';
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
                 
-                // Plattgedrueckte Bohnen-Pfuetze
                 ctx.beginPath();
                 ctx.ellipse(beanCrash.x, beanCrash.y, 22, 6, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
 
-                // Rucksackteile im Mus
                 ctx.fillStyle = '#555';
                 ctx.fillRect(beanCrash.x - 15, beanCrash.y - 4, 8, 5);
 
-                // Tote X-Augen
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
@@ -830,7 +809,6 @@
                 ctx.fillRect(2, -5, 2, 2);
                 ctx.fillRect(6, -4, 2, 2);
                 
-                // Wirbelnde Extremitaeten
                 ctx.beginPath();
                 ctx.moveTo(0, 5); ctx.lineTo(5, 12);
                 ctx.moveTo(-2, 5); ctx.lineTo(-8, 10);
@@ -841,13 +819,11 @@
             }
         }
 
-        // Zeichnet das zerrissene Fahrrad
         function drawBrokenBike() {
             ctx.lineWidth = 2;
             ctx.strokeStyle = '#000';
             ctx.fillStyle = '#FFF';
 
-            // Hinterteil
             ctx.save();
             ctx.translate(bikeParts.rear.x, bikeParts.rear.y);
             ctx.rotate(bikeParts.rear.rot);
@@ -866,7 +842,6 @@
             ctx.fill();
             ctx.restore();
 
-            // Vorderteil
             ctx.save();
             ctx.translate(bikeParts.front.x, bikeParts.front.y);
             ctx.rotate(bikeParts.front.rot);
@@ -904,20 +879,17 @@
             ctx.translate(cx, cy);
             ctx.rotate(angle);
 
-            // Korrekte Distanz fuer den Ueberschlag beibehalten
             const dist = Math.hypot(dx, dy);
             const localX = Math.max(5, dist / 2);
             
             const seatX = -localX + 10;
             const seatY = -15;
 
-            // Raeder
             ctx.beginPath();
             ctx.arc(-localX, 0, 5, 0, Math.PI * 2);
             ctx.arc(localX, 0, 5, 0, Math.PI * 2);
             ctx.stroke();
 
-            // Rahmen
             ctx.beginPath();
             ctx.moveTo(-localX, 0);
             ctx.lineTo(localX, 0);
@@ -930,13 +902,11 @@
             ctx.lineTo(localX + 5, -20);
             ctx.stroke();
 
-            // Sattel
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.ellipse(seatX, seatY, 7, 2.5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Bohne und Beine werden beim Crash ausgeblendet (Bohne fliegt separat)
             if (!isCrashing) {
                 let beanOffsetY = 0;
                 let beanAngle = 0;
@@ -1046,14 +1016,12 @@
                 return;
             }
 
-            // Spielgeschehen einfrieren, wenn Crash laeuft
             let moveScale = isCrashing ? 0 : timeScale;
 
             if (!isCrashing) {
                 let isAccelerating = keys.up || touchGas;
                 let isBraking = keys.down || touchBrake;
 
-                // Horizontale Position des Fahrrads berechnen
                 if (isAccelerating) {
                     player.targetBikeX += 2.5 * timeScale;
                 }
@@ -1061,7 +1029,6 @@
                     player.targetBikeX -= 2.5 * timeScale;
                 }
                 
-                // Fahrrad im Bildschirm begrenzen
                 if (player.targetBikeX < 20) player.targetBikeX = 20;
                 if (player.targetBikeX > canvas.width - 100) player.targetBikeX = canvas.width - 100;
 
@@ -1071,17 +1038,13 @@
                 updateWheel(player.rearWheel, timeScale);
                 updateWheel(player.frontWheel, timeScale);
 
-                // Verhindert das Durchrutschen des Rahmens und wendet Reibung an
                 handleFrameCollision(timeScale);
 
                 const dx = player.frontWheel.x - player.rearWheel.x;
                 
-                // Crash-Bedingungen:
-                // 1. Vorderrad prallt frontal gegen Kante (Stauchung)
                 if (player.frontWheel.isHittingWall && dx < 30) {
                     startCrash('flip');
                 } 
-                // 2. Hinterrad bleibt haengen und zerreisst das Fahrrad (Dehnung auf ueber 110 Pixel)
                 else if (player.rearWheel.isHittingWall && dx > 110) {
                     startCrash('tear');
                 }
@@ -1094,7 +1057,6 @@
                     let oldAngle = pedalAngle;
                     pedalAngle += currentPedalSpeed * timeScale;
                     
-                    // Spielt den Sound ab, wenn ein halber Tretzyklus (Pi) vollendet ist
                     if (Math.floor(oldAngle / Math.PI) < Math.floor(pedalAngle / Math.PI)) {
                         playPedalSound();
                     }
@@ -1105,7 +1067,6 @@
 
             drawEnvironment(moveScale);
             
-            // Hindernisse bewegen und zeichnen
             spawnObstacle(moveScale);
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
@@ -1143,7 +1104,6 @@
 
             drawPlayer();
             
-            // Zerfliessendes Mus wird ueber alles andere gezeichnet
             if (isCrashing) {
                 drawCrashBean();
             }
