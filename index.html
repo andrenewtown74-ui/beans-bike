@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bohnen-Bike</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            background-color: #87CEEB;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+        }
+
+        p {
+            margin: 0;
+            font-size: 1.2rem;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #fullscreen-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 8px 12px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: 2px solid #fff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            cursor: pointer;
+            z-index: 10;
+            text-transform: uppercase;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        #fullscreen-btn:hover {
+            background-color: #fff;
+            color: #000;
+            text-shadow: none;
+        }
+
+        #msg-box {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 0, 0, 0.8);
+            color: #fff;
+            padding: 10px 20px;
+            border: 2px solid #fff;
+            z-index: 100;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="400" height="200"></canvas>
+        <button id="fullscreen-btn">Vollbild</button>
+        <div id="msg-box" class="hidden"></div>
+        <div id="ui-layer">
+            <h1 id="title">Bohnen-Bike</h1>
+            <p id="instruction">A/LINKS=Bremse | D/RECHTS=Gas | N=Hinten hoch | M=Vorn hoch<br><span style="font-size: 0.7em">Touch: Oben tippen = Springen | Unten halten = Gas/Bremse</span></p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const uiLayer = document.getElementById('ui-layer');
+        const titleEl = document.getElementById('title');
+        const instructionEl = document.getElementById('instruction');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const msgBox = document.getElementById('msg-box');
+
+        function showCustomMessage(msg) {
+            msgBox.innerText = msg;
+            msgBox.classList.remove('hidden');
+            setTimeout(() => msgBox.classList.add('hidden'), 3500);
+        }
+
+        // Umschalten des Vollbildmodus mit Cross-Browser Support
+        fullscreenBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); 
+            
+            const elem = document.documentElement;
+            
+            // Pruefen, ob bereits Vollbild aktiv ist (Cross-Browser)
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+            if (!isFullscreen) {
+                let requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
+                if (requestFS) {
+                    try {
+                        let promise = requestFS.call(elem);
+                        if (promise && promise.catch) {
+                            promise.catch(err => {
+                                showCustomMessage("Vollbild blockiert (Browser/Umgebung verhindert das).");
+                            });
+                        }
+                    } catch (err) {
+                        showCustomMessage("Vollbild nicht unterstuetzt.");
+                    }
+                } else {
+                    showCustomMessage("Vollbild auf diesem Geraet nicht moeglich.");
+                }
+            } else {
+                let exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+                if (exitFS) {
+                    exitFS.call(document);
+                }
+            }
+        });
+
+        // Aktualisiert den Button-Text basierend auf dem aktuellen Zustand (Cross-Browser)
+        const updateBtnText = () => {
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            if (isFullscreen) {
+                fullscreenBtn.innerText = "Fenster";
+            } else {
+                fullscreenBtn.innerText = "Vollbild";
+            }
+        };
+
+        document.addEventListener('fullscreenchange', updateBtnText);
+        document.addEventListener('webkitfullscreenchange', updateBtnText);
+        document.addEventListener('mozfullscreenchange', updateBtnText);
+        document.addEventListener('MSFullscreenChange', updateBtnText);
+
+        // Canvas dynamisch an Fenster anpassen, um den Bildschirm auszufuellen
+        function resizeCanvas() {
+            canvas.height = 200;
+            canvas.width = 200 * (window.innerWidth / window.innerHeight);
+            ctx.imageSmoothingEnabled = false;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Audio System (Web Audio API)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let musicInterval = null;
+        let hasPlayedSplatSound = false;
+
+        function initAudio() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(frequency, type, duration, vol = 0.1) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playJump() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+            
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playScore() {
+            playTone(880, 'square', 0.1, 0.1);
+            setTimeout(() => playTone(1108, 'square', 0.15, 0.1), 100);
+        }
+
+        function playCrash() {
+            if (!audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 0.5;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            noise.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        function playTear() {
+            playTone(50, 'sawtooth', 0.4, 0.3);
+        }
+        
+        function playHit() {
+            playTone(100, 'square', 0.2, 0.2);
+        }
+
+        // Neuer, leiser Sound fuer die Tretbewegung
+        function playPedalSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.05);
+            
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime); // Sehr geringe Lautstaerke
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 196.00,
+                        293.66, 349.23, 440.00, 587.33, 440.00, 349.23, 293.66, 220.00];
+        let noteIndex = 0;
+        
+        function playMusicStep() {
+            if (!isGameRunning || isGameOver || isCrashing) return;
+            playTone(melody[noteIndex], 'triangle', 0.15, 0.08);
+            noteIndex = (noteIndex + 1) % melody.length;
+        }
+
+        function startMusic() {
+            if (musicInterval) clearInterval(musicInterval);
+            noteIndex = 0;
+            musicInterval = setInterval(playMusicStep, 150);
+        }
+
+        function stopMusic() {
+            if (musicInterval) clearInterval(musicInterval);
+        }
+
+        // Status der Tasten fuer Gas und Bremse
+        const keys = {
+            up: false,
+            down: false
+        };
+        let touchGas = false;
+        let touchBrake = false;
+
+        let isGameRunning = false;
+        let isGameOver = false;
+        let isCrashing = false;
+        let score = 0;
+        let gameSpeed = 1.5; 
+        let animationFrameId;
+        let lastTime = 0; 
+        let pedalAngle = 0; 
+        
+        // Variablen fuer die Crash-Animation
+        let crashType = '';
+        let crashAngle = 0;
+        let crashBikeLength = 0;
+        let gameOverTimer = 0;
+        let bikeParts = {
+            rear: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, rotV: 0 },
+            front: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, rotV: 0 }
+        };
+        const beanCrash = { x: 0, y: 0, vx: 0, vy: 0, rotation: 0, isSplat: false };
+
+        const player = {
+            targetBikeX: 30,
+            rearWheel: { x: 30, defaultX: 30, y: 185, vy: 0, isJumping: false, isHittingWall: false },
+            frontWheel: { x: 90, defaultX: 90, y: 185, vy: 0, isJumping: false, isHittingWall: false },
+            gravity: 0.35,
+            jumpStrength: -6.5,
+            groundY: 185
+        };
+
+        const obstacles = [];
+        let obstacleTimer = 0;
+        const obstacleTypes = ['block', 'ramp', 'round'];
+        const obstacleColors = ['#8B4513', '#555', '#333'];
+
+        const backgroundElements = [];
+
+        function initBackground() {
+            backgroundElements.length = 0;
+            for (let i = 0; i < 5; i++) {
+                backgroundElements.push({
+                    x: Math.random() * canvas.width,
+                    width: 30 + Math.random() * 20,
+                    height: 60 + Math.random() * 40,
+                    speedModifier: 0.5
+                });
+            }
+        }
+
+        function resetGame() {
+            player.targetBikeX = 30;
+            keys.up = false;
+            keys.down = false;
+            touchGas = false;
+            touchBrake = false;
+
+            player.rearWheel.y = player.groundY;
+            player.rearWheel.defaultX = 30;
+            player.rearWheel.x = player.rearWheel.defaultX;
+            player.rearWheel.vy = 0;
+            player.rearWheel.isJumping = false;
+            player.rearWheel.isHittingWall = false;
+            
+            player.frontWheel.y = player.groundY;
+            player.frontWheel.defaultX = 90;
+            player.frontWheel.x = player.frontWheel.defaultX;
+            player.frontWheel.vy = 0;
+            player.frontWheel.isJumping = false;
+            player.frontWheel.isHittingWall = false;
+            
+            obstacles.length = 0;
+            obstacleTimer = 0;
+            score = 0;
+            gameSpeed = 1.5;
+            pedalAngle = 0;
+            
+            isGameOver = false;
+            isCrashing = false;
+            crashType = '';
+            gameOverTimer = 0;
+            beanCrash.isSplat = false;
+            hasPlayedSplatSound = false;
+            
+            lastTime = performance.now();
+            initBackground();
+            
+            uiLayer.classList.add('hidden');
+            isGameRunning = true;
+            
+            initAudio();
+            startMusic();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function jump(wheel) {
+            if (!isGameRunning && !isGameOver) {
+                resetGame();
+                return;
+            }
+            if (isGameOver || isCrashing) {
+                if (isGameOver) resetGame();
+                return;
+            }
+            
+            if (wheel === 'rear') {
+                player.rearWheel.vy = player.jumpStrength;
+                player.rearWheel.isJumping = true;
+                playJump();
+            } else if (wheel === 'front') {
+                player.frontWheel.vy = player.jumpStrength;
+                player.frontWheel.isJumping = true;
+                playJump();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            initAudio();
+            if (!isGameRunning || isGameOver) {
+                if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
+                    resetGame();
+                    e.preventDefault();
+                }
+                return;
+            }
+            if (e.code === 'KeyN') {
+                jump('rear');
+                e.preventDefault();
+            }
+            if (e.code === 'KeyM') {
+                jump('front');
+                e.preventDefault();
+            }
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+                keys.up = true;
+                e.preventDefault();
+            }
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+                keys.down = true;
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+                keys.up = false;
+            }
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+                keys.down = false;
+            }
+        });
+        
+        function handleTouch(e) {
+            initAudio();
+            if (!isGameRunning || isGameOver) {
+                if (e.type === 'touchstart') resetGame();
+                if (e.cancelable) e.preventDefault();
+                return;
+            }
+
+            const midX = window.innerWidth / 2;
+            const midY = window.innerHeight / 2;
+            
+            touchBrake = false;
+            touchGas = false;
+
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                const isLeft = touch.clientX < midX;
+                const isTop = touch.clientY < midY;
+
+                // Unten: Gas oder Bremse halten
+                if (!isTop) {
+                    if (isLeft) touchBrake = true;
+                    else touchGas = true;
+                }
+            }
+
+            if (e.type === 'touchstart') {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    const isLeft = touch.clientX < midX;
+                    const isTop = touch.clientY < midY;
+                    
+                    // Oben: Springen antippen
+                    if (isTop) {
+                        if (isLeft) jump('rear');
+                        else jump('front');
+                    }
+                }
+            }
+            if (e.cancelable) e.preventDefault();
+        }
+
+        window.addEventListener('touchstart', handleTouch, { passive: false });
+        window.addEventListener('touchmove', handleTouch, { passive: false });
+        window.addEventListener('touchend', handleTouch, { passive: false });
+        window.addEventListener('touchcancel', handleTouch, { passive: false });
+        
+        window.addEventListener('mousedown', (e) => {
+            initAudio();
+            if (!isGameRunning || isGameOver) {
+                resetGame();
+                return;
+            }
+            // Mauseingabe ebenfalls in obere Haelfte verschieben, passend zum Touch
+            const midY = window.innerHeight / 2;
+            if (e.clientY < midY) {
+                if (e.clientX < window.innerWidth / 2) {
+                    jump('rear');
+                } else {
+                    jump('front');
+                }
+            }
+        });
+
+        function spawnObstacle(timeScale) {
+            obstacleTimer += timeScale;
+            if (obstacleTimer > 120 + Math.random() * 60) { 
+                const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+                const width = 30 + Math.random() * 30;
+                const height = 15 + Math.random() * 20;
+                const color = obstacleColors[Math.floor(Math.random() * obstacleColors.length)];
+                
+                obstacles.push({
+                    x: canvas.width,
+                    y: player.groundY + 5 - height, 
+                    width: width,
+                    height: height,
+                    type: type,
+                    color: color,
+                    passed: false
+                });
+                obstacleTimer = 0;
+            }
+        }
+
+        function getObstacleSurface(x, obs) {
+            if (x < obs.x || x > obs.x + obs.width) return null;
+            
+            if (obs.type === 'block') {
+                return obs.y - 5; 
+            } else if (obs.type === 'ramp') {
+                let progress = (x - obs.x) / obs.width;
+                return player.groundY - (progress * obs.height);
+            } else if (obs.type === 'round') {
+                let radius = obs.width / 2;
+                let cx = obs.x + radius;
+                let dx = x - cx;
+                let dy = obs.height * Math.sqrt(Math.max(0, 1 - (dx * dx) / (radius * radius)));
+                return player.groundY - dy;
+            }
+            return null;
+        }
+
+        function updateWheel(wheel, timeScale) {
+            wheel.vy += player.gravity * timeScale;
+            wheel.y += wheel.vy * timeScale;
+
+            let currentSurface = player.groundY;
+            wheel.isHittingWall = false;
+            let onRamp = false;
+
+            for (let obs of obstacles) {
+                let surface = getObstacleSurface(wheel.x, obs);
+                if (surface !== null) {
+                    if (obs.type === 'block' && wheel.x < obs.x + 8 && wheel.y > obs.y - 2) {
+                        wheel.isHittingWall = true;
+                    } else if (obs.type === 'round' && wheel.x < obs.x + 8 && wheel.y > obs.y + (obs.height * 0.4)) {
+                        // Prueft auf Kollision am steilen, fast vertikalen Anfang des runden Hindernisses
+                        wheel.isHittingWall = true;
+                    } else if (surface < currentSurface) {
+                        currentSurface = surface;
+                        if (obs.type === 'ramp' || obs.type === 'round') {
+                            onRamp = true;
+                        }
+                    }
+                }
+            }
+
+            if (wheel.isHittingWall) {
+                wheel.x -= gameSpeed * timeScale; 
+            } else {
+                wheel.x += (wheel.defaultX - wheel.x) * (0.1 * timeScale);
+            }
+
+            if (wheel.y >= currentSurface) {
+                wheel.y = currentSurface;
+                
+                if (onRamp && !wheel.isHittingWall) {
+                    wheel.vy = -gameSpeed * 1.5; 
+                    wheel.isJumping = true;
+                } else {
+                    if (wheel.vy > 2) {
+                        wheel.vy = -wheel.vy * 0.3;
+                    } else {
+                        wheel.vy = 0;
+                        wheel.isJumping = false;
+                    }
+                }
+            }
+        }
+
+        // Loest Frame-Kollisionen auf und erzeugt Reibung beim Darueberrutschen
+        function handleFrameCollision(timeScale) {
+            let isScraping = false;
+            
+            for (let obs of obstacles) {
+                // Rampen duerfen sanft ueberfahren werden, Bloecke und Rundungen erzeugen Reibung
+                if (obs.type === 'ramp') continue;
+
+                const minX = Math.min(player.frontWheel.x, player.rearWheel.x);
+                const maxX = Math.max(player.frontWheel.x, player.rearWheel.x);
+                
+                if (obs.x < maxX && obs.x + obs.width > minX) {
+                    let maxPenetration = 0;
+                    
+                    // Prueft Punkte entlang des Fahrradrahmens
+                    for (let i = 0.1; i <= 0.9; i += 0.1) {
+                        let px = player.rearWheel.x + (player.frontWheel.x - player.rearWheel.x) * i;
+                        let py = player.rearWheel.y + (player.frontWheel.y - player.rearWheel.y) * i;
+                        
+                        if (px >= obs.x && px <= obs.x + obs.width) {
+                            let surfaceY = getObstacleSurface(px, obs);
+                            // Berechnet die Eindringtiefe in das Hindernis
+                            if (surfaceY !== null && py > surfaceY) {
+                                let penetration = py - surfaceY;
+                                if (penetration > maxPenetration) {
+                                    maxPenetration = penetration;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Schiebt das Fahrrad nach oben, um ein Hindurchgleiten zu verhindern
+                    if (maxPenetration > 0) {
+                        player.rearWheel.y -= maxPenetration;
+                        player.frontWheel.y -= maxPenetration;
+                        
+                        // Daempft die Abwaertsbewegung leicht
+                        if (player.rearWheel.vy > 0) player.rearWheel.vy *= 0.5;
+                        if (player.frontWheel.vy > 0) player.frontWheel.vy *= 0.5;
+                        
+                        isScraping = true;
+                    }
+                }
+            }
+            
+            // Wenn der Rahmen aufschlaegt oder kratzt, wird das Fahrrad abgebremst (nach hinten gezogen)
+            if (isScraping) {
+                player.targetBikeX -= (gameSpeed * 1.2) * timeScale;
+            }
+        }
+
+        // Leitet die Crash-Animation ein
+        function startCrash(type) {
+            isCrashing = true;
+            crashType = type;
+            stopMusic();
+            
+            if (type === 'flip') {
+                playHit();
+                // Fahrrad-Crash-Werte initialisieren (Ueberschlag)
+                crashAngle = Math.atan2(player.frontWheel.y - player.rearWheel.y, player.frontWheel.x - player.rearWheel.x);
+                if (crashAngle < 0) crashAngle += Math.PI * 2;
+                crashBikeLength = Math.hypot(player.frontWheel.x - player.rearWheel.x, player.frontWheel.y - player.rearWheel.y);
+            } else if (type === 'tear') {
+                playTear();
+                // Fahrrad zerreisst in zwei Haelften
+                bikeParts = {
+                    rear: { x: player.rearWheel.x, y: player.rearWheel.y, vx: -4, vy: -4, rot: 0, rotV: -0.2 },
+                    front: { x: player.frontWheel.x, y: player.frontWheel.y, vx: gameSpeed * 2, vy: -6, rot: 0, rotV: 0.3 }
+                };
+            }
+            
+            // Bohnen-Crash-Werte initialisieren
+            const cx = (player.rearWheel.x + player.frontWheel.x) / 2;
+            const cy = (player.rearWheel.y + player.frontWheel.y) / 2;
+            beanCrash.x = cx;
+            beanCrash.y = cy - 20;
+            beanCrash.vx = gameSpeed * 2.5; // Fliegt nach vorn
+            beanCrash.vy = -5; // Fliegt nach oben
+            beanCrash.rotation = 0;
+            beanCrash.isSplat = false;
+        }
+
+        // Berechnet Physik waehrend des Crashes
+        function updateCrashAnimation(timeScale) {
+            if (crashType === 'flip') {
+                // Fahrrad ueberschlaegt sich
+                let targetAngle = Math.PI; // 180 Grad
+                if (crashAngle < targetAngle) {
+                    crashAngle += 0.08 * timeScale;
+                    if (crashAngle > targetAngle) crashAngle = targetAngle;
+                }
+
+                // Vorderrad faellt zu Boden, falls es in der Luft war
+                if (player.frontWheel.y < player.groundY) {
+                    player.frontWheel.y += player.gravity * timeScale;
+                }
+
+                // Hinterrad dreht sich um das Vorderrad
+                player.rearWheel.x = player.frontWheel.x - Math.cos(crashAngle) * crashBikeLength;
+                player.rearWheel.y = player.frontWheel.y - Math.sin(crashAngle) * crashBikeLength;
+            } else if (crashType === 'tear') {
+                // Fahrradteile fliegen auseinander
+                ['rear', 'front'].forEach(part => {
+                    let p = bikeParts[part];
+                    p.vy += player.gravity * timeScale;
+                    p.x += p.vx * timeScale;
+                    p.y += p.vy * timeScale;
+                    p.rot += p.rotV * timeScale;
+                    
+                    // Bodenkollision der Einzelteile
+                    if (p.y > player.groundY + 5) {
+                        p.y = player.groundY + 5;
+                        p.vy = -p.vy * 0.4;
+                        p.vx *= 0.8;
+                    }
+                });
+            }
+
+            // Bohne fliegt und zerplatzt
+            if (!beanCrash.isSplat) {
+                beanCrash.vy += player.gravity * timeScale;
+                beanCrash.x += beanCrash.vx * timeScale;
+                beanCrash.y += beanCrash.vy * timeScale;
+                beanCrash.rotation += 0.2 * timeScale;
+
+                if (beanCrash.y >= player.groundY + 5) {
+                    beanCrash.y = player.groundY + 5;
+                    beanCrash.isSplat = true;
+                    if (!hasPlayedSplatSound) {
+                        playCrash();
+                        hasPlayedSplatSound = true;
+                    }
+                }
+            } else {
+                // Wartezeit nach dem Zerplatzen, bevor der Game Over Screen kommt
+                gameOverTimer += timeScale * 16.66;
+                if (gameOverTimer > 1200) {
+                    isGameOver = true;
+                }
+            }
+        }
+
+        function drawEnvironment(moveScale) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(canvas.width - 100, 20, 20, 20);
+
+            ctx.fillStyle = '#228B22';
+            for (let bg of backgroundElements) {
+                if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
+                if (bg.x + bg.width < 0) {
+                    bg.x = canvas.width;
+                }
+                
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(bg.x + bg.width/3, player.groundY - 15, bg.width/3, 20);
+                
+                ctx.fillStyle = '#006400';
+                ctx.fillRect(bg.x, player.groundY - bg.height + 5, bg.width, bg.height - 20);
+            }
+
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, player.groundY + 5, canvas.width, canvas.height - (player.groundY + 5));
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, player.groundY + 5, canvas.width, 4);
+        }
+
+        // Zeichnet das zerfliessende Bohnenmus oder die fliegende Bohne
+        function drawCrashBean() {
+            if (beanCrash.isSplat) {
+                ctx.fillStyle = '#FFF';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                
+                // Plattgedrueckte Bohnen-Pfuetze
+                ctx.beginPath();
+                ctx.ellipse(beanCrash.x, beanCrash.y, 22, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Rucksackteile im Mus
+                ctx.fillStyle = '#555';
+                ctx.fillRect(beanCrash.x - 15, beanCrash.y - 4, 8, 5);
+
+                // Tote X-Augen
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(beanCrash.x + 4, beanCrash.y - 2); ctx.lineTo(beanCrash.x + 8, beanCrash.y + 2);
+                ctx.moveTo(beanCrash.x + 8, beanCrash.y - 2); ctx.lineTo(beanCrash.x + 4, beanCrash.y + 2);
+                
+                ctx.moveTo(beanCrash.x + 12, beanCrash.y - 2); ctx.lineTo(beanCrash.x + 16, beanCrash.y + 2);
+                ctx.moveTo(beanCrash.x + 16, beanCrash.y - 2); ctx.lineTo(beanCrash.x + 12, beanCrash.y + 2);
+                ctx.stroke();
+            } else {
+                ctx.save();
+                ctx.translate(beanCrash.x, beanCrash.y);
+                ctx.rotate(beanCrash.rotation);
+                
+                ctx.fillStyle = '#FFF';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 8, 12, Math.PI / 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#555';
+                ctx.fillRect(-12, -6, 6, 12);
+                ctx.strokeRect(-12, -6, 6, 12);
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(2, -5, 2, 2);
+                ctx.fillRect(6, -4, 2, 2);
+                
+                // Wirbelnde Extremitaeten
+                ctx.beginPath();
+                ctx.moveTo(0, 5); ctx.lineTo(5, 12);
+                ctx.moveTo(-2, 5); ctx.lineTo(-8, 10);
+                ctx.moveTo(4, -2); ctx.lineTo(12, -8);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+
+        // Zeichnet das zerrissene Fahrrad
+        function drawBrokenBike() {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000';
+            ctx.fillStyle = '#FFF';
+
+            // Hinterteil
+            ctx.save();
+            ctx.translate(bikeParts.rear.x, bikeParts.rear.y);
+            ctx.rotate(bikeParts.rear.rot);
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(25, 0);
+            ctx.moveTo(10, 0);
+            ctx.lineTo(10, -15);
+            ctx.stroke();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(10, -15, 7, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Vorderteil
+            ctx.save();
+            ctx.translate(bikeParts.front.x, bikeParts.front.y);
+            ctx.rotate(bikeParts.front.rot);
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-25, 0);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-5, -20);
+            ctx.lineTo(5, -20);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawPlayer() {
+            if (crashType === 'tear') {
+                drawBrokenBike();
+                return;
+            }
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000';
+            ctx.fillStyle = '#FFF';
+
+            const dx = player.frontWheel.x - player.rearWheel.x;
+            const dy = player.frontWheel.y - player.rearWheel.y;
+            const angle = Math.atan2(dy, dx);
+            
+            const cx = (player.rearWheel.x + player.frontWheel.x) / 2;
+            const cy = (player.rearWheel.y + player.frontWheel.y) / 2;
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(angle);
+
+            // Korrekte Distanz fuer den Ueberschlag beibehalten
+            const dist = Math.hypot(dx, dy);
+            const localX = Math.max(5, dist / 2);
+            
+            const seatX = -localX + 10;
+            const seatY = -15;
+
+            // Raeder
+            ctx.beginPath();
+            ctx.arc(-localX, 0, 5, 0, Math.PI * 2);
+            ctx.arc(localX, 0, 5, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Rahmen
+            ctx.beginPath();
+            ctx.moveTo(-localX, 0);
+            ctx.lineTo(localX, 0);
+            
+            ctx.moveTo(seatX, 0);
+            ctx.lineTo(seatX, seatY);
+            
+            ctx.moveTo(localX, 0);
+            ctx.lineTo(localX - 5, -20);
+            ctx.lineTo(localX + 5, -20);
+            ctx.stroke();
+
+            // Sattel
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(seatX, seatY, 7, 2.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bohne und Beine werden beim Crash ausgeblendet (Bohne fliegt separat)
+            if (!isCrashing) {
+                let beanOffsetY = 0;
+                let beanAngle = 0;
+
+                if (player.rearWheel.isJumping && !player.frontWheel.isJumping) {
+                    beanOffsetY = -8;
+                    beanAngle = 0.2;
+                } else if (player.frontWheel.isJumping && !player.rearWheel.isJumping) {
+                    beanOffsetY = 0;
+                    beanAngle = -0.5;
+                } else if (player.rearWheel.isJumping && player.frontWheel.isJumping) {
+                    beanOffsetY = -4;
+                    beanAngle = -0.1;
+                }
+
+                const crankX = seatX;
+                const crankY = 0;
+                const crankRadius = 6;
+                const px1 = crankX + Math.cos(pedalAngle) * crankRadius;
+                const py1 = crankY + Math.sin(pedalAngle) * crankRadius;
+                const px2 = crankX + Math.cos(pedalAngle + Math.PI) * crankRadius;
+                const py2 = crankY + Math.sin(pedalAngle + Math.PI) * crankRadius;
+
+                const drawLeg = (px, py) => {
+                    const hipX = seatX - 2;
+                    const hipY = seatY + beanOffsetY + 4;
+                    const midX = (hipX + px) / 2;
+                    const midY = (hipY + py) / 2;
+                    const kneeX = midX + 6;
+                    const kneeY = midY;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(hipX, hipY);
+                    ctx.lineTo(kneeX, kneeY);
+                    ctx.lineTo(px, py);
+                    ctx.stroke();
+                };
+
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#555';
+                drawLeg(px2, py2);
+                ctx.beginPath();
+                ctx.moveTo(crankX, crankY);
+                ctx.lineTo(px2, py2);
+                ctx.stroke();
+
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#000';
+                ctx.fillStyle = '#FFF';
+
+                ctx.save();
+                const seatTransX = seatX;
+                const seatTransY = seatY;
+
+                ctx.translate(seatTransX, seatTransY + beanOffsetY);
+                ctx.rotate(beanAngle);
+
+                ctx.beginPath();
+                ctx.ellipse(0, -10, 8, 12, Math.PI / 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#555';
+                ctx.fillRect(-12, -16, 6, 12);
+                ctx.strokeRect(-12, -16, 6, 12);
+
+                ctx.fillStyle = '#000';
+                ctx.fillRect(2, -15, 2, 2);
+                ctx.fillRect(6, -14, 2, 2);
+
+                ctx.restore(); 
+
+                drawLeg(px1, py1);
+                ctx.beginPath();
+                ctx.moveTo(crankX, crankY);
+                ctx.lineTo(px1, py1);
+                ctx.stroke();
+
+                const shoulderX = seatTransX + 4 * Math.cos(beanAngle) - (-8) * Math.sin(beanAngle);
+                const shoulderY = (seatTransY + beanOffsetY) + 4 * Math.sin(beanAngle) + (-8) * Math.cos(beanAngle);
+
+                ctx.beginPath();
+                ctx.moveTo(shoulderX, shoulderY);
+                ctx.bezierCurveTo(-localX/2, -10, localX/2, -30, localX, -20);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        function gameLoop(timestamp) {
+            if (!isGameRunning) return;
+
+            if (!lastTime) lastTime = timestamp;
+            let deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            if (deltaTime > 100) deltaTime = 16.66;
+            
+            const timeScale = deltaTime / 16.666;
+
+            if (isGameOver) {
+                isGameRunning = false;
+                titleEl.innerText = "Game Over - Bohnenmus!";
+                instructionEl.innerText = "Punkte: " + score + " | KLICK für Neustart";
+                uiLayer.classList.remove('hidden');
+                return;
+            }
+
+            // Spielgeschehen einfrieren, wenn Crash laeuft
+            let moveScale = isCrashing ? 0 : timeScale;
+
+            if (!isCrashing) {
+                let isAccelerating = keys.up || touchGas;
+                let isBraking = keys.down || touchBrake;
+
+                // Horizontale Position des Fahrrads berechnen
+                if (isAccelerating) {
+                    player.targetBikeX += 2.5 * timeScale;
+                }
+                if (isBraking) {
+                    player.targetBikeX -= 2.5 * timeScale;
+                }
+                
+                // Fahrrad im Bildschirm begrenzen
+                if (player.targetBikeX < 20) player.targetBikeX = 20;
+                if (player.targetBikeX > canvas.width - 100) player.targetBikeX = canvas.width - 100;
+
+                player.rearWheel.defaultX = player.targetBikeX;
+                player.frontWheel.defaultX = player.targetBikeX + 60;
+
+                updateWheel(player.rearWheel, timeScale);
+                updateWheel(player.frontWheel, timeScale);
+
+                // Verhindert das Durchrutschen des Rahmens und wendet Reibung an
+                handleFrameCollision(timeScale);
+
+                const dx = player.frontWheel.x - player.rearWheel.x;
+                
+                // Crash-Bedingungen:
+                // 1. Vorderrad prallt frontal gegen Kante (Stauchung)
+                if (player.frontWheel.isHittingWall && dx < 30) {
+                    startCrash('flip');
+                } 
+                // 2. Hinterrad bleibt haengen und zerreisst das Fahrrad (Dehnung auf ueber 110 Pixel)
+                else if (player.rearWheel.isHittingWall && dx > 110) {
+                    startCrash('tear');
+                }
+
+                if (!player.rearWheel.isJumping && !player.frontWheel.isJumping && !player.frontWheel.isHittingWall) {
+                    let currentPedalSpeed = gameSpeed * 0.15;
+                    if (isAccelerating) currentPedalSpeed += 0.1;
+                    if (isBraking) currentPedalSpeed = Math.max(0.05, currentPedalSpeed - 0.1);
+                    
+                    let oldAngle = pedalAngle;
+                    pedalAngle += currentPedalSpeed * timeScale;
+                    
+                    // Spielt den Sound ab, wenn ein halber Tretzyklus (Pi) vollendet ist
+                    if (Math.floor(oldAngle / Math.PI) < Math.floor(pedalAngle / Math.PI)) {
+                        playPedalSound();
+                    }
+                }
+            } else {
+                updateCrashAnimation(timeScale);
+            }
+
+            drawEnvironment(moveScale);
+            
+            // Hindernisse bewegen und zeichnen
+            spawnObstacle(moveScale);
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed * moveScale;
+
+                ctx.fillStyle = obs.color;
+                ctx.strokeStyle = '#000';
+                ctx.beginPath();
+                
+                if (obs.type === 'block') {
+                    ctx.rect(obs.x, obs.y, obs.width, obs.height);
+                } else if (obs.type === 'ramp') {
+                    ctx.moveTo(obs.x, player.groundY + 5);
+                    ctx.lineTo(obs.x + obs.width, obs.y);
+                    ctx.lineTo(obs.x + obs.width, player.groundY + 5);
+                } else if (obs.type === 'round') {
+                    ctx.moveTo(obs.x, player.groundY + 5);
+                    ctx.ellipse(obs.x + obs.width / 2, player.groundY + 5, obs.width / 2, obs.height, 0, Math.PI, 0);
+                }
+                
+                ctx.fill();
+                ctx.stroke();
+
+                if (!isCrashing && !obs.passed && obs.x + obs.width < player.rearWheel.defaultX) {
+                    obs.passed = true;
+                    score += 1;
+                    gameSpeed += 0.01; 
+                    playScore();
+                }
+
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            drawPlayer();
+            
+            // Zerfliessendes Mus wird ueber alles andere gezeichnet
+            if (isCrashing) {
+                drawCrashBean();
+            }
+
+            ctx.fillStyle = '#000';
+            ctx.font = '16px Courier New';
+            ctx.fillText('Punkte: ' + score, 10, 20);
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        drawEnvironment(0);
+        drawPlayer();
+    </script>
+</body>
+</html>
