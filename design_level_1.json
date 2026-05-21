@@ -1,0 +1,49 @@
+{
+    "theme": {
+        "skyColor": "#87CEEB",
+        "groundColor": "#8B4513",
+        "surfaceColor": "#228B22",
+        "sun": {
+            "active": true,
+            "color": "#FFD700",
+            "size": 20,
+            "xOffset": 100,
+            "y": 20
+        }
+    },
+    "objects": [
+        {
+            "type": "tree",
+            "count": 4,
+            "minWidth": 30,
+            "maxWidth": 50,
+            "minHeight": 60,
+            "maxHeight": 100,
+            "color1": "#8B4513",
+            "color2": "#006400",
+            "speedModifier": 0.5
+        },
+        {
+            "type": "mountain",
+            "count": 2,
+            "minWidth": 80,
+            "maxWidth": 150,
+            "minHeight": 80,
+            "maxHeight": 140,
+            "color1": "#778899",
+            "color2": "",
+            "speedModifier": 0.2
+        },
+        {
+            "type": "building",
+            "count": 1,
+            "minWidth": 40,
+            "maxWidth": 60,
+            "minHeight": 50,
+            "maxHeight": 90,
+            "color1": "#A9A9A9",
+            "color2": "#8B0000",
+            "speedModifier": 0.6
+        }
+    ]
+}

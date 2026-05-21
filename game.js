@@ -7,10 +7,10 @@ const touchControls = document.getElementById('touch-controls');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
 
 let levelData = [];
+let designData = null;
 let worldDistance = 0;
 let nextObstacleIndex = 0;
 
-// Fallback-Datenstruktur
 const fallbackLevelData = [
     { "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" },
     { "spawnDistance": 600, "type": "ramp", "width": 60, "height": 20, "color": "#555" },
@@ -18,12 +18,33 @@ const fallbackLevelData = [
     { "spawnDistance": 1300, "type": "block", "width": 50, "height": 20, "color": "#8B4513" }
 ];
 
-// Laden der JSON Datei
+const fallbackDesignData = {
+    "theme": {
+        "skyColor": "#87CEEB",
+        "groundColor": "#8B4513",
+        "surfaceColor": "#228B22",
+        "sun": { "active": true, "color": "#FFD700", "size": 20, "xOffset": 100, "y": 20 }
+    },
+    "objects": [
+        {
+            "type": "tree",
+            "count": 5,
+            "minWidth": 30,
+            "maxWidth": 50,
+            "minHeight": 60,
+            "maxHeight": 100,
+            "color1": "#8B4513",
+            "color2": "#006400",
+            "speedModifier": 0.5
+        }
+    ]
+};
+
+designData = fallbackDesignData;
+
 fetch('level1.json')
     .then(function(response) {
-        if (!response.ok) {
-            throw new Error('HTTP Status ' + response.status);
-        }
+        if (!response.ok) throw new Error('HTTP Status ' + response.status);
         return response.json();
     })
     .then(function(data) {
@@ -32,6 +53,18 @@ fetch('level1.json')
     .catch(function(error) {
         console.warn('level1.json nicht geladen. Fallback wird verwendet.', error);
         levelData = fallbackLevelData;
+    });
+
+fetch('design_level_1.json')
+    .then(function(response) {
+        if (!response.ok) throw new Error('HTTP Status ' + response.status);
+        return response.json();
+    })
+    .then(function(data) {
+        designData = data;
+    })
+    .catch(function(error) {
+        console.warn('design_level_1.json nicht geladen. Fallback wird verwendet.', error);
     });
 
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
@@ -103,10 +136,7 @@ function playTone(frequency, type, duration, vol = 0.1) {
     osc.stop(audioCtx.currentTime + duration);
 }
 
-function playJump() { 
-    playTone(150, 'square', 0.1, 0.1); 
-}
-
+function playJump() { playTone(150, 'square', 0.1, 0.1); }
 function playScore() {
     playTone(880, 'square', 0.1, 0.1);
     setTimeout(function() {
@@ -196,14 +226,21 @@ const backgroundElements = [];
 
 function initBackground() {
     backgroundElements.length = 0;
-    for (let i = 0; i < 5; i++) {
-        backgroundElements.push({
-            x: Math.random() * canvas.width,
-            width: 30 + Math.random() * 20,
-            height: 60 + Math.random() * 40,
-            speedModifier: 0.5
-        });
-    }
+    if (!designData || !designData.objects) return;
+
+    designData.objects.forEach(function(objConfig) {
+        for (let i = 0; i < objConfig.count; i++) {
+            backgroundElements.push({
+                x: Math.random() * canvas.width,
+                width: objConfig.minWidth + Math.random() * (objConfig.maxWidth - objConfig.minWidth),
+                height: objConfig.minHeight + Math.random() * (objConfig.maxHeight - objConfig.minHeight),
+                speedModifier: objConfig.speedModifier,
+                type: objConfig.type,
+                color1: objConfig.color1,
+                color2: objConfig.color2
+            });
+        }
+    });
 }
 
 function resetGame() {
@@ -547,7 +584,17 @@ function updateCrashAnimation(timeScale) {
 }
 
 function drawEnvironment(moveScale) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (designData && designData.theme) {
+        ctx.fillStyle = designData.theme.skyColor;
+    } else {
+        ctx.fillStyle = '#87CEEB';
+    }
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (designData && designData.theme && designData.theme.sun.active) {
+        ctx.fillStyle = designData.theme.sun.color;
+        ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
+    }
 
     const finishLineX = canvas.width + (3000 - worldDistance);
     if (finishLineX > 0 && finishLineX < canvas.width) {
@@ -557,21 +604,45 @@ function drawEnvironment(moveScale) {
         }
     }
 
-    ctx.fillStyle = '#228B22';
     for (let bg of backgroundElements) {
         if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
         if (bg.x + bg.width < 0) bg.x = canvas.width;
         
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(bg.x + bg.width/3, player.groundY - 15, bg.width/3, 20);
-        ctx.fillStyle = '#006400';
-        ctx.fillRect(bg.x, player.groundY - bg.height + 5, bg.width, bg.height - 20);
+        if (bg.type === 'tree') {
+            ctx.fillStyle = bg.color1;
+            ctx.fillRect(bg.x + bg.width/3, player.groundY - 15, bg.width/3, 20);
+            ctx.fillStyle = bg.color2;
+            ctx.fillRect(bg.x, player.groundY - bg.height + 5, bg.width, bg.height - 20);
+        } else if (bg.type === 'building') {
+            ctx.fillStyle = bg.color1;
+            ctx.fillRect(bg.x, player.groundY + 5 - bg.height, bg.width, bg.height);
+            ctx.fillStyle = bg.color2;
+            ctx.beginPath();
+            ctx.moveTo(bg.x - 5, player.groundY + 5 - bg.height);
+            ctx.lineTo(bg.x + bg.width / 2, player.groundY + 5 - bg.height - 20);
+            ctx.lineTo(bg.x + bg.width + 5, player.groundY + 5 - bg.height);
+            ctx.fill();
+        } else if (bg.type === 'mountain') {
+            ctx.fillStyle = bg.color1;
+            ctx.beginPath();
+            ctx.moveTo(bg.x, player.groundY + 5);
+            ctx.lineTo(bg.x + bg.width / 2, player.groundY + 5 - bg.height);
+            ctx.lineTo(bg.x + bg.width, player.groundY + 5);
+            ctx.fill();
+        }
     }
 
-    ctx.fillStyle = '#8B4513';
-    ctx.fillRect(0, player.groundY + 5, canvas.width, canvas.height - (player.groundY + 5));
-    ctx.fillStyle = '#228B22';
-    ctx.fillRect(0, player.groundY + 5, canvas.width, 4);
+    if (designData && designData.theme) {
+        ctx.fillStyle = designData.theme.groundColor;
+        ctx.fillRect(0, player.groundY + 5, canvas.width, canvas.height - (player.groundY + 5));
+        ctx.fillStyle = designData.theme.surfaceColor;
+        ctx.fillRect(0, player.groundY + 5, canvas.width, 4);
+    } else {
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(0, player.groundY + 5, canvas.width, canvas.height - (player.groundY + 5));
+        ctx.fillStyle = '#228B22';
+        ctx.fillRect(0, player.groundY + 5, canvas.width, 4);
+    }
 }
 
 function drawCrashBean() {
