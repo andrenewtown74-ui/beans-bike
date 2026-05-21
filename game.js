@@ -222,10 +222,10 @@ function resetGame() {
     initAudio();
     startMusic();
     
-    if (!animationFrameId) {
-        animationFrameId = requestAnimationFrame(gameLoop);
-    }
+cancelAnimationFrame(animationFrameId);
+    animationFrameId = requestAnimationFrame(gameLoop);
 }
+
 
 function jump(wheel) {
     if (!isGameRunning && !isGameOver) {
