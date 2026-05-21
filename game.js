@@ -10,14 +10,28 @@ let levelData = [];
 let worldDistance = 0;
 let nextObstacleIndex = 0;
 
-// Laedt die Level-Datenbank asynchron
+// Fallback-Datenstruktur
+const fallbackLevelData = [
+    { "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" },
+    { "spawnDistance": 600, "type": "ramp", "width": 60, "height": 20, "color": "#555" },
+    { "spawnDistance": 1000, "type": "round", "width": 40, "height": 25, "color": "#333" },
+    { "spawnDistance": 1300, "type": "block", "width": 50, "height": 20, "color": "#8B4513" }
+];
+
+// Laden der JSON Datei
 fetch('level1.json')
-    .then(response => response.json())
-    .then(data => {
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error('HTTP Status ' + response.status);
+        }
+        return response.json();
+    })
+    .then(function(data) {
         levelData = data;
     })
-    .catch(error => {
-        console.error('Fehler beim Laden von level1.json:', error);
+    .catch(function(error) {
+        console.warn('level1.json nicht geladen. Fallback wird verwendet.', error);
+        levelData = fallbackLevelData;
     });
 
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
@@ -28,24 +42,26 @@ function showCustomMessage(msg) {
     const msgBox = document.getElementById('msg-box');
     msgBox.innerText = msg;
     msgBox.classList.remove('hidden');
-    setTimeout(() => msgBox.classList.add('hidden'), 3500);
+    setTimeout(function() {
+        msgBox.classList.add('hidden');
+    }, 3500);
 }
 
-fullscreenBtn.addEventListener('click', (e) => {
+fullscreenBtn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation(); 
     const elem = document.documentElement;
     const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     if (!isFullscreen) {
         let requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
-        if (requestFS) requestFS.call(elem).catch(() => {});
+        if (requestFS) requestFS.call(elem).catch(function() {});
     } else {
         let exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
         if (exitFS) exitFS.call(document);
     }
 });
 
-const updateBtnText = () => {
+const updateBtnText = function() {
     const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
     fullscreenBtn.innerText = isFullscreen ? "Fenster" : "Vollbild";
 };
@@ -66,7 +82,11 @@ bgMusic.loop = true;
 bgMusic.volume = 0.4; 
 
 function initAudio() {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(function(err) {
+            console.warn('AudioContext konnte nicht fortgesetzt werden:', err);
+        });
+    }
 }
 
 function playTone(frequency, type, duration, vol = 0.1) {
@@ -83,11 +103,17 @@ function playTone(frequency, type, duration, vol = 0.1) {
     osc.stop(audioCtx.currentTime + duration);
 }
 
-function playJump() { playTone(150, 'square', 0.1, 0.1); }
+function playJump() { 
+    playTone(150, 'square', 0.1, 0.1); 
+}
+
 function playScore() {
     playTone(880, 'square', 0.1, 0.1);
-    setTimeout(() => playTone(1108, 'square', 0.15, 0.1), 100);
+    setTimeout(function() {
+        playTone(1108, 'square', 0.15, 0.1);
+    }, 100);
 }
+
 function playCrash() {
     if (!audioCtx) return;
     const bufferSize = audioCtx.sampleRate * 0.5;
@@ -103,6 +129,7 @@ function playCrash() {
     gain.connect(audioCtx.destination);
     noise.start();
 }
+
 function playTear() { playTone(50, 'sawtooth', 0.4, 0.3); }
 function playHit() { playTone(100, 'square', 0.2, 0.2); }
 
@@ -123,10 +150,14 @@ function playPedalSound() {
 
 function startMusic() {
     bgMusic.currentTime = 0;
-    bgMusic.play().catch(() => {});
+    bgMusic.play().catch(function(err) {
+        console.warn('Autoplay durch Browser blockiert', err);
+    });
 }
 
-function stopMusic() { bgMusic.pause(); }
+function stopMusic() { 
+    bgMusic.pause(); 
+}
 
 const keys = { up: false, down: false };
 let touchGas = false;
@@ -222,10 +253,9 @@ function resetGame() {
     initAudio();
     startMusic();
     
-cancelAnimationFrame(animationFrameId);
+    cancelAnimationFrame(animationFrameId);
     animationFrameId = requestAnimationFrame(gameLoop);
 }
-
 
 function jump(wheel) {
     if (!isGameRunning && !isGameOver) {
@@ -250,7 +280,7 @@ function jump(wheel) {
     }
 }
 
-window.addEventListener('keydown', (e) => {
+window.addEventListener('keydown', function(e) {
     initAudio();
     if (!isGameRunning || isGameOver) {
         if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
@@ -265,7 +295,7 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.down = true; e.preventDefault(); }
 });
 
-window.addEventListener('keyup', (e) => {
+window.addEventListener('keyup', function(e) {
     if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.up = false;
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.down = false;
 });
@@ -309,7 +339,7 @@ window.addEventListener('touchstart', handleTouch, { passive: false });
 window.addEventListener('touchmove', handleTouch, { passive: false });
 window.addEventListener('touchend', handleTouch, { passive: false });
 
-window.addEventListener('mousedown', (e) => {
+window.addEventListener('mousedown', function(e) {
     initAudio();
     if (!isGameRunning || isGameOver) {
         resetGame();
@@ -482,7 +512,7 @@ function updateCrashAnimation(timeScale) {
         player.rearWheel.x = player.frontWheel.x - Math.cos(crashAngle) * crashBikeLength;
         player.rearWheel.y = player.frontWheel.y - Math.sin(crashAngle) * crashBikeLength;
     } else if (crashType === 'tear') {
-        ['rear', 'front'].forEach(part => {
+        ['rear', 'front'].forEach(function(part) {
             let p = bikeParts[part];
             p.vy += player.gravity * timeScale;
             p.x += p.vx * timeScale;
@@ -678,7 +708,7 @@ function drawPlayer() {
         const px2 = crankX + Math.cos(pedalAngle + Math.PI) * crankRadius;
         const py2 = crankY + Math.sin(pedalAngle + Math.PI) * crankRadius;
 
-        const drawLeg = (px, py) => {
+        const drawLeg = function(px, py) {
             const hipX = seatX - 2;
             const hipY = seatY + beanOffsetY + 4;
             const midX = (hipX + px) / 2;
