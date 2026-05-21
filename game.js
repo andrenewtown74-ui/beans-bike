@@ -582,7 +582,6 @@ function updateCrashAnimation(timeScale) {
         if (gameOverTimer > 1200) isGameOver = true;
     }
 }
-
 function drawEnvironment(moveScale) {
     if (designData && designData.theme) {
         ctx.fillStyle = designData.theme.skyColor;
@@ -604,33 +603,39 @@ function drawEnvironment(moveScale) {
         }
     }
 
-    for (let bg of backgroundElements) {
-        if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
-        if (bg.x + bg.width < 0) bg.x = canvas.width;
-        
-        if (bg.type === 'tree') {
-            ctx.fillStyle = bg.color1;
-            ctx.fillRect(bg.x + bg.width/3, player.groundY - 15, bg.width/3, 20);
-            ctx.fillStyle = bg.color2;
-            ctx.fillRect(bg.x, player.groundY - bg.height + 5, bg.width, bg.height - 20);
-        } else if (bg.type === 'building') {
-            ctx.fillStyle = bg.color1;
-            ctx.fillRect(bg.x, player.groundY + 5 - bg.height, bg.width, bg.height);
-            ctx.fillStyle = bg.color2;
-            ctx.beginPath();
-            ctx.moveTo(bg.x - 5, player.groundY + 5 - bg.height);
-            ctx.lineTo(bg.x + bg.width / 2, player.groundY + 5 - bg.height - 20);
-            ctx.lineTo(bg.x + bg.width + 5, player.groundY + 5 - bg.height);
-            ctx.fill();
-        } else if (bg.type === 'mountain') {
-            ctx.fillStyle = bg.color1;
-            ctx.beginPath();
-            ctx.moveTo(bg.x, player.groundY + 5);
-            ctx.lineTo(bg.x + bg.width / 2, player.groundY + 5 - bg.height);
-            ctx.lineTo(bg.x + bg.width, player.groundY + 5);
-            ctx.fill();
-        }
-    }
+    // Sortierung der Hintergrundelemente fuer korrekte Tiefenstaffelung
+    // Zeichnungsreihenfolge: Berg -> Baum -> Gebaeude
+    const drawOrder = ['mountain', 'tree', 'building'];
+    
+    drawOrder.forEach(function(type) {
+        backgroundElements.filter(function(bg) { return bg.type === type; }).forEach(function(bg) {
+            if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
+            if (bg.x + bg.width < 0) bg.x = canvas.width;
+            
+            if (bg.type === 'tree') {
+                ctx.fillStyle = bg.color1;
+                ctx.fillRect(bg.x + bg.width/3, player.groundY - 15, bg.width/3, 20);
+                ctx.fillStyle = bg.color2;
+                ctx.fillRect(bg.x, player.groundY - bg.height + 5, bg.width, bg.height - 20);
+            } else if (bg.type === 'building') {
+                ctx.fillStyle = bg.color1;
+                ctx.fillRect(bg.x, player.groundY + 5 - bg.height, bg.width, bg.height);
+                ctx.fillStyle = bg.color2;
+                ctx.beginPath();
+                ctx.moveTo(bg.x - 5, player.groundY + 5 - bg.height);
+                ctx.lineTo(bg.x + bg.width / 2, player.groundY + 5 - bg.height - 20);
+                ctx.lineTo(bg.x + bg.width + 5, player.groundY + 5 - bg.height);
+                ctx.fill();
+            } else if (bg.type === 'mountain') {
+                ctx.fillStyle = bg.color1;
+                ctx.beginPath();
+                ctx.moveTo(bg.x, player.groundY + 5);
+                ctx.lineTo(bg.x + bg.width / 2, player.groundY + 5 - bg.height);
+                ctx.lineTo(bg.x + bg.width, player.groundY + 5);
+                ctx.fill();
+            }
+        });
+    });
 
     if (designData && designData.theme) {
         ctx.fillStyle = designData.theme.groundColor;
@@ -644,7 +649,6 @@ function drawEnvironment(moveScale) {
         ctx.fillRect(0, player.groundY + 5, canvas.width, 4);
     }
 }
-
 function drawCrashBean() {
     if (beanCrash.isSplat) {
         ctx.fillStyle = '#FFF';
