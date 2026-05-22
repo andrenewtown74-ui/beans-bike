@@ -15,11 +15,12 @@ let nextObstacleIndex = 0;
 
 let currentLevel = 1;
 let playTime = 0;
-const LEVEL_DURATION = 120000; 
+const LEVEL_DURATION = 60000; 
 let finishLineActive = false;
 let finishLineX = 0;
 let isLevelComplete = false;
 let bikeStopped = false;
+let lives = 3;
 
 // Fallback Daten
 const fallbackLevelData = [
@@ -142,13 +143,21 @@ function initBackground() {
     });
 }
 
+function startNewGame() {
+    lives = 3;
+    score = 0;
+    currentLevel = 1;
+    loadLevelData(currentLevel);
+    restartLevel();
+}
+
 function advanceLevel() {
     currentLevel++;
     loadLevelData(currentLevel);
-    resetGame();
+    restartLevel();
 }
 
-function resetGame() {
+function restartLevel() {
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
@@ -183,7 +192,6 @@ function resetGame() {
     bikeStopped = false;
     hasPlayedFanfare = false;
     
-    score = 0;
     gameSpeed = 1.5;
     pedalAngle = 0;
     
@@ -210,13 +218,16 @@ function resetGame() {
 // Steuerungsebene
 function handleInputEvent() {
     initAudio();
-    if (!isGameRunning) {
-        if (isLevelComplete) advanceLevel();
-        else resetGame();
+    if (isGameOver) {
+        startNewGame();
         return true;
     }
-    if (isGameOver) {
-        resetGame();
+    if (isLevelComplete && bikeStopped) {
+        advanceLevel();
+        return true;
+    }
+    if (!isGameRunning) {
+        startNewGame();
         return true;
     }
     return false;
@@ -389,7 +400,6 @@ function gameLoop(timestamp) {
             if (player.frontWheel.x >= canvas.width / 2) {
                 bikeStopped = true;
                 if (!hasPlayedFanfare) {
-                    stopMusic();
                     playFanfare();
                     hasPlayedFanfare = true;
                     
@@ -467,13 +477,10 @@ function gameLoop(timestamp) {
     ctx.fillStyle = '#000';
     ctx.font = '16px Courier New';
     ctx.fillText('Punkte: ' + score, 10, 20);
+    ctx.fillText('Leben: ' + lives, 10, 40);
     
     let timeLeft = Math.max(0, Math.ceil((LEVEL_DURATION - playTime) / 1000));
     ctx.fillText('Zeit: ' + timeLeft + 's', canvas.width - 120, 20);
 
     animationFrameId = requestAnimationFrame(gameLoop);
 }
-
-// Initialer Zeichnungsaufruf
-drawEnvironment(0);
-drawPlayer();
