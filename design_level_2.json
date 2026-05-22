@@ -3,7 +3,7 @@
         "skyColor": "#4682B4",
         "groundColor": "#A9A9A9",
         "surfaceColor": "#FFFFFF",
-        "music": "Level2_Music.mp3",
+        "music": "Gravity_Pulls_the_Chain.mp3",
         "sun": {
             "active": true,
             "color": "#FFF0F5",
