@@ -1,6 +1,3 @@
-// Konstante fuer den Horizont
-const HORIZON_Y = 170;
-
 // Umgebung und Hintergrund rendern
 function drawEnvironment(moveScale) {
     if (designData && designData.theme) ctx.fillStyle = designData.theme.skyColor;
@@ -13,6 +10,8 @@ function drawEnvironment(moveScale) {
     }
 
     const drawOrder = ['mountain', 'tree', 'building'];
+    let horizon = getHorizonY();
+
     drawOrder.forEach(function(type) {
         backgroundElements.filter(function(bg) { return bg.type === type; }).forEach(function(bg) {
             if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
@@ -20,24 +19,24 @@ function drawEnvironment(moveScale) {
             
             if (bg.type === 'tree') {
                 ctx.fillStyle = bg.color1;
-                ctx.fillRect(bg.x + bg.width/3, HORIZON_Y - 15, bg.width/3, 20);
+                ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
-                ctx.fillRect(bg.x, HORIZON_Y - bg.height + 5, bg.width, bg.height - 20);
+                ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
             } else if (bg.type === 'building') {
                 ctx.fillStyle = bg.color1;
-                ctx.fillRect(bg.x, HORIZON_Y + 5 - bg.height, bg.width, bg.height);
+                ctx.fillRect(bg.x, horizon + 5 - bg.height, bg.width, bg.height);
                 ctx.fillStyle = bg.color2;
                 ctx.beginPath();
-                ctx.moveTo(bg.x - 5, HORIZON_Y + 5 - bg.height);
-                ctx.lineTo(bg.x + bg.width / 2, HORIZON_Y + 5 - bg.height - 20);
-                ctx.lineTo(bg.x + bg.width + 5, HORIZON_Y + 5 - bg.height);
+                ctx.moveTo(bg.x - 5, horizon + 5 - bg.height);
+                ctx.lineTo(bg.x + bg.width / 2, horizon + 5 - bg.height - 20);
+                ctx.lineTo(bg.x + bg.width + 5, horizon + 5 - bg.height);
                 ctx.fill();
             } else if (bg.type === 'mountain') {
                 ctx.fillStyle = bg.color1;
                 ctx.beginPath();
-                ctx.moveTo(bg.x, HORIZON_Y + 5);
-                ctx.lineTo(bg.x + bg.width / 2, HORIZON_Y + 5 - bg.height);
-                ctx.lineTo(bg.x + bg.width, HORIZON_Y + 5);
+                ctx.moveTo(bg.x, horizon + 5);
+                ctx.lineTo(bg.x + bg.width / 2, horizon + 5 - bg.height);
+                ctx.lineTo(bg.x + bg.width, horizon + 5);
                 ctx.fill();
             }
         });
