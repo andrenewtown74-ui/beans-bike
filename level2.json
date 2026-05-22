@@ -1,0 +1,10 @@
+[
+    { "spawnDistance": 300, "type": "hill", "width": 150, "height": 40, "color": "#A9A9A9" },
+    { "spawnDistance": 700, "type": "chasm", "width": 80, "height": 0, "color": "" },
+    { "spawnDistance": 1100, "type": "hill", "width": 200, "height": 60, "color": "#A9A9A9" },
+    { "spawnDistance": 1500, "type": "block", "width": 30, "height": 20, "color": "#778899" },
+    { "spawnDistance": 1800, "type": "chasm", "width": 100, "height": 0, "color": "" },
+    { "spawnDistance": 2200, "type": "hill", "width": 250, "height": 80, "color": "#A9A9A9" },
+    { "spawnDistance": 2800, "type": "ramp", "width": 80, "height": 30, "color": "#778899" },
+    { "spawnDistance": 3100, "type": "chasm", "width": 60, "height": 0, "color": "" }
+]

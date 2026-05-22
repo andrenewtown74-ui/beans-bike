@@ -3,6 +3,7 @@
         "skyColor": "#87CEEB",
         "groundColor": "#8B4513",
         "surfaceColor": "#228B22",
+        "music": "Sprocket_Hill_Climb.mp3",
         "sun": {
             "active": true,
             "color": "#FFD700",

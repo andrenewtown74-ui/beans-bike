@@ -1,0 +1,39 @@
+{
+    "theme": {
+        "skyColor": "#4682B4",
+        "groundColor": "#A9A9A9",
+        "surfaceColor": "#FFFFFF",
+        "music": "Level2_Music.mp3",
+        "sun": {
+            "active": true,
+            "color": "#FFF0F5",
+            "size": 25,
+            "xOffset": 150,
+            "y": 30
+        }
+    },
+    "objects": [
+        {
+            "type": "mountain",
+            "count": 6,
+            "minWidth": 150,
+            "maxWidth": 300,
+            "minHeight": 120,
+            "maxHeight": 180,
+            "color1": "#DCDCDC",
+            "color2": "",
+            "speedModifier": 0.2
+        },
+        {
+            "type": "tree",
+            "count": 5,
+            "minWidth": 25,
+            "maxWidth": 40,
+            "minHeight": 50,
+            "maxHeight": 90,
+            "color1": "#8B4513",
+            "color2": "#2F4F4F",
+            "speedModifier": 0.5
+        }
+    ]
+}
