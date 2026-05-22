@@ -6,6 +6,11 @@ function getTerrainY(worldX) {
     return 165 - wave1 - wave2; 
 }
 
+// Horizont fuer Hintergrundobjekte anpassen
+function getHorizonY() {
+    return currentLevel === 1 ? 185 : 165;
+}
+
 // Ermittlung der Oberflaeche anhand aktueller Hindernisse
 function getObstacleSurface(x, obs) {
     if (x < obs.x || x > obs.x + obs.width) return null;
@@ -136,9 +141,10 @@ function handleFrameCollision(timeScale) {
 
 // Initiierung der Absturzsequenz
 function startCrash(type) {
+    if (isCrashing) return;
     isCrashing = true;
     crashType = type;
-    stopMusic();
+    lives--; 
     
     if (type === 'flip') {
         playHit();
@@ -213,6 +219,12 @@ function updateCrashAnimation(timeScale) {
         }
     } else {
         gameOverTimer += timeScale * 16.66;
-        if (gameOverTimer > 1200) isGameOver = true;
+        if (gameOverTimer > 1200) {
+            if (lives > 0) {
+                restartLevel();
+            } else {
+                isGameOver = true;
+            }
+        }
     }
 }
