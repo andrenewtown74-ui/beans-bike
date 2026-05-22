@@ -6,5 +6,12 @@
     { "spawnDistance": 1800, "type": "chasm", "width": 100, "height": 0, "color": "" },
     { "spawnDistance": 2200, "type": "hill", "width": 250, "height": 80, "color": "#A9A9A9" },
     { "spawnDistance": 2800, "type": "ramp", "width": 80, "height": 30, "color": "#778899" },
-    { "spawnDistance": 3100, "type": "chasm", "width": 60, "height": 0, "color": "" }
+    { "spawnDistance": 3100, "type": "chasm", "width": 60, "height": 0, "color": "" },
+    { "spawnDistance": 3500, "type": "hill", "width": 180, "height": 50, "color": "#A9A9A9" },
+    { "spawnDistance": 3900, "type": "chasm", "width": 90, "height": 0, "color": "" },
+    { "spawnDistance": 4300, "type": "block", "width": 40, "height": 25, "color": "#778899" },
+    { "spawnDistance": 4600, "type": "hill", "width": 220, "height": 70, "color": "#A9A9A9" },
+    { "spawnDistance": 5000, "type": "chasm", "width": 80, "height": 0, "color": "" },
+    { "spawnDistance": 5300, "type": "ramp", "width": 70, "height": 25, "color": "#778899" },
+    { "spawnDistance": 5400, "type": "block", "width": 30, "height": 20, "color": "#778899" }
 ]

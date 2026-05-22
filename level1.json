@@ -7,5 +7,14 @@
     { "spawnDistance": 1800, "type": "block", "width": 20, "height": 25, "color": "#8B4513" },
     { "spawnDistance": 2200, "type": "round", "width": 60, "height": 35, "color": "#333" },
     { "spawnDistance": 2600, "type": "ramp", "width": 80, "height": 40, "color": "#555" },
-    { "spawnDistance": 2650, "type": "block", "width": 30, "height": 20, "color": "#8B4513" }
+    { "spawnDistance": 2650, "type": "block", "width": 30, "height": 20, "color": "#8B4513" },
+    { "spawnDistance": 3000, "type": "round", "width": 50, "height": 20, "color": "#333" },
+    { "spawnDistance": 3300, "type": "block", "width": 40, "height": 25, "color": "#8B4513" },
+    { "spawnDistance": 3500, "type": "block", "width": 30, "height": 15, "color": "#8B4513" },
+    { "spawnDistance": 3900, "type": "ramp", "width": 70, "height": 30, "color": "#555" },
+    { "spawnDistance": 4300, "type": "round", "width": 60, "height": 30, "color": "#333" },
+    { "spawnDistance": 4700, "type": "ramp", "width": 50, "height": 25, "color": "#555" },
+    { "spawnDistance": 4800, "type": "block", "width": 25, "height": 15, "color": "#8B4513" },
+    { "spawnDistance": 5100, "type": "round", "width": 40, "height": 20, "color": "#333" },
+    { "spawnDistance": 5400, "type": "block", "width": 50, "height": 20, "color": "#8B4513" }
 ]
