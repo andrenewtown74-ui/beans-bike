@@ -75,6 +75,12 @@ function updateWheel(wheel, timeScale) {
         wheel.x += (wheel.defaultX - wheel.x) * (0.1 * timeScale);
     }
 
+    // Bergab-Haftung: Hält das Rad bei moderaten Talfahrten am Boden
+    if (!wheel.isJumping && !overChasm && wheel.y < currentSurface && wheel.y > currentSurface - 20) {
+        wheel.y = currentSurface;
+        wheel.vy = 0;
+    }
+
     if (wheel.y >= currentSurface && !overChasm) {
         wheel.y = currentSurface;
         wheel.onSurface = true; 
