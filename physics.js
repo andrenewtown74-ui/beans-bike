@@ -58,7 +58,8 @@ function updateWheel(wheel, timeScale) {
             if (obs.type === 'chasm') {
                 overChasm = true;
                 currentSurface = surface;
-            } else if (obs.type === 'block' && wheel.x < obs.x + 8 && wheel.y > obs.y - 2) {
+            } else if (obs.type === 'block' && wheel.x < obs.x + 5 && wheel.y > obs.y) {
+                // Toleranz um 3 Pixel verringert, um Einschneiden an Kanten zu verhindern
                 wheel.isHittingWall = true;
             } else if (obs.type === 'round' && wheel.x < obs.x + 8 && wheel.y > obs.y + (obs.height * 0.4)) {
                 wheel.isHittingWall = true;
@@ -71,11 +72,13 @@ function updateWheel(wheel, timeScale) {
 
     if (wheel.isHittingWall) {
         wheel.x -= gameSpeed * timeScale; 
+        // Synchronisierung des globalen Ankerpunkts zur Vermeidung von Verspannungen
+        player.targetBikeX -= gameSpeed * timeScale;
     } else if (!isLevelComplete || (isLevelComplete && !bikeStopped)) {
         wheel.x += (wheel.defaultX - wheel.x) * (0.1 * timeScale);
     }
 
-    // Bergab-Haftung: Hält das Rad bei moderaten Talfahrten am Boden
+    // Bergab-Haftung: Haelt das Rad bei moderaten Talfahrten am Boden
     if (!wheel.isJumping && !overChasm && wheel.y < currentSurface && wheel.y > currentSurface - 20) {
         wheel.y = currentSurface;
         wheel.vy = 0;
