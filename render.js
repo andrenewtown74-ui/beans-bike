@@ -1,30 +1,95 @@
-// Hintergrund und Terrain rendern
+// Umgebung und Hintergrund rendern
 function drawEnvironment(moveScale) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (designData && designData.theme) ctx.fillStyle = designData.theme.skyColor;
+    else ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const finishLineX = canvas.width + (3000 - worldDistance);
-    if (finishLineX > 0 && finishLineX < canvas.width) {
-        ctx.fillStyle = '#FFD700';
-        for(let i = 0; i < 10; i++) {
-            ctx.fillRect(finishLineX, player.groundY + 5 - (i * 10), 10, 10);
+    if (designData && designData.theme && designData.theme.sun && designData.theme.sun.active) {
+        ctx.fillStyle = designData.theme.sun.color;
+        ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
+    }
+
+    const drawOrder = ['mountain', 'tree', 'building'];
+    let horizon = getHorizonY();
+
+    drawOrder.forEach(function(type) {
+        backgroundElements.filter(function(bg) { return bg.type === type; }).forEach(function(bg) {
+            if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
+            if (bg.x + bg.width < 0) bg.x = canvas.width;
+            
+            if (bg.type === 'tree') {
+                ctx.fillStyle = bg.color1;
+                ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
+                ctx.fillStyle = bg.color2;
+                ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
+            } else if (bg.type === 'building') {
+                ctx.fillStyle = bg.color1;
+                ctx.fillRect(bg.x, horizon + 5 - bg.height, bg.width, bg.height);
+                ctx.fillStyle = bg.color2;
+                ctx.beginPath();
+                ctx.moveTo(bg.x - 5, horizon + 5 - bg.height);
+                ctx.lineTo(bg.x + bg.width / 2, horizon + 5 - bg.height - 20);
+                ctx.lineTo(bg.x + bg.width + 5, horizon + 5 - bg.height);
+                ctx.fill();
+            } else if (bg.type === 'mountain') {
+                ctx.fillStyle = bg.color1;
+                ctx.beginPath();
+                ctx.moveTo(bg.x, horizon + 5);
+                ctx.lineTo(bg.x + bg.width / 2, horizon + 5 - bg.height);
+                ctx.lineTo(bg.x + bg.width, horizon + 5);
+                ctx.fill();
+            }
+        });
+    });
+
+    ctx.fillStyle = designData && designData.theme ? designData.theme.groundColor : '#8B4513';
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    
+    for (let x = 0; x <= canvas.width; x += 5) {
+        let isChasm = false;
+        for (let obs of obstacles) {
+            if (obs.type === 'chasm' && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+        }
+        let ty = isChasm ? canvas.height + 10 : getTerrainY(worldDistance + x) + 5;
+        ctx.lineTo(x, ty);
+    }
+    
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.fill();
+
+    ctx.strokeStyle = designData && designData.theme ? designData.theme.surfaceColor : '#228B22';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    let isDrawing = false;
+    
+    for (let x = 0; x <= canvas.width; x += 5) {
+        let isChasm = false;
+        for (let obs of obstacles) {
+            if (obs.type === 'chasm' && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+        }
+        if (!isChasm) {
+            let ty = getTerrainY(worldDistance + x) + 5;
+            if (!isDrawing) { ctx.moveTo(x, ty); isDrawing = true; }
+            else { ctx.lineTo(x, ty); }
+        } else {
+            isDrawing = false;
         }
     }
+    ctx.stroke();
 
-    ctx.fillStyle = '#228B22';
-    for (let bg of backgroundElements) {
-        if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
-        if (bg.x + bg.width < 0) bg.x = canvas.width;
-        
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(bg.x + bg.width / 3, player.groundY - 15, bg.width / 3, 20);
-        ctx.fillStyle = '#006400';
-        ctx.fillRect(bg.x, player.groundY - bg.height + 5, bg.width, bg.height - 20);
+    if (finishLineActive) {
+        if (moveScale) finishLineX -= gameSpeed * moveScale;
+        let ty = getTerrainY(worldDistance + finishLineX);
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(finishLineX, ty - 80, 10, 85);
+        for(let i=0; i<4; i++) {
+            ctx.fillStyle = (i%2===0) ? '#000' : '#FFF';
+            ctx.fillRect(finishLineX + 10, ty - 80 + (i*10), 10, 10);
+            ctx.fillStyle = (i%2!==0) ? '#000' : '#FFF';
+            ctx.fillRect(finishLineX + 20, ty - 80 + (i*10), 10, 10);
+        }
     }
-
-    ctx.fillStyle = '#8B4513';
-    ctx.fillRect(0, player.groundY + 5, canvas.width, canvas.height - (player.groundY + 5));
-    ctx.fillStyle = '#228B22';
-    ctx.fillRect(0, player.groundY + 5, canvas.width, 4);
 }
 
 // Bohne bei Unfall zeichnen
@@ -97,6 +162,7 @@ function drawCrashBean() {
 
 // Zerrissenes Fahrrad zeichnen
 function drawBrokenBike() {
+    if(crashType === 'fall') return; 
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#000';
     ctx.fillStyle = '#FFF';
@@ -120,7 +186,7 @@ function drawBrokenBike() {
 
 // Spieler zeichnen
 function drawPlayer() {
-    if (crashType === 'tear') {
+    if (crashType === 'tear' || crashType === 'fall') {
         drawBrokenBike();
         return;
     }
@@ -233,10 +299,10 @@ function drawPlayer() {
         ctx.fillStyle = '#000';
         ctx.beginPath(); 
         ctx.arc(4, -5, 1, 0, Math.PI * 2); 
-        ctx.fill(); 
+        ctx.fill();
         ctx.beginPath(); 
         ctx.arc(0, -5, 1, 0, Math.PI * 2); 
-        ctx.fill(); 
+        ctx.fill();
         ctx.restore();
 
         ctx.restore();
@@ -251,7 +317,13 @@ function drawPlayer() {
 
         ctx.beginPath();
         ctx.moveTo(shoulderX, shoulderY);
-        ctx.bezierCurveTo(0, -12, localX / 1.5, -25, localX, -20);
+        
+        if (isLevelComplete && bikeStopped) {
+            let wave = Math.sin(performance.now() / 100) * 15;
+            ctx.quadraticCurveTo(0, -40 + wave, 10, -50 + wave);
+        } else {
+            ctx.bezierCurveTo(0, -12, localX / 1.5, -25, localX, -20);
+        }
         ctx.stroke();
     }
     ctx.restore();
