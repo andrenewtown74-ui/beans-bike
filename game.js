@@ -456,10 +456,22 @@ function gameLoop(timestamp) {
             ctx.fillStyle = obs.color;
             ctx.strokeStyle = '#000';
             ctx.beginPath();
-            if (obs.type === 'block') { ctx.rect(obs.x, obs.y, obs.width, obs.height); } 
-            else if (obs.type === 'ramp') { ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x)); ctx.lineTo(obs.x + obs.width, obs.y); ctx.lineTo(obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width)); } 
-            else if (obs.type === 'round') { ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x)); ctx.ellipse(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2), obs.width / 2, obs.height, 0, Math.PI, 0); }
-            else if (obs.type === 'hill') { ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x)); ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) - obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width)); }
+            if (obs.type === 'block') { 
+                ctx.rect(obs.x, obs.y, obs.width, obs.height); 
+            } 
+            else if (obs.type === 'ramp') { 
+                ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
+                ctx.lineTo(obs.x + obs.width, obs.y); 
+                ctx.lineTo(obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5); 
+            } 
+            else if (obs.type === 'round') { 
+                ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
+                ctx.ellipse(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5, obs.width / 2, obs.height, 0, Math.PI, 0); 
+            }
+            else if (obs.type === 'hill') { 
+                ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
+                ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5 - obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5); 
+            }
             ctx.fill(); ctx.stroke();
         }
 
