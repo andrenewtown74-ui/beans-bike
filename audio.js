@@ -98,8 +98,7 @@ function playPedalSound() {
 }
 
 function startMusic() {
-    if (bgMusic.src) {
-        bgMusic.currentTime = 0;
+    if (bgMusic.src && bgMusic.paused) {
         bgMusic.play().catch(function(err) {});
     }
 }
