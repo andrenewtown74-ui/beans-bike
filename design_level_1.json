@@ -12,6 +12,13 @@
             "y": 20
         }
     },
+    "physics": {
+        "gravity": 0.35,
+        "jumpStrength": -6.5,
+        "horizonY": 185,
+        "terrainType": "flat",
+        "baseGroundY": 185
+    },
     "objects": [
         {
             "type": "tree",

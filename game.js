@@ -27,6 +27,7 @@ const fallbackLevelData = [
     { "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
 ];
 
+// Aktualisierte Fallback-Datenstruktur
 const fallbackDesignData = {
     "theme": {
         "skyColor": "#87CEEB",
@@ -35,9 +36,15 @@ const fallbackDesignData = {
         "music": "Sprocket_Hill_Climb.mp3",
         "sun": { "active": true, "color": "#FFD700", "size": 20, "xOffset": 100, "y": 20 }
     },
+    "physics": {
+        "gravity": 0.35,
+        "jumpStrength": -6.5,
+        "horizonY": 185,
+        "terrainType": "flat",
+        "baseGroundY": 185
+    },
     "objects": []
 };
-
 // Objekte zur Laufzeit
 const keys = { up: false, down: false };
 let touchGas = false;
@@ -82,7 +89,7 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
 }
 resizeCanvas();
 
-// Hilfsfunktionen (Level laden, Resize, Events)
+// Modifizierte Ladefunktion fuer Konfigurationen
 function loadLevelData(levelNum) {
     fetch(`level${levelNum}.json`)
         .then(function(response) {
@@ -105,14 +112,22 @@ function loadLevelData(levelNum) {
             designData = data;
             initBackground();
             updateMusic();
+            updatePhysicsConfig();
         })
         .catch(function(error) {
             designData = fallbackDesignData;
             initBackground();
             updateMusic();
+            updatePhysicsConfig();
         });
 }
-
+// Zuweisung der geladenen physikalischen Parameter an das Spieler-Objekt
+function updatePhysicsConfig() {
+    if (designData && designData.physics) {
+        player.gravity = designData.physics.gravity !== undefined ? designData.physics.gravity : 0.35;
+        player.jumpStrength = designData.physics.jumpStrength !== undefined ? designData.physics.jumpStrength : -6.5;
+    }
+}
 function updateMusic() {
     if (designData && designData.theme && designData.theme.music) {
         if (!bgMusic.src.endsWith(designData.theme.music)) {
