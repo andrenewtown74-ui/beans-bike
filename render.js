@@ -1,4 +1,3 @@
-// Hintergrund und Terrain rendern
 function drawEnvironment(moveScale) {
     if (designData && designData.theme) ctx.fillStyle = designData.theme.skyColor;
     else ctx.fillStyle = '#87CEEB';
@@ -183,6 +182,26 @@ function drawBrokenBike() {
     ctx.rotate(bikeParts.front.rot);
     ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-25, 0); ctx.moveTo(0, 0); ctx.lineTo(-5, -20); ctx.lineTo(5, -20); ctx.stroke();
+    
+    ctx.fillStyle = '#A9A9A9';
+    ctx.beginPath();
+    ctx.rect(5, -22, 6, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    if (designData && designData.theme && designData.theme.headlightOn) {
+        let grad = ctx.createLinearGradient(11, 0, 200, 0);
+        grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
+        grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(11, -20);
+        ctx.lineTo(200, -80);
+        ctx.lineTo(200, 60);
+        ctx.closePath();
+        ctx.fill();
+    }
+    
     ctx.restore();
 }
 
@@ -212,6 +231,8 @@ function drawPlayer() {
     
     const seatX = -localX + 10;
     const seatY = -15;
+    const lampX = localX + 5;
+    const lampY = -20;
 
     ctx.beginPath();
     ctx.arc(-localX, 0, 5, 0, Math.PI * 2);
@@ -221,8 +242,29 @@ function drawPlayer() {
     ctx.beginPath();
     ctx.moveTo(-localX, 0); ctx.lineTo(localX, 0);
     ctx.moveTo(seatX, 0); ctx.lineTo(seatX, seatY);
-    ctx.moveTo(localX, 0); ctx.lineTo(localX - 5, -20); ctx.lineTo(localX + 5, -20);
+    ctx.moveTo(localX, 0); ctx.lineTo(localX - 5, -20); ctx.lineTo(lampX, lampY);
     ctx.stroke();
+
+    ctx.fillStyle = '#A9A9A9';
+    ctx.beginPath();
+    ctx.rect(lampX, lampY - 2, 6, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    if (designData && designData.theme && designData.theme.headlightOn && !isCrashing) {
+        ctx.save();
+        let grad = ctx.createLinearGradient(lampX + 6, 0, lampX + 200, 0);
+        grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
+        grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(lampX + 6, lampY);
+        ctx.lineTo(lampX + 200, lampY - 60);
+        ctx.lineTo(lampX + 200, lampY + 80);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
 
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.ellipse(seatX, seatY, 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();

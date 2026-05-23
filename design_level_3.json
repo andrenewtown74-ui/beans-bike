@@ -6,7 +6,8 @@
         "music": "Blauer_Marmor.mp3",
         "sun": {
             "active": false
-        }
+        },
+        "headlightOn": true
     },
     "physics": {
         "gravity": 0.15,
