@@ -1,0 +1,58 @@
+{
+    "theme": {
+        "skyColor": "#050510",
+        "groundColor": "#333333",
+        "surfaceColor": "#A9A9A9",
+        "music": "Moon_Theme.mp3",
+        "sun": {
+            "active": false
+        }
+    },
+    "physics": {
+        "gravity": 0.15,
+        "jumpStrength": -4.0,
+        "horizonY": 150,
+        "terrainType": "wavy",
+        "baseGroundY": 160,
+        "amplitude1": 25,
+        "frequency1": 0.002,
+        "amplitude2": 15,
+        "frequency2": 0.005,
+        "levelDistance": 8000
+    },
+    "objects": [
+        {
+            "type": "star",
+            "count": 40,
+            "minWidth": 1,
+            "maxWidth": 3,
+            "minHeight": 20,
+            "maxHeight": 140,
+            "color1": "#FFFFFF",
+            "color2": "",
+            "speedModifier": 0.02
+        },
+        {
+            "type": "planet",
+            "count": 1,
+            "minWidth": 25,
+            "maxWidth": 25,
+            "minHeight": 100,
+            "maxHeight": 100,
+            "color1": "#1E90FF",
+            "color2": "#32CD32",
+            "speedModifier": 0.05
+        },
+        {
+            "type": "mountain",
+            "count": 5,
+            "minWidth": 80,
+            "maxWidth": 200,
+            "minHeight": 30,
+            "maxHeight": 80,
+            "color1": "#444444",
+            "color2": "",
+            "speedModifier": 0.15
+        }
+    ]
+}

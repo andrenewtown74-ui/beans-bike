@@ -1,3 +1,4 @@
+// Hintergrund und Terrain rendern
 function drawEnvironment(moveScale) {
     if (designData && designData.theme) ctx.fillStyle = designData.theme.skyColor;
     else ctx.fillStyle = '#87CEEB';
@@ -8,7 +9,7 @@ function drawEnvironment(moveScale) {
         ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
     }
 
-    const drawOrder = ['mountain', 'tree', 'building'];
+    const drawOrder = ['star', 'planet', 'mountain', 'tree', 'building'];
     let horizon = getHorizonY();
 
     drawOrder.forEach(function(type) {
@@ -16,7 +17,19 @@ function drawEnvironment(moveScale) {
             if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
             if (bg.x + bg.width < 0) bg.x = canvas.width;
             
-            if (bg.type === 'tree') {
+            if (bg.type === 'star') {
+                ctx.fillStyle = bg.color1;
+                ctx.fillRect(bg.x, horizon - bg.height, bg.width, bg.width);
+            } else if (bg.type === 'planet') {
+                ctx.fillStyle = bg.color1;
+                ctx.beginPath();
+                ctx.arc(bg.x, horizon - bg.height, bg.width, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = bg.color2;
+                ctx.beginPath();
+                ctx.arc(bg.x - bg.width/4, horizon - bg.height + bg.width/4, bg.width/2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (bg.type === 'tree') {
                 ctx.fillStyle = bg.color1;
                 ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
@@ -80,13 +93,9 @@ function drawEnvironment(moveScale) {
     if (finishLineActive) {
         if (moveScale) finishLineX -= gameSpeed * moveScale;
         let ty = getTerrainY(worldDistance + finishLineX);
-        ctx.fillStyle = '#FFF';
-        ctx.fillRect(finishLineX, ty - 80, 10, 85);
-        for(let i=0; i<4; i++) {
-            ctx.fillStyle = (i%2===0) ? '#000' : '#FFF';
-            ctx.fillRect(finishLineX + 10, ty - 80 + (i*10), 10, 10);
-            ctx.fillStyle = (i%2!==0) ? '#000' : '#FFF';
-            ctx.fillRect(finishLineX + 20, ty - 80 + (i*10), 10, 10);
+        ctx.fillStyle = '#FFD700';
+        for(let i=0; i<10; i++) {
+            ctx.fillRect(finishLineX, ty + 5 - (i*10), 10, 10);
         }
     }
 }
