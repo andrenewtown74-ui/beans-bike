@@ -17,7 +17,8 @@
         "jumpStrength": -6.5,
         "horizonY": 185,
         "terrainType": "flat",
-        "baseGroundY": 185
+        "baseGroundY": 185,
+        "levelDistance": 6000
     },
     "objects": [
         {

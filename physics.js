@@ -1,14 +1,30 @@
-// Berechnung des Terrain-Profils
+// Berechnung des Terrain-Profils aus den Level-Konfigurationen
 function getTerrainY(worldX) {
-    if (currentLevel === 1) return 185; 
-    let wave1 = Math.sin(worldX * 0.003) * 20; 
-    let wave2 = Math.cos(worldX * 0.007) * 10; 
-    return 165 - wave1 - wave2; 
+    if (!designData || !designData.physics) return 185;
+    const config = designData.physics;
+    
+    if (config.terrainType === 'flat') {
+        return config.baseGroundY !== undefined ? config.baseGroundY : 185;
+    } else if (config.terrainType === 'wavy') {
+        let amp1 = config.amplitude1 !== undefined ? config.amplitude1 : 20;
+        let freq1 = config.frequency1 !== undefined ? config.frequency1 : 0.003;
+        let amp2 = config.amplitude2 !== undefined ? config.amplitude2 : 10;
+        let freq2 = config.frequency2 !== undefined ? config.frequency2 : 0.007;
+        let base = config.baseGroundY !== undefined ? config.baseGroundY : 165;
+        
+        let wave1 = Math.sin(worldX * freq1) * amp1; 
+        let wave2 = Math.cos(worldX * freq2) * amp2; 
+        return base - wave1 - wave2; 
+    }
+    return 185;
 }
 
-// Horizont fuer Hintergrundobjekte anpassen
+// Horizont fuer Hintergrundobjekte dynamisch anpassen
 function getHorizonY() {
-    return currentLevel === 1 ? 185 : 165;
+    if (designData && designData.physics && designData.physics.horizonY !== undefined) {
+        return designData.physics.horizonY;
+    }
+    return 185;
 }
 
 // Ermittlung der Oberflaeche anhand aktueller Hindernisse
@@ -179,7 +195,6 @@ function startCrash(type) {
     beanCrash.rotation = 0;
     beanCrash.isSplat = false;
 }
-
 // Fortschreibung der Crash-Animation
 function updateCrashAnimation(timeScale) {
     if (crashType === 'flip') {
@@ -230,7 +245,7 @@ function updateCrashAnimation(timeScale) {
         gameOverTimer += timeScale * 16.66;
         if (gameOverTimer > 1200) {
             if (lives > 0) {
-                restartLevel();
+                respawnPlayer(); // <-- HIER GEÄNDERT: Setzt den Spieler nur ein kleines Stueck zurueck!
             } else {
                 isGameOver = true;
             }

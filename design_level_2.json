@@ -21,7 +21,8 @@
         "amplitude1": 20,
         "frequency1": 0.003,
         "amplitude2": 10,
-        "frequency2": 0.007
+        "frequency2": 0.007,
+        "levelDistance": 6000
     },
     "objects": [
         {

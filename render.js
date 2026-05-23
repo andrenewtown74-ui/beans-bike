@@ -1,330 +1,576 @@
-// Umgebung und Hintergrund rendern
-function drawEnvironment(moveScale) {
-    if (designData && designData.theme) ctx.fillStyle = designData.theme.skyColor;
-    else ctx.fillStyle = '#87CEEB';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+// Initialisierung und UI
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiLayer = document.getElementById('ui-layer');
+const titleEl = document.getElementById('title');
+const instructionEl = document.getElementById('instruction');
+const touchControls = document.getElementById('touch-controls');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
 
-    if (designData && designData.theme && designData.theme.sun && designData.theme.sun.active) {
-        ctx.fillStyle = designData.theme.sun.color;
-        ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
-    }
+// Globale Variablen fuer die Logik
+let levelData = [];
+let designData = null;
+let worldDistance = 0;
+let nextObstacleIndex = 0;
 
-    const drawOrder = ['mountain', 'tree', 'building'];
-    let horizon = getHorizonY();
+let currentLevel = 1;
+let levelDistance = 6000; // Wird vom JSON ueberschrieben
+let finishLineActive = false;
+let finishLineX = 0;
+let isLevelComplete = false;
+let bikeStopped = false;
+let lives = 3;
+let highestScoredObstacle = -1; // Verhindert Punkte-Farming nach Respawn
 
-    drawOrder.forEach(function(type) {
-        backgroundElements.filter(function(bg) { return bg.type === type; }).forEach(function(bg) {
-            if (moveScale) bg.x -= gameSpeed * bg.speedModifier * moveScale;
-            if (bg.x + bg.width < 0) bg.x = canvas.width;
-            
-            if (bg.type === 'tree') {
-                ctx.fillStyle = bg.color1;
-                ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
-                ctx.fillStyle = bg.color2;
-                ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
-            } else if (bg.type === 'building') {
-                ctx.fillStyle = bg.color1;
-                ctx.fillRect(bg.x, horizon + 5 - bg.height, bg.width, bg.height);
-                ctx.fillStyle = bg.color2;
-                ctx.beginPath();
-                ctx.moveTo(bg.x - 5, horizon + 5 - bg.height);
-                ctx.lineTo(bg.x + bg.width / 2, horizon + 5 - bg.height - 20);
-                ctx.lineTo(bg.x + bg.width + 5, horizon + 5 - bg.height);
-                ctx.fill();
-            } else if (bg.type === 'mountain') {
-                ctx.fillStyle = bg.color1;
-                ctx.beginPath();
-                ctx.moveTo(bg.x, horizon + 5);
-                ctx.lineTo(bg.x + bg.width / 2, horizon + 5 - bg.height);
-                ctx.lineTo(bg.x + bg.width, horizon + 5);
-                ctx.fill();
-            }
+// Fallback Daten
+const fallbackLevelData = [
+    { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
+];
+
+const fallbackDesignData = {
+    "theme": {
+        "skyColor": "#87CEEB",
+        "groundColor": "#8B4513",
+        "surfaceColor": "#228B22",
+        "music": "Sprocket_Hill_Climb.mp3",
+        "sun": { "active": true, "color": "#FFD700", "size": 20, "xOffset": 100, "y": 20 }
+    },
+    "physics": {
+        "gravity": 0.35,
+        "jumpStrength": -6.5,
+        "horizonY": 185,
+        "terrainType": "flat",
+        "baseGroundY": 185,
+        "levelDistance": 6000
+    },
+    "objects": []
+};
+
+// Objekte zur Laufzeit
+const keys = { up: false, down: false };
+let touchGas = false;
+let touchBrake = false;
+
+let isGameRunning = false;
+let isGameOver = false;
+let isCrashing = false;
+let score = 0;
+let gameSpeed = 1.5; 
+let animationFrameId;
+let lastTime = 0; 
+let pedalAngle = 0; 
+
+let crashType = '';
+let crashAngle = 0;
+let crashBikeLength = 0;
+let gameOverTimer = 0;
+let bikeParts = {
+    rear: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, rotV: 0 },
+    front: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, rotV: 0 }
+};
+const beanCrash = { x: 0, y: 0, vx: 0, vy: 0, rotation: 0, isSplat: false };
+
+const player = {
+    targetBikeX: 30,
+    rearWheel: { x: 30, defaultX: 30, y: 185, vy: 0, isJumping: false, isHittingWall: false, onSurface: true },
+    frontWheel: { x: 90, defaultX: 90, y: 185, vy: 0, isJumping: false, isHittingWall: false, onSurface: true },
+    gravity: 0.35,
+    jumpStrength: -6.5
+};
+
+const obstacles = [];
+const backgroundElements = [];
+
+// Initiale Funktionsaufrufe
+designData = fallbackDesignData;
+loadLevelData(currentLevel);
+
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    touchControls.classList.remove('hidden');
+}
+resizeCanvas();
+
+// Hilfsfunktionen (Level laden, Resize, Events)
+function loadLevelData(levelNum) {
+    fetch(`level${levelNum}.json`)
+        .then(function(response) {
+            if (!response.ok) throw new Error('HTTP Status ' + response.status);
+            return response.json();
+        })
+        .then(function(data) {
+            levelData = data;
+            // Jeder Hindernis eine ID geben, um Punkte-Cheaten zu verhindern
+            for(let i=0; i<levelData.length; i++) levelData[i].id = i;
+        })
+        .catch(function(error) {
+            levelData = fallbackLevelData;
         });
+
+    fetch(`design_level_${levelNum}.json`)
+        .then(function(response) {
+            if (!response.ok) throw new Error('HTTP Status ' + response.status);
+            return response.json();
+        })
+        .then(function(data) {
+            designData = data;
+            initBackground();
+            updateMusic();
+            updatePhysicsConfig();
+        })
+        .catch(function(error) {
+            designData = fallbackDesignData;
+            initBackground();
+            updateMusic();
+            updatePhysicsConfig();
+        });
+}
+
+function updateMusic() {
+    if (designData && designData.theme && designData.theme.music) {
+        if (!bgMusic.src.endsWith(designData.theme.music)) {
+            bgMusic.src = designData.theme.music;
+            if (isGameRunning && !isLevelComplete) {
+                bgMusic.play().catch(function(err) {});
+            }
+        }
+    }
+}
+
+function updatePhysicsConfig() {
+    if (designData && designData.physics) {
+        player.gravity = designData.physics.gravity !== undefined ? designData.physics.gravity : 0.35;
+        player.jumpStrength = designData.physics.jumpStrength !== undefined ? designData.physics.jumpStrength : -6.5;
+        levelDistance = designData.physics.levelDistance !== undefined ? designData.physics.levelDistance : 6000;
+    }
+}
+
+function initBackground() {
+    backgroundElements.length = 0;
+    if (!designData || !designData.objects) return;
+
+    designData.objects.forEach(function(objConfig) {
+        for (let i = 0; i < objConfig.count; i++) {
+            backgroundElements.push({
+                x: Math.random() * canvas.width,
+                width: objConfig.minWidth + Math.random() * (objConfig.maxWidth - objConfig.minWidth),
+                height: objConfig.minHeight + Math.random() * (objConfig.maxHeight - objConfig.minHeight),
+                speedModifier: objConfig.speedModifier,
+                type: objConfig.type,
+                color1: objConfig.color1,
+                color2: objConfig.color2
+            });
+        }
     });
+}
 
-    ctx.fillStyle = designData && designData.theme ? designData.theme.groundColor : '#8B4513';
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height);
+function startNewGame() {
+    lives = 3;
+    score = 0;
+    currentLevel = 1;
+    loadLevelData(currentLevel);
+    restartLevel();
+}
+
+function advanceLevel() {
+    currentLevel++;
+    loadLevelData(currentLevel);
+    restartLevel();
+}
+
+function restartLevel() {
+    player.targetBikeX = 30;
+    keys.up = false;
+    keys.down = false;
+    touchGas = false;
+    touchBrake = false;
+
+    worldDistance = 0;
+    highestScoredObstacle = -1;
+    let startY = getTerrainY(player.targetBikeX);
+
+    player.rearWheel.y = startY;
+    player.rearWheel.defaultX = 30;
+    player.rearWheel.x = player.rearWheel.defaultX;
+    player.rearWheel.vy = 0;
+    player.rearWheel.isJumping = false;
+    player.rearWheel.isHittingWall = false;
+    player.rearWheel.onSurface = true;
     
-    for (let x = 0; x <= canvas.width; x += 5) {
-        let isChasm = false;
-        for (let obs of obstacles) {
-            if (obs.type === 'chasm' && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+    player.frontWheel.y = getTerrainY(90);
+    player.frontWheel.defaultX = 90;
+    player.frontWheel.x = player.frontWheel.defaultX;
+    player.frontWheel.vy = 0;
+    player.frontWheel.isJumping = false;
+    player.frontWheel.isHittingWall = false;
+    player.frontWheel.onSurface = true;
+    
+    obstacles.length = 0;
+    nextObstacleIndex = 0;
+    finishLineActive = false;
+    finishLineX = 0;
+    isLevelComplete = false;
+    bikeStopped = false;
+    hasPlayedFanfare = false;
+    
+    gameSpeed = 1.5;
+    pedalAngle = 0;
+    
+    isGameOver = false;
+    isCrashing = false;
+    crashType = '';
+    gameOverTimer = 0;
+    beanCrash.isSplat = false;
+    hasPlayedSplatSound = false;
+    
+    lastTime = performance.now();
+    initBackground();
+    
+    uiLayer.classList.add('hidden');
+    isGameRunning = true;
+    
+    initAudio();
+    startMusic();
+    
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = requestAnimationFrame(gameLoop);
+}
+
+function respawnPlayer() {
+    // Spult das Level um 400 Einheiten zurueck
+    worldDistance = Math.max(0, worldDistance - 400);
+
+    player.targetBikeX = 30;
+    let startY = getTerrainY(worldDistance + player.targetBikeX);
+
+    player.rearWheel.y = startY;
+    player.rearWheel.defaultX = 30;
+    player.rearWheel.x = player.rearWheel.defaultX;
+    player.rearWheel.vy = 0;
+    player.rearWheel.isJumping = false;
+    player.rearWheel.isHittingWall = false;
+    player.rearWheel.onSurface = true;
+    
+    player.frontWheel.y = getTerrainY(worldDistance + 90);
+    player.frontWheel.defaultX = 90;
+    player.frontWheel.x = player.frontWheel.defaultX;
+    player.frontWheel.vy = 0;
+    player.frontWheel.isJumping = false;
+    player.frontWheel.isHittingWall = false;
+    player.frontWheel.onSurface = true;
+
+    keys.up = false;
+    keys.down = false;
+    touchGas = false;
+    touchBrake = false;
+
+    // Setzt die naechsten Hindernisse entsprechend der zurueckgespulten Distanz
+    obstacles.length = 0;
+    nextObstacleIndex = 0;
+    for (let i = 0; i < levelData.length; i++) {
+        if (levelData[i].spawnDistance > worldDistance) {
+            nextObstacleIndex = i;
+            break;
         }
-        let ty = isChasm ? canvas.height + 10 : getTerrainY(worldDistance + x) + 5;
-        ctx.lineTo(x, ty);
     }
-    
-    ctx.lineTo(canvas.width, canvas.height);
-    ctx.fill();
+    // Falls das allerletzte Hindernis ueberschritten wurde:
+    if (nextObstacleIndex === 0 && levelData.length > 0 && levelData[levelData.length - 1].spawnDistance <= worldDistance) {
+        nextObstacleIndex = levelData.length;
+    }
 
-    ctx.strokeStyle = designData && designData.theme ? designData.theme.surfaceColor : '#228B22';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    let isDrawing = false;
+    isCrashing = false;
+    crashType = '';
+    gameOverTimer = 0;
+    beanCrash.isSplat = false;
+    hasPlayedSplatSound = false;
     
-    for (let x = 0; x <= canvas.width; x += 5) {
-        let isChasm = false;
-        for (let obs of obstacles) {
-            if (obs.type === 'chasm' && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
-        }
-        if (!isChasm) {
-            let ty = getTerrainY(worldDistance + x) + 5;
-            if (!isDrawing) { ctx.moveTo(x, ty); isDrawing = true; }
-            else { ctx.lineTo(x, ty); }
+    lastTime = performance.now();
+    startMusic();
+}
+
+// Steuerungsebene
+function handleInputEvent() {
+    initAudio();
+    if (isGameOver) {
+        startNewGame();
+        return true;
+    }
+    if (isLevelComplete && bikeStopped) {
+        advanceLevel();
+        return true;
+    }
+    if (!isGameRunning) {
+        startNewGame();
+        return true;
+    }
+    return false;
+}
+
+function jump(wheel) {
+    if (handleInputEvent()) return;
+    if (isLevelComplete || isCrashing) return;
+    
+    if (wheel === 'rear' && player.rearWheel.onSurface) {
+        player.rearWheel.vy = player.jumpStrength;
+        player.rearWheel.isJumping = true;
+        player.rearWheel.onSurface = false;
+        playJump();
+    } else if (wheel === 'front' && player.frontWheel.onSurface) {
+        player.frontWheel.vy = player.jumpStrength;
+        player.frontWheel.isJumping = true;
+        player.frontWheel.onSurface = false;
+        playJump();
+    }
+}
+
+window.addEventListener('keydown', function(e) {
+    if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
+        if (handleInputEvent()) { e.preventDefault(); return; }
+    }
+    if (isLevelComplete) return;
+
+    if (e.code === 'KeyN') { jump('rear'); e.preventDefault(); }
+    if (e.code === 'KeyM') { jump('front'); e.preventDefault(); }
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') { keys.up = true; e.preventDefault(); }
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.down = true; e.preventDefault(); }
+});
+
+window.addEventListener('keyup', function(e) {
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.up = false;
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.down = false;
+});
+
+function handleTouch(e) {
+    if (handleInputEvent()) {
+        if (e.cancelable) e.preventDefault();
+        return;
+    }
+    if (isLevelComplete) return;
+
+    touchBrake = false;
+    touchGas = false;
+    const midX = window.innerWidth / 2;
+    const midY = window.innerHeight / 2;
+
+    for (let i = 0; i < e.touches.length; i++) {
+        const t = e.touches[i];
+        if (t.clientX < midX) {
+            if (t.clientY > midY) touchBrake = true;
         } else {
-            isDrawing = false;
+            if (t.clientY > midY) touchGas = true;
         }
     }
-    ctx.stroke();
 
-    if (finishLineActive) {
-        if (moveScale) finishLineX -= gameSpeed * moveScale;
-        let ty = getTerrainY(worldDistance + finishLineX);
-        ctx.fillStyle = '#FFF';
-        ctx.fillRect(finishLineX, ty - 80, 10, 85);
-        for(let i=0; i<4; i++) {
-            ctx.fillStyle = (i%2===0) ? '#000' : '#FFF';
-            ctx.fillRect(finishLineX + 10, ty - 80 + (i*10), 10, 10);
-            ctx.fillStyle = (i%2!==0) ? '#000' : '#FFF';
-            ctx.fillRect(finishLineX + 20, ty - 80 + (i*10), 10, 10);
+    if (e.type === 'touchstart') {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (t.clientX < midX && t.clientY <= midY) jump('rear');
+            else if (t.clientX >= midX && t.clientY <= midY) jump('front');
         }
     }
+    if (e.cancelable) e.preventDefault();
 }
 
-// Bohne bei Unfall zeichnen
-function drawCrashBean() {
-    if (beanCrash.isSplat) {
-        ctx.fillStyle = '#FFF'; 
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(beanCrash.x, beanCrash.y, 22, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+window.addEventListener('touchstart', handleTouch, { passive: false });
+window.addEventListener('touchmove', handleTouch, { passive: false });
+window.addEventListener('touchend', handleTouch, { passive: false });
 
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(beanCrash.x - 5, beanCrash.y - 3); ctx.lineTo(beanCrash.x - 1, beanCrash.y + 1);
-        ctx.moveTo(beanCrash.x - 1, beanCrash.y - 3); ctx.lineTo(beanCrash.x - 5, beanCrash.y + 1);
-        ctx.moveTo(beanCrash.x + 1, beanCrash.y - 3); ctx.lineTo(beanCrash.x + 5, beanCrash.y + 1);
-        ctx.moveTo(beanCrash.x + 5, beanCrash.y - 3); ctx.lineTo(beanCrash.x + 1, beanCrash.y + 1);
-        ctx.stroke();
+window.addEventListener('mousedown', function(e) {
+    if (handleInputEvent()) return;
+    if (isLevelComplete) return;
 
+    if (e.clientY < window.innerHeight / 2) {
+        if (e.clientX < window.innerWidth / 2) jump('rear');
+        else jump('front');
+    }
+});
+
+fullscreenBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation(); 
+    const elem = document.documentElement;
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    if (!isFullscreen) {
+        let requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
+        if (requestFS) requestFS.call(elem).catch(function() {});
     } else {
-        ctx.save();
-        ctx.translate(beanCrash.x, beanCrash.y);
-        ctx.rotate(beanCrash.rotation);
-        
-        // Rucksack
-        ctx.fillStyle = '#FFF';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.rect(-14, -4, 5, 8);
-        ctx.fill(); 
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-11, -4); 
-        ctx.lineTo(-11, 4);
-        ctx.stroke();
+        let exitFS = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+        if (exitFS) exitFS.call(document);
+    }
+});
 
-        // Koerper
-        ctx.fillStyle = '#FFF'; 
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 8, 12, Math.PI / 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+document.addEventListener('fullscreenchange', function() {
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    fullscreenBtn.innerText = isFullscreen ? "Fenster" : "Vollbild";
+});
 
-        // Gesicht
-        ctx.save();
-        ctx.rotate(Math.PI / 8);
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); 
-        ctx.arc(4, -5, 1, 0, Math.PI * 2); 
-        ctx.fill();
-        ctx.beginPath(); 
-        ctx.arc(0, -5, 1, 0, Math.PI * 2); 
-        ctx.fill();
-        ctx.restore();
-        
-        // Gliedmassen
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(0, 5); ctx.lineTo(5, 12);
-        ctx.moveTo(-2, 5); ctx.lineTo(-8, 10);
-        ctx.moveTo(4, -2); ctx.lineTo(12, -8);
-        ctx.stroke();
-        ctx.restore();
+function resizeCanvas() {
+    canvas.height = 200;
+    canvas.width = 200 * (window.innerWidth / window.innerHeight);
+    ctx.imageSmoothingEnabled = false;
+}
+window.addEventListener('resize', resizeCanvas);
+
+function spawnObstaclesFromData(timeScale, moveScale) {
+    if (finishLineActive) return; 
+
+    worldDistance += gameSpeed * moveScale;
+    if (nextObstacleIndex < levelData.length) {
+        let nextObs = levelData[nextObstacleIndex];
+        if (worldDistance >= nextObs.spawnDistance) {
+            let tY = getTerrainY(worldDistance + canvas.width);
+            obstacles.push({
+                id: nextObs.id,
+                x: canvas.width,
+                y: tY + 5 - nextObs.height, 
+                baseY: tY + 5 - nextObs.height,
+                width: nextObs.width,
+                height: nextObs.height,
+                type: nextObs.type,
+                color: nextObs.color,
+                passed: false
+            });
+            nextObstacleIndex++;
+        }
     }
 }
 
-// Zerrissenes Fahrrad zeichnen
-function drawBrokenBike() {
-    if(crashType === 'fall') return; 
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#000';
-    ctx.fillStyle = '#FFF';
+// Haupt-Spiele-Schleife
+function gameLoop(timestamp) {
+    if (!isGameRunning) return;
+    if (!lastTime) lastTime = timestamp;
+    let deltaTime = timestamp - lastTime;
+    lastTime = timestamp;
+    if (deltaTime > 100) deltaTime = 16.66;
+    const timeScale = deltaTime / 16.666;
 
-    ctx.save();
-    ctx.translate(bikeParts.rear.x, bikeParts.rear.y);
-    ctx.rotate(bikeParts.rear.rot);
-    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(25, 0); ctx.moveTo(10, 0); ctx.lineTo(10, -15); ctx.stroke();
-    ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.ellipse(10, -15, 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(bikeParts.front.x, bikeParts.front.y);
-    ctx.rotate(bikeParts.front.rot);
-    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-25, 0); ctx.moveTo(0, 0); ctx.lineTo(-5, -20); ctx.lineTo(5, -20); ctx.stroke();
-    ctx.restore();
-}
-
-// Spieler zeichnen
-function drawPlayer() {
-    if (crashType === 'tear' || crashType === 'fall') {
-        drawBrokenBike();
+    if (isGameOver) {
+        isGameRunning = false;
+        titleEl.innerText = "Game Over!";
+        instructionEl.innerText = "Punkte: " + score + " | KLICK fuer Neustart";
+        uiLayer.classList.remove('hidden');
         return;
     }
 
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#000';
-    ctx.fillStyle = '#FFF';
+    // Ziellinien Logik anhand der Distanz
+    if (!isLevelComplete && !isCrashing) {
+        if (worldDistance >= levelDistance && !finishLineActive) {
+            finishLineActive = true;
+            finishLineX = canvas.width + 100;
+        }
+    }
 
-    const dx = player.frontWheel.x - player.rearWheel.x;
-    const dy = player.frontWheel.y - player.rearWheel.y;
-    const angle = Math.atan2(dy, dx);
-    
-    const cx = (player.rearWheel.x + player.frontWheel.x) / 2;
-    const cy = (player.rearWheel.y + player.frontWheel.y) / 2;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle);
-
-    const dist = Math.hypot(dx, dy);
-    const localX = Math.max(5, dist / 2);
-    
-    const seatX = -localX + 10;
-    const seatY = -15;
-
-    // Fahrradrahmen
-    ctx.beginPath();
-    ctx.arc(-localX, 0, 5, 0, Math.PI * 2);
-    ctx.arc(localX, 0, 5, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(-localX, 0); ctx.lineTo(localX, 0);
-    ctx.moveTo(seatX, 0); ctx.lineTo(seatX, seatY);
-    ctx.moveTo(localX, 0); ctx.lineTo(localX - 5, -20); ctx.lineTo(localX + 5, -20);
-    ctx.stroke();
-
-    // Sattel
-    ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.ellipse(seatX, seatY, 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+    let moveScale = (isCrashing || (isLevelComplete && bikeStopped)) ? 0 : timeScale;
 
     if (!isCrashing) {
-        let beanOffsetY = 0;
-        let beanAngle = 0;
+        if (!isLevelComplete) {
+            let isAccelerating = keys.up || touchGas;
+            let isBraking = keys.down || touchBrake;
 
-        if (player.rearWheel.isJumping && !player.frontWheel.isJumping) {
-            beanOffsetY = -8; beanAngle = 0.2;
-        } else if (player.frontWheel.isJumping && !player.rearWheel.isJumping) {
-            beanOffsetY = 0; beanAngle = -0.5;
-        } else if (player.rearWheel.isJumping && player.frontWheel.isJumping) {
-            beanOffsetY = -4; beanAngle = -0.1;
-        }
-
-        const crankX = seatX;
-        const crankY = 0;
-        const crankRadius = 6;
-        const px1 = crankX + Math.cos(pedalAngle) * crankRadius;
-        const py1 = crankY + Math.sin(pedalAngle) * crankRadius;
-        const px2 = crankX + Math.cos(pedalAngle + Math.PI) * crankRadius;
-        const py2 = crankY + Math.sin(pedalAngle + Math.PI) * crankRadius;
-
-        const drawLeg = function(px, py) {
-            const hipX = seatX - 2;
-            const hipY = seatY + beanOffsetY + 4;
-            const midX = (hipX + px) / 2;
-            const midY = (hipY + py) / 2;
-            ctx.beginPath();
-            ctx.moveTo(hipX, hipY); ctx.lineTo(midX + 6, midY); ctx.lineTo(px, py);
-            ctx.stroke();
-        };
-
-        // Kurbel hinten
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = '#555';
-        drawLeg(px2, py2);
-        ctx.beginPath(); ctx.moveTo(crankX, crankY); ctx.lineTo(px2, py2); ctx.stroke();
-
-        // Rucksack
-        ctx.save();
-        ctx.translate(seatX, seatY + beanOffsetY);
-        ctx.rotate(beanAngle);
-        ctx.fillStyle = '#FFF';
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#000';
-        ctx.beginPath();
-        ctx.rect(-14, -14, 5, 8);
-        ctx.fill(); 
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-11, -14); 
-        ctx.lineTo(-11, -6);
-        ctx.stroke();
-        ctx.restore();
-
-        // Figur Koerper
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#000';
-        ctx.fillStyle = '#FFF'; 
-
-        ctx.save();
-        ctx.translate(seatX, seatY + beanOffsetY);
-        ctx.rotate(beanAngle);
-
-        ctx.beginPath(); ctx.ellipse(0, -10, 8, 12, Math.PI / 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-
-        // Gesicht
-        ctx.save();
-        ctx.translate(0, -10);
-        ctx.rotate(Math.PI / 8);
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); 
-        ctx.arc(4, -5, 1, 0, Math.PI * 2); 
-        ctx.fill();
-        ctx.beginPath(); 
-        ctx.arc(0, -5, 1, 0, Math.PI * 2); 
-        ctx.fill();
-        ctx.restore();
-
-        ctx.restore();
-
-        // Kurbel vorne
-        drawLeg(px1, py1);
-        ctx.beginPath(); ctx.moveTo(crankX, crankY); ctx.lineTo(px1, py1); ctx.stroke();
-
-        // Arme gestreckt zum Lenker
-        const shoulderX = seatX + 4 * Math.cos(beanAngle) - (-8) * Math.sin(beanAngle);
-        const shoulderY = (seatY + beanOffsetY) + 4 * Math.sin(beanAngle) + (-8) * Math.cos(beanAngle);
-
-        ctx.beginPath();
-        ctx.moveTo(shoulderX, shoulderY);
-        
-        if (isLevelComplete && bikeStopped) {
-            let wave = Math.sin(performance.now() / 100) * 15;
-            ctx.quadraticCurveTo(0, -40 + wave, 10, -50 + wave);
+            if (isAccelerating) player.targetBikeX += 2.5 * timeScale;
+            if (isBraking) player.targetBikeX -= 2.5 * timeScale;
         } else {
-            ctx.bezierCurveTo(0, -12, localX / 1.5, -25, localX, -20);
+            player.targetBikeX += 2.0 * timeScale;
+            if (player.frontWheel.x >= canvas.width / 2) {
+                bikeStopped = true;
+                if (!hasPlayedFanfare) {
+                    playFanfare();
+                    hasPlayedFanfare = true;
+                    
+                    titleEl.innerText = `Level ${currentLevel} Geschafft!`;
+                    instructionEl.innerText = "Klick / Touch fuer naechstes Level";
+                    uiLayer.classList.remove('hidden');
+                }
+            }
         }
-        ctx.stroke();
+        
+        if (player.targetBikeX < 20) player.targetBikeX = 20;
+        if (player.targetBikeX > canvas.width - 50 && !isLevelComplete) player.targetBikeX = canvas.width - 50;
+
+        player.rearWheel.defaultX = player.targetBikeX;
+        player.frontWheel.defaultX = player.targetBikeX + 60;
+
+        updateWheel(player.rearWheel, timeScale);
+        updateWheel(player.frontWheel, timeScale);
+        handleFrameCollision(timeScale);
+
+        if (player.rearWheel.y > canvas.height + 50 || player.frontWheel.y > canvas.height + 50) {
+            startCrash('fall');
+        } else {
+            const dx = player.frontWheel.x - player.rearWheel.x;
+            if (player.frontWheel.isHittingWall && dx < 30) startCrash('flip');
+            else if (player.rearWheel.isHittingWall && dx > 110) startCrash('tear');
+
+            if (!player.rearWheel.isJumping && !player.frontWheel.isJumping && !player.frontWheel.isHittingWall && !bikeStopped) {
+                let currentPedalSpeed = gameSpeed * 0.15;
+                if (!isLevelComplete && (keys.up || touchGas)) currentPedalSpeed += 0.1;
+                if (!isLevelComplete && (keys.down || touchBrake)) currentPedalSpeed = Math.max(0.05, currentPedalSpeed - 0.1);
+                
+                let oldAngle = pedalAngle;
+                pedalAngle += currentPedalSpeed * timeScale;
+                if (Math.floor(oldAngle / Math.PI) < Math.floor(pedalAngle / Math.PI)) playPedalSound();
+            }
+        }
+    } else {
+        updateCrashAnimation(timeScale);
     }
-    ctx.restore();
+
+    if (finishLineActive && player.frontWheel.x >= finishLineX && !isLevelComplete) {
+        isLevelComplete = true;
+    }
+
+    drawEnvironment(moveScale);
+    spawnObstaclesFromData(timeScale, moveScale);
+    
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        let obs = obstacles[i];
+        obs.x -= gameSpeed * moveScale;
+
+        if (obs.type !== 'chasm') {
+            ctx.fillStyle = obs.color;
+            ctx.strokeStyle = '#000';
+            ctx.beginPath();
+            if (obs.type === 'block') { 
+                ctx.rect(obs.x, obs.y, obs.width, obs.height); 
+            } 
+            else if (obs.type === 'ramp') { 
+                ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
+                ctx.lineTo(obs.x + obs.width, obs.y); 
+                ctx.lineTo(obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5); 
+            } 
+            else if (obs.type === 'round') { 
+                ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
+                ctx.ellipse(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5, obs.width / 2, obs.height, 0, Math.PI, 0); 
+            }
+            else if (obs.type === 'hill') { 
+                ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
+                ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5 - obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5); 
+            }
+            ctx.fill(); ctx.stroke();
+        }
+
+        if (!isCrashing && !obs.passed && obs.x + obs.width < player.rearWheel.defaultX) {
+            obs.passed = true;
+            // Pruefen, ob das Hindernis in diesem Versuch schon einmal gepunktet hat
+            if (obs.id > highestScoredObstacle) {
+                score += 1;
+                highestScoredObstacle = obs.id;
+                playScore();
+            }
+        }
+        if (obs.x + obs.width < 0) obstacles.splice(i, 1);
+    }
+
+    drawPlayer();
+    if (isCrashing) drawCrashBean();
+
+    ctx.fillStyle = '#000';
+    ctx.font = '16px Courier New';
+    ctx.fillText('Punkte: ' + score, 10, 20);
+    ctx.fillText('Leben: ' + lives, 10, 40);
+    
+    // Distanz-Anzeige statt Zeit-Anzeige
+    let distanceLeft = Math.max(0, Math.floor((levelDistance - worldDistance) / 10));
+    ctx.fillText('Ziel: ' + distanceLeft + 'm', canvas.width - 120, 20);
+
+    animationFrameId = requestAnimationFrame(gameLoop);
 }
