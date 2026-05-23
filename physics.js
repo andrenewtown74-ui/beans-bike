@@ -1,4 +1,3 @@
-// Berechnung des Terrain-Profils aus den Level-Konfigurationen
 function getTerrainY(worldX) {
     if (!designData || !designData.physics) return 185;
     const config = designData.physics;
@@ -19,7 +18,6 @@ function getTerrainY(worldX) {
     return 185;
 }
 
-// Horizont fuer Hintergrundobjekte dynamisch anpassen
 function getHorizonY() {
     if (designData && designData.physics && designData.physics.horizonY !== undefined) {
         return designData.physics.horizonY;
@@ -27,7 +25,6 @@ function getHorizonY() {
     return 185;
 }
 
-// Ermittlung der Oberflaeche anhand aktueller Hindernisse
 function getObstacleSurface(x, obs) {
     if (x < obs.x || x > obs.x + obs.width) return null;
     
@@ -58,7 +55,6 @@ function getObstacleSurface(x, obs) {
     return null;
 }
 
-// Physik-Update fuer ein einzelnes Rad
 function updateWheel(wheel, timeScale) {
     wheel.vy += player.gravity * timeScale;
     wheel.y += wheel.vy * timeScale;
@@ -75,7 +71,6 @@ function updateWheel(wheel, timeScale) {
                 overChasm = true;
                 currentSurface = surface;
             } else if (obs.type === 'block' && wheel.x < obs.x + 5 && wheel.y > obs.y) {
-                // Toleranz um 3 Pixel verringert, um Einschneiden an Kanten zu verhindern
                 wheel.isHittingWall = true;
             } else if (obs.type === 'round' && wheel.x < obs.x + 8 && wheel.y > obs.y + (obs.height * 0.4)) {
                 wheel.isHittingWall = true;
@@ -88,13 +83,11 @@ function updateWheel(wheel, timeScale) {
 
     if (wheel.isHittingWall) {
         wheel.x -= gameSpeed * timeScale; 
-        // Synchronisierung des globalen Ankerpunkts zur Vermeidung von Verspannungen
         player.targetBikeX -= gameSpeed * timeScale;
     } else if (!isLevelComplete || (isLevelComplete && !bikeStopped)) {
         wheel.x += (wheel.defaultX - wheel.x) * (0.1 * timeScale);
     }
 
-    // Bergab-Haftung: Haelt das Rad bei moderaten Talfahrten am Boden
     if (!wheel.isJumping && !overChasm && wheel.y < currentSurface && wheel.y > currentSurface - 20) {
         wheel.y = currentSurface;
         wheel.vy = 0;
@@ -118,7 +111,6 @@ function updateWheel(wheel, timeScale) {
     }
 }
 
-// Kollision zwischen Rahmen und Untergrund
 function handleFrameCollision(timeScale) {
     let isScraping = false;
     let maxPenetration = 0;
@@ -164,7 +156,6 @@ function handleFrameCollision(timeScale) {
     }
 }
 
-// Initiierung der Absturzsequenz
 function startCrash(type) {
     if (isCrashing) return;
     isCrashing = true;
@@ -195,7 +186,7 @@ function startCrash(type) {
     beanCrash.rotation = 0;
     beanCrash.isSplat = false;
 }
-// Fortschreibung der Crash-Animation
+
 function updateCrashAnimation(timeScale) {
     if (crashType === 'flip') {
         let targetAngle = Math.PI; 
@@ -245,7 +236,7 @@ function updateCrashAnimation(timeScale) {
         gameOverTimer += timeScale * 16.66;
         if (gameOverTimer > 1200) {
             if (lives > 0) {
-                respawnPlayer(); // <-- HIER GEÄNDERT: Setzt den Spieler nur ein kleines Stueck zurueck!
+                respawnPlayer();
             } else {
                 isGameOver = true;
             }

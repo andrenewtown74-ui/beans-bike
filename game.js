@@ -1,33 +1,15 @@
-// Initialisierung und UI
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const uiLayer = document.getElementById('ui-layer');
-const titleEl = document.getElementById('title');
-const instructionEl = document.getElementById('instruction');
-const touchControls = document.getElementById('touch-controls');
-const fullscreenBtn = document.getElementById('fullscreen-btn');
+canvas = document.getElementById('gameCanvas');
+ctx = canvas.getContext('2d');
+uiLayer = document.getElementById('ui-layer');
+titleEl = document.getElementById('title');
+instructionEl = document.getElementById('instruction');
+touchControls = document.getElementById('touch-controls');
+fullscreenBtn = document.getElementById('fullscreen-btn');
 
-// Globale Variablen fuer die Logik
-let levelData = [];
-let designData = null;
-let worldDistance = 0;
-let nextObstacleIndex = 0;
-
-let currentLevel = 1;
-let playTime = 0;
-const LEVEL_DURATION = 60000; 
-let finishLineActive = false;
-let finishLineX = 0;
-let isLevelComplete = false;
-let bikeStopped = false;
-let lives = 3;
-
-// Fallback Daten
 const fallbackLevelData = [
-    { "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
+    { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
 ];
 
-// Aktualisierte Fallback-Datenstruktur
 const fallbackDesignData = {
     "theme": {
         "skyColor": "#87CEEB",
@@ -41,46 +23,12 @@ const fallbackDesignData = {
         "jumpStrength": -6.5,
         "horizonY": 185,
         "terrainType": "flat",
-        "baseGroundY": 185
+        "baseGroundY": 185,
+        "levelDistance": 6000
     },
     "objects": []
 };
-// Objekte zur Laufzeit
-const keys = { up: false, down: false };
-let touchGas = false;
-let touchBrake = false;
 
-let isGameRunning = false;
-let isGameOver = false;
-let isCrashing = false;
-let score = 0;
-let gameSpeed = 1.5; 
-let animationFrameId;
-let lastTime = 0; 
-let pedalAngle = 0; 
-
-let crashType = '';
-let crashAngle = 0;
-let crashBikeLength = 0;
-let gameOverTimer = 0;
-let bikeParts = {
-    rear: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, rotV: 0 },
-    front: { x: 0, y: 0, vx: 0, vy: 0, rot: 0, rotV: 0 }
-};
-const beanCrash = { x: 0, y: 0, vx: 0, vy: 0, rotation: 0, isSplat: false };
-
-const player = {
-    targetBikeX: 30,
-    rearWheel: { x: 30, defaultX: 30, y: 185, vy: 0, isJumping: false, isHittingWall: false, onSurface: true },
-    frontWheel: { x: 90, defaultX: 90, y: 185, vy: 0, isJumping: false, isHittingWall: false, onSurface: true },
-    gravity: 0.35,
-    jumpStrength: -6.5
-};
-
-const obstacles = [];
-const backgroundElements = [];
-
-// Initiale Funktionsaufrufe
 designData = fallbackDesignData;
 loadLevelData(currentLevel);
 
@@ -89,7 +37,6 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
 }
 resizeCanvas();
 
-// Modifizierte Ladefunktion fuer Konfigurationen
 function loadLevelData(levelNum) {
     fetch(`level${levelNum}.json`)
         .then(function(response) {
@@ -98,6 +45,7 @@ function loadLevelData(levelNum) {
         })
         .then(function(data) {
             levelData = data;
+            for(let i=0; i<levelData.length; i++) levelData[i].id = i;
         })
         .catch(function(error) {
             levelData = fallbackLevelData;
@@ -121,13 +69,7 @@ function loadLevelData(levelNum) {
             updatePhysicsConfig();
         });
 }
-// Zuweisung der geladenen physikalischen Parameter an das Spieler-Objekt
-function updatePhysicsConfig() {
-    if (designData && designData.physics) {
-        player.gravity = designData.physics.gravity !== undefined ? designData.physics.gravity : 0.35;
-        player.jumpStrength = designData.physics.jumpStrength !== undefined ? designData.physics.jumpStrength : -6.5;
-    }
-}
+
 function updateMusic() {
     if (designData && designData.theme && designData.theme.music) {
         if (!bgMusic.src.endsWith(designData.theme.music)) {
@@ -136,6 +78,14 @@ function updateMusic() {
                 bgMusic.play().catch(function(err) {});
             }
         }
+    }
+}
+
+function updatePhysicsConfig() {
+    if (designData && designData.physics) {
+        player.gravity = designData.physics.gravity !== undefined ? designData.physics.gravity : 0.35;
+        player.jumpStrength = designData.physics.jumpStrength !== undefined ? designData.physics.jumpStrength : -6.5;
+        levelDistance = designData.physics.levelDistance !== undefined ? designData.physics.levelDistance : 6000;
     }
 }
 
@@ -180,6 +130,7 @@ function restartLevel() {
     touchBrake = false;
 
     worldDistance = 0;
+    highestScoredObstacle = -1;
     let startY = getTerrainY(player.targetBikeX);
 
     player.rearWheel.y = startY;
@@ -200,7 +151,6 @@ function restartLevel() {
     
     obstacles.length = 0;
     nextObstacleIndex = 0;
-    playTime = 0;
     finishLineActive = false;
     finishLineX = 0;
     isLevelComplete = false;
@@ -230,7 +180,55 @@ function restartLevel() {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Steuerungsebene
+function respawnPlayer() {
+    worldDistance = Math.max(0, worldDistance - 400);
+
+    player.targetBikeX = 30;
+    let startY = getTerrainY(worldDistance + player.targetBikeX);
+
+    player.rearWheel.y = startY;
+    player.rearWheel.defaultX = 30;
+    player.rearWheel.x = player.rearWheel.defaultX;
+    player.rearWheel.vy = 0;
+    player.rearWheel.isJumping = false;
+    player.rearWheel.isHittingWall = false;
+    player.rearWheel.onSurface = true;
+    
+    player.frontWheel.y = getTerrainY(worldDistance + 90);
+    player.frontWheel.defaultX = 90;
+    player.frontWheel.x = player.frontWheel.defaultX;
+    player.frontWheel.vy = 0;
+    player.frontWheel.isJumping = false;
+    player.frontWheel.isHittingWall = false;
+    player.frontWheel.onSurface = true;
+
+    keys.up = false;
+    keys.down = false;
+    touchGas = false;
+    touchBrake = false;
+
+    obstacles.length = 0;
+    nextObstacleIndex = 0;
+    for (let i = 0; i < levelData.length; i++) {
+        if (levelData[i].spawnDistance > worldDistance) {
+            nextObstacleIndex = i;
+            break;
+        }
+    }
+    if (nextObstacleIndex === 0 && levelData.length > 0 && levelData[levelData.length - 1].spawnDistance <= worldDistance) {
+        nextObstacleIndex = levelData.length;
+    }
+
+    isCrashing = false;
+    crashType = '';
+    gameOverTimer = 0;
+    beanCrash.isSplat = false;
+    hasPlayedSplatSound = false;
+    
+    lastTime = performance.now();
+    startMusic();
+}
+
 function handleInputEvent() {
     initAudio();
     if (isGameOver) {
@@ -362,6 +360,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         if (worldDistance >= nextObs.spawnDistance) {
             let tY = getTerrainY(worldDistance + canvas.width);
             obstacles.push({
+                id: nextObs.id,
                 x: canvas.width,
                 y: tY + 5 - nextObs.height, 
                 baseY: tY + 5 - nextObs.height,
@@ -376,7 +375,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     }
 }
 
-// Haupt-Spiele-Schleife
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
     if (!lastTime) lastTime = timestamp;
@@ -394,8 +392,7 @@ function gameLoop(timestamp) {
     }
 
     if (!isLevelComplete && !isCrashing) {
-        playTime += deltaTime;
-        if (playTime >= LEVEL_DURATION && !finishLineActive) {
+        if (worldDistance >= levelDistance && !finishLineActive) {
             finishLineActive = true;
             finishLineX = canvas.width + 100;
         }
@@ -492,8 +489,11 @@ function gameLoop(timestamp) {
 
         if (!isCrashing && !obs.passed && obs.x + obs.width < player.rearWheel.defaultX) {
             obs.passed = true;
-            score += 1;
-            playScore();
+            if (obs.id > highestScoredObstacle) {
+                score += 1;
+                highestScoredObstacle = obs.id;
+                playScore();
+            }
         }
         if (obs.x + obs.width < 0) obstacles.splice(i, 1);
     }
@@ -506,8 +506,11 @@ function gameLoop(timestamp) {
     ctx.fillText('Punkte: ' + score, 10, 20);
     ctx.fillText('Leben: ' + lives, 10, 40);
     
-    let timeLeft = Math.max(0, Math.ceil((LEVEL_DURATION - playTime) / 1000));
-    ctx.fillText('Zeit: ' + timeLeft + 's', canvas.width - 120, 20);
+    let distanceLeft = Math.max(0, Math.floor((levelDistance - worldDistance) / 10));
+    ctx.fillText('Ziel: ' + distanceLeft + 'm', canvas.width - 120, 20);
 
     animationFrameId = requestAnimationFrame(gameLoop);
 }
+
+drawEnvironment(0);
+drawPlayer();
