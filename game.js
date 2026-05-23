@@ -5,6 +5,7 @@ titleEl = document.getElementById('title');
 instructionEl = document.getElementById('instruction');
 touchControls = document.getElementById('touch-controls');
 fullscreenBtn = document.getElementById('fullscreen-btn');
+headlightBtn = document.getElementById('headlight-btn');
 
 const fallbackLevelData = [
     { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
@@ -16,7 +17,8 @@ const fallbackDesignData = {
         "groundColor": "#8B4513",
         "surfaceColor": "#228B22",
         "music": "Sprocket_Hill_Climb.mp3",
-        "sun": { "active": true, "color": "#FFD700", "size": 20, "xOffset": 100, "y": 20 }
+        "sun": { "active": true, "color": "#FFD700", "size": 20, "xOffset": 100, "y": 20 },
+        "headlightOn": false
     },
     "physics": {
         "gravity": 0.35,
@@ -36,6 +38,20 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     touchControls.classList.remove('hidden');
 }
 resizeCanvas();
+
+function checkHeadlight() {
+    if (currentLevel === 3) {
+        isHeadlightOn = true;
+    }
+    headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
+}
+
+headlightBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    isHeadlightOn = !isHeadlightOn;
+    headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
+});
 
 function loadLevelData(levelNum) {
     fetch(`level${levelNum}.json`)
@@ -61,12 +77,14 @@ function loadLevelData(levelNum) {
             initBackground();
             updateMusic();
             updatePhysicsConfig();
+            checkHeadlight();
         })
         .catch(function(error) {
             designData = fallbackDesignData;
             initBackground();
             updateMusic();
             updatePhysicsConfig();
+            checkHeadlight();
         });
 }
 
@@ -169,6 +187,7 @@ function restartLevel() {
     
     lastTime = performance.now();
     initBackground();
+    checkHeadlight();
     
     uiLayer.classList.add('hidden');
     isGameRunning = true;
@@ -281,6 +300,8 @@ window.addEventListener('keyup', function(e) {
 });
 
 function handleTouch(e) {
+    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
+    
     if (handleInputEvent()) {
         if (e.cancelable) e.preventDefault();
         return;
@@ -316,6 +337,8 @@ window.addEventListener('touchmove', handleTouch, { passive: false });
 window.addEventListener('touchend', handleTouch, { passive: false });
 
 window.addEventListener('mousedown', function(e) {
+    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
+
     if (handleInputEvent()) return;
     if (isLevelComplete) return;
 

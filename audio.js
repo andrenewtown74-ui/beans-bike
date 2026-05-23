@@ -1,5 +1,4 @@
-// Globale Variablen-Deklaration (geteilt ueber alle Skripte)
-let canvas, ctx, uiLayer, titleEl, instructionEl, touchControls, fullscreenBtn;
+let canvas, ctx, uiLayer, titleEl, instructionEl, touchControls, fullscreenBtn, headlightBtn;
 let levelData = [];
 let designData = null;
 let worldDistance = 0;
@@ -12,6 +11,7 @@ let isLevelComplete = false;
 let bikeStopped = false;
 let lives = 3;
 let highestScoredObstacle = -1;
+let isHeadlightOn = false;
 
 let keys = { up: false, down: false };
 let touchGas = false;
@@ -73,9 +73,7 @@ function playTone(frequency, type, duration, vol = 0.1) {
     osc.stop(audioCtx.currentTime + duration);
 }
 
-function playJump() { 
-    playTone(150, 'square', 0.1, 0.1); 
-}
+function playJump() { playTone(150, 'square', 0.1, 0.1); }
 
 function playScore() {
     playTone(880, 'square', 0.1, 0.1);

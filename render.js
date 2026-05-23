@@ -189,7 +189,7 @@ function drawBrokenBike() {
     ctx.fill();
     ctx.stroke();
 
-    if (designData && designData.theme && designData.theme.headlightOn) {
+    if (isHeadlightOn) {
         let grad = ctx.createLinearGradient(11, 0, 200, 0);
         grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
         grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
@@ -201,7 +201,6 @@ function drawBrokenBike() {
         ctx.closePath();
         ctx.fill();
     }
-    
     ctx.restore();
 }
 
@@ -251,7 +250,7 @@ function drawPlayer() {
     ctx.fill();
     ctx.stroke();
 
-    if (designData && designData.theme && designData.theme.headlightOn && !isCrashing) {
+    if (isHeadlightOn && !isCrashing) {
         ctx.save();
         let grad = ctx.createLinearGradient(lampX + 6, 0, lampX + 200, 0);
         grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');

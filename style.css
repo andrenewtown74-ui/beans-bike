@@ -92,6 +92,19 @@ canvas {
     z-index: 20;
 }
 
+#headlight-btn {
+    position: absolute;
+    top: 15px;
+    right: 130px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: 2px solid #fff;
+    font-family: 'Courier New', Courier, monospace;
+    cursor: pointer;
+    z-index: 20;
+}
+
 .hidden { 
     display: none !important; 
 }
@@ -143,6 +156,12 @@ p {
     #fullscreen-btn {
         top: 5px;
         right: 5px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+    #headlight-btn {
+        top: 5px;
+        right: 90px;
         padding: 4px 8px;
         font-size: 0.8rem;
     }
