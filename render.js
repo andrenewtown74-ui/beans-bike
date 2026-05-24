@@ -362,3 +362,90 @@ function drawPlayer() {
     }
     ctx.restore();
 }
+
+// Zeichnen aller Flugobjekte
+function drawFlyingObjects() {
+    for (let obj of flyingObjects) {
+        ctx.save();
+        ctx.translate(obj.x, obj.y);
+
+        if (obj.type === 'wasp') {
+            // Wespe zeichnen (gelb/schwarz gestreift)
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Streifen
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(-3, -4, 2, 8);
+            ctx.fillRect(1, -4, 2, 8);
+
+            // Fluegel
+            let wingOffset = Math.sin(performance.now() * 0.1) * 6;
+            ctx.fillStyle = 'rgba(200, 240, 255, 0.7)';
+            ctx.beginPath();
+            ctx.ellipse(-1, -4, 3, 6, Math.PI/6 + wingOffset*0.05, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        } 
+        else if (obj.type === 'bird') {
+            // Vogel zeichnen (braun)
+            ctx.fillStyle = '#8B5A2B';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Schnabel
+            ctx.fillStyle = '#FF9900';
+            ctx.beginPath();
+            ctx.moveTo(8, -2);
+            ctx.lineTo(13, 0);
+            ctx.lineTo(8, 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Flattern
+            let wingY = Math.sin(performance.now() * 0.05) * 8;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-2, 0);
+            ctx.lineTo(0, -wingY);
+            ctx.lineTo(2, 0);
+            ctx.stroke();
+        } 
+        else if (obj.type === 'meteorite') {
+            // Meteorit (feuriger Schweif)
+            let gradient = ctx.createLinearGradient(0, 0, 15, -15);
+            gradient.addColorStop(0, '#FF3300');
+            gradient.addColorStop(0.5, '#FF9900');
+            gradient.addColorStop(1, 'rgba(255, 153, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(-5, -5);
+            ctx.lineTo(25, -25);
+            ctx.lineTo(5, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Kern
+            ctx.fillStyle = '#555555';
+            ctx.strokeStyle = '#FF3300';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -6);
+            ctx.lineTo(5, -3);
+            ctx.lineTo(6, 3);
+            ctx.lineTo(2, 6);
+            ctx.lineTo(-4, 4);
+            ctx.lineTo(-5, -2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+}

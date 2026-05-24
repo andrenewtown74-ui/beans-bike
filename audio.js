@@ -1,3 +1,4 @@
+// Globale Variablen-Deklaration (geteilt ueber alle Skripte)
 let canvas, ctx, uiLayer, titleEl, instructionEl, touchControls, fullscreenBtn, headlightBtn;
 let levelData = [];
 let designData = null;
@@ -12,6 +13,7 @@ let bikeStopped = false;
 let lives = 3;
 let highestScoredObstacle = -1;
 let isHeadlightOn = false;
+let flyingObjects = [];
 
 let keys = { up: false, down: false };
 let touchGas = false;

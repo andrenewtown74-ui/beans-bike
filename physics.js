@@ -243,3 +243,65 @@ function updateCrashAnimation(timeScale) {
         }
     }
 }
+
+// Aktualisierung der fliegenden Objekte (Flug, Ablenkung, Einschlag und Treffer)
+function updateFlyingObjects(timeScale) {
+    let cx = (player.rearWheel.x + player.frontWheel.x) / 2;
+    let cy = (player.rearWheel.y + player.frontWheel.y) / 2;
+    let beanX = cx;
+    let beanY = cy - 25;
+
+    for (let i = flyingObjects.length - 1; i >= 0; i--) {
+        let obj = flyingObjects[i];
+
+        obj.x += obj.vx * timeScale;
+        obj.y += obj.vy * timeScale;
+
+        // Meteoriten schlagen schraeg auf dem Boden ein
+        if (obj.type === 'meteorite' && !obj.deflected) {
+            let tY = getTerrainY(worldDistance + obj.x);
+            if (obj.y >= tY) {
+                // Generiere permanenten Mondstein als Block-Hindernis
+                obstacles.push({
+                    id: 20000 + obj.id,
+                    x: obj.x,
+                    y: tY + 5 - 20,
+                    baseY: tY + 5 - 20,
+                    width: 30,
+                    height: 20,
+                    type: 'block',
+                    color: '#444444',
+                    passed: false
+                });
+                playCrash();
+                flyingObjects.splice(i, 1);
+                continue;
+            }
+        }
+
+        // Ablenkung durch Vorder- oder Hinterrad
+        let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);
+        let fDist = Math.hypot(player.frontWheel.x - obj.x, player.frontWheel.y - obj.y);
+        if ((rDist < 18 || fDist < 18) && !obj.deflected) {
+            obj.deflected = true;
+            obj.vx = 4;
+            obj.vy = -3;
+            playJump();
+        }
+
+        // Treffer der ungeschuetzten Bohne
+        if (!obj.deflected) {
+            let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
+            if (bDist < 15) {
+                startCrash('flip');
+                flyingObjects.splice(i, 1);
+                continue;
+            }
+        }
+
+        // Bereinigung ausserhalb des sichtbaren Bereichs
+        if (obj.x < -100 || obj.x > canvas.width + 200 || obj.y > canvas.height + 100 || obj.y < -150) {
+            flyingObjects.splice(i, 1);
+        }
+    }
+}
