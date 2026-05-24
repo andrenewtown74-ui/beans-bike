@@ -1,3 +1,4 @@
+// Zuweisung der DOM-Elemente (Variablen sind in audio.js deklariert)
 canvas = document.getElementById('gameCanvas');
 ctx = canvas.getContext('2d');
 uiLayer = document.getElementById('ui-layer');
@@ -31,11 +32,12 @@ const fallbackDesignData = {
     "objects": []
 };
 
+// Initialisierung
 designData = fallbackDesignData;
 loadLevelData(currentLevel);
 
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    touchControls.classList.remove('hidden');
+    if (touchControls) touchControls.classList.remove('hidden');
 }
 resizeCanvas();
 
@@ -43,15 +45,19 @@ function checkHeadlight() {
     if (currentLevel === 3) {
         isHeadlightOn = true;
     }
-    headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
+    if (headlightBtn) {
+        headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
+    }
 }
 
-headlightBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    isHeadlightOn = !isHeadlightOn;
-    headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
-});
+if (headlightBtn) {
+    headlightBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        isHeadlightOn = !isHeadlightOn;
+        headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
+    });
+}
 
 function loadLevelData(levelNum) {
     fetch(`level${levelNum}.json`)
@@ -61,7 +67,7 @@ function loadLevelData(levelNum) {
         })
         .then(function(data) {
             levelData = data;
-            for(let i=0; i<levelData.length; i++) levelData[i].id = i;
+            for(let i = 0; i < levelData.length; i++) levelData[i].id = i;
         })
         .catch(function(error) {
             levelData = fallbackLevelData;
@@ -141,6 +147,7 @@ function advanceLevel() {
 }
 
 function restartLevel() {
+    flyingObjects = [];
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
@@ -200,6 +207,7 @@ function restartLevel() {
 }
 
 function respawnPlayer() {
+    flyingObjects = [];
     worldDistance = Math.max(0, worldDistance - 400);
 
     player.targetBikeX = 30;
@@ -381,18 +389,46 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     if (nextObstacleIndex < levelData.length) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
-            let tY = getTerrainY(worldDistance + canvas.width);
-            obstacles.push({
-                id: nextObs.id,
-                x: canvas.width,
-                y: tY + 5 - nextObs.height, 
-                baseY: tY + 5 - nextObs.height,
-                width: nextObs.width,
-                height: nextObs.height,
-                type: nextObs.type,
-                color: nextObs.color,
-                passed: false
-            });
+            if (nextObs.type === 'wasp' || nextObs.type === 'bird' || nextObs.type === 'meteorite') {
+                let startY = 100;
+                let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
+                let vxVal = -speedVal; 
+                let vyVal = 0;
+
+                if (nextObs.type === 'meteorite') {
+                    startY = -20;
+                    vxVal = -speedVal * 0.7; 
+                    vyVal = speedVal * 0.8;
+                } else {
+                    let tY = getTerrainY(worldDistance + canvas.width);
+                    startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
+                }
+
+                flyingObjects.push({
+                    id: nextObs.id,
+                    x: canvas.width,
+                    y: startY,
+                    vx: vxVal,
+                    vy: vyVal,
+                    type: nextObs.type,
+                    speed: speedVal,
+                    deflected: false,
+                    passed: false
+                });
+            } else {
+                let tY = getTerrainY(worldDistance + canvas.width);
+                obstacles.push({
+                    id: nextObs.id,
+                    x: canvas.width,
+                    y: tY + 5 - nextObs.height, 
+                    baseY: tY + 5 - nextObs.height,
+                    width: nextObs.width,
+                    height: nextObs.height,
+                    type: nextObs.type,
+                    color: nextObs.color,
+                    passed: false
+                });
+            }
             nextObstacleIndex++;
         }
     }
@@ -451,16 +487,23 @@ function gameLoop(timestamp) {
         player.rearWheel.defaultX = player.targetBikeX;
         player.frontWheel.defaultX = player.targetBikeX + 60;
 
-        updateWheel(player.rearWheel, timeScale);
-        updateWheel(player.frontWheel, timeScale);
-        handleFrameCollision(timeScale);
+        // Die Physik-Funktionen liegen in physics.js
+        if (typeof updateWheel === 'function') {
+            updateWheel(player.rearWheel, timeScale);
+            updateWheel(player.frontWheel, timeScale);
+            handleFrameCollision(timeScale);
+        }
 
         if (player.rearWheel.y > canvas.height + 50 || player.frontWheel.y > canvas.height + 50) {
-            startCrash('fall');
+            if (typeof startCrash === 'function') startCrash('fall');
         } else {
             const dx = player.frontWheel.x - player.rearWheel.x;
-            if (player.frontWheel.isHittingWall && dx < 30) startCrash('flip');
-            else if (player.rearWheel.isHittingWall && dx > 110) startCrash('tear');
+            if (player.frontWheel.isHittingWall && dx < 30) {
+                if (typeof startCrash === 'function') startCrash('flip');
+            }
+            else if (player.rearWheel.isHittingWall && dx > 110) {
+                if (typeof startCrash === 'function') startCrash('tear');
+            }
 
             if (!player.rearWheel.isJumping && !player.frontWheel.isJumping && !player.frontWheel.isHittingWall && !bikeStopped) {
                 let currentPedalSpeed = gameSpeed * 0.15;
@@ -473,15 +516,17 @@ function gameLoop(timestamp) {
             }
         }
     } else {
-        updateCrashAnimation(timeScale);
+        if (typeof updateCrashAnimation === 'function') updateCrashAnimation(timeScale);
     }
 
     if (finishLineActive && player.frontWheel.x >= finishLineX && !isLevelComplete) {
         isLevelComplete = true;
     }
 
-    drawEnvironment(moveScale);
+    // Rendern aus render.js
+    if (typeof drawEnvironment === 'function') drawEnvironment(moveScale);
     spawnObstaclesFromData(timeScale, moveScale);
+    if (typeof updateFlyingObjects === 'function') updateFlyingObjects(timeScale, moveScale);
     
     for (let i = obstacles.length - 1; i >= 0; i--) {
         let obs = obstacles[i];
@@ -521,8 +566,9 @@ function gameLoop(timestamp) {
         if (obs.x + obs.width < 0) obstacles.splice(i, 1);
     }
 
-    drawPlayer();
-    if (isCrashing) drawCrashBean();
+    if (typeof drawPlayer === 'function') drawPlayer();
+    if (isCrashing && typeof drawCrashBean === 'function') drawCrashBean();
+    if (typeof drawFlyingObjects === 'function') drawFlyingObjects();
 
     ctx.fillStyle = '#000';
     ctx.font = '16px Courier New';
@@ -535,5 +581,8 @@ function gameLoop(timestamp) {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-drawEnvironment(0);
-drawPlayer();
+// Direkter Start beim Neuladen, sofern Dateien da sind
+if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
+    drawEnvironment(0);
+    drawPlayer();
+}

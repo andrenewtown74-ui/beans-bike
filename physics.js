@@ -1,3 +1,4 @@
+// Berechnung des Terrain-Profils aus den Level-Konfigurationen
 function getTerrainY(worldX) {
     if (!designData || !designData.physics) return 185;
     const config = designData.physics;
@@ -18,6 +19,7 @@ function getTerrainY(worldX) {
     return 185;
 }
 
+// Horizont fuer Hintergrundobjekte dynamisch anpassen
 function getHorizonY() {
     if (designData && designData.physics && designData.physics.horizonY !== undefined) {
         return designData.physics.horizonY;
@@ -25,6 +27,7 @@ function getHorizonY() {
     return 185;
 }
 
+// Ermittlung der Oberflaeche anhand aktueller Hindernisse
 function getObstacleSurface(x, obs) {
     if (x < obs.x || x > obs.x + obs.width) return null;
     
@@ -55,6 +58,7 @@ function getObstacleSurface(x, obs) {
     return null;
 }
 
+// Physik-Update fuer ein einzelnes Rad
 function updateWheel(wheel, timeScale) {
     wheel.vy += player.gravity * timeScale;
     wheel.y += wheel.vy * timeScale;
@@ -88,6 +92,7 @@ function updateWheel(wheel, timeScale) {
         wheel.x += (wheel.defaultX - wheel.x) * (0.1 * timeScale);
     }
 
+    // Bergab-Haftung haelt das Rad bei Talfahrten am Boden
     if (!wheel.isJumping && !overChasm && wheel.y < currentSurface && wheel.y > currentSurface - 20) {
         wheel.y = currentSurface;
         wheel.vy = 0;
@@ -111,6 +116,7 @@ function updateWheel(wheel, timeScale) {
     }
 }
 
+// Kollision zwischen Rahmen und Untergrund
 function handleFrameCollision(timeScale) {
     let isScraping = false;
     let maxPenetration = 0;
@@ -156,6 +162,7 @@ function handleFrameCollision(timeScale) {
     }
 }
 
+// Initiierung der Absturzsequenz
 function startCrash(type) {
     if (isCrashing) return;
     isCrashing = true;
@@ -187,6 +194,7 @@ function startCrash(type) {
     beanCrash.isSplat = false;
 }
 
+// Fortschreibung der Crash-Animation
 function updateCrashAnimation(timeScale) {
     if (crashType === 'flip') {
         let targetAngle = Math.PI; 
@@ -245,7 +253,7 @@ function updateCrashAnimation(timeScale) {
 }
 
 // Aktualisierung der fliegenden Objekte (Flug, Ablenkung, Einschlag und Treffer)
-function updateFlyingObjects(timeScale) {
+function updateFlyingObjects(timeScale, moveScale) {
     let cx = (player.rearWheel.x + player.frontWheel.x) / 2;
     let cy = (player.rearWheel.y + player.frontWheel.y) / 2;
     let beanX = cx;
@@ -254,18 +262,18 @@ function updateFlyingObjects(timeScale) {
     for (let i = flyingObjects.length - 1; i >= 0; i--) {
         let obj = flyingObjects[i];
 
-        obj.x += obj.vx * timeScale;
+        // Bewegung kombiniert aus Eigengeschwindigkeit und der Bewegung des Levels (Kamera)
+        obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
         obj.y += obj.vy * timeScale;
 
-        // Meteoriten schlagen schraeg auf dem Boden ein
+        // Meteoriten schlagen schraeg auf dem Boden ein und bilden ein Hindernis
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
             if (obj.y >= tY) {
-                // Generiere permanenten Mondstein als Block-Hindernis
                 obstacles.push({
-                    id: 20000 + obj.id,
+                    id: 20000 + obj.id, // Eindeutige ID um doppelte Punkte zu vermeiden
                     x: obj.x,
-                    y: tY + 5 - 20,
+                    y: tY + 5 - 20, 
                     baseY: tY + 5 - 20,
                     width: 30,
                     height: 20,
@@ -273,29 +281,39 @@ function updateFlyingObjects(timeScale) {
                     color: '#444444',
                     passed: false
                 });
-                playCrash();
+                playCrash(); // Sound fuer Einschlag
                 flyingObjects.splice(i, 1);
                 continue;
             }
         }
 
-        // Ablenkung durch Vorder- oder Hinterrad
+        // Ablenkung durch Vorder- oder Hinterrad (Abwehr-Mechanik)
         let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);
         let fDist = Math.hypot(player.frontWheel.x - obj.x, player.frontWheel.y - obj.y);
         if ((rDist < 18 || fDist < 18) && !obj.deflected) {
             obj.deflected = true;
             obj.vx = 4;
             obj.vy = -3;
-            playJump();
+            playJump(); // Feedback Sound
         }
 
         // Treffer der ungeschuetzten Bohne
-        if (!obj.deflected) {
+        if (!obj.deflected && !isCrashing) {
             let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
             if (bDist < 15) {
                 startCrash('flip');
                 flyingObjects.splice(i, 1);
                 continue;
+            }
+        }
+
+        // Punktevergabe, wenn das Objekt sicher das Hinterrad passiert hat
+        if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 10) {
+            obj.passed = true;
+            if (obj.id > highestScoredObstacle) {
+                score += 1;
+                highestScoredObstacle = obj.id;
+                playScore();
             }
         }
 
