@@ -1,0 +1,19 @@
+[
+    { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#5C4033" },
+    { "id": 1, "spawnDistance": 500, "type": "monkey", "speed": 1.5 },
+    { "id": 2, "spawnDistance": 800, "type": "liana_bridge", "width": 150, "height": 40 },
+    { "id": 3, "spawnDistance": 1100, "type": "monkey", "speed": 1.8 },
+    { "id": 4, "spawnDistance": 1400, "type": "liana_bridge", "width": 200, "height": 60 },
+    { "id": 5, "spawnDistance": 1800, "type": "round", "width": 50, "height": 30, "color": "#5C4033" },
+    { "id": 6, "spawnDistance": 2200, "type": "monkey", "speed": 1.6 },
+    { "id": 7, "spawnDistance": 2500, "type": "liana_bridge", "width": 180, "height": 50 },
+    { "id": 8, "spawnDistance": 3000, "type": "ramp", "width": 60, "height": 30, "color": "#5C4033" },
+    { "id": 9, "spawnDistance": 3400, "type": "liana_bridge", "width": 250, "height": 70 },
+    { "id": 10, "spawnDistance": 3600, "type": "monkey", "speed": 2.0 },
+    { "id": 11, "spawnDistance": 4100, "type": "hill", "width": 200, "height": 50, "color": "#5C4033" },
+    { "id": 12, "spawnDistance": 4500, "type": "liana_bridge", "width": 150, "height": 40 },
+    { "id": 13, "spawnDistance": 4700, "type": "monkey", "speed": 1.7 },
+    { "id": 14, "spawnDistance": 5100, "type": "round", "width": 60, "height": 35, "color": "#5C4033" },
+    { "id": 15, "spawnDistance": 5400, "type": "liana_bridge", "width": 220, "height": 60 },
+    { "id": 16, "spawnDistance": 5800, "type": "monkey", "speed": 2.2 }
+]

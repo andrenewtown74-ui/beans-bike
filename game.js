@@ -1,4 +1,4 @@
-// Zuweisung der DOM-Elemente (Variablen sind in config.js deklariert)
+// Zuweisung der DOM-Elemente
 canvas = document.getElementById('gameCanvas');
 ctx = canvas.getContext('2d');
 uiLayer = document.getElementById('ui-layer');
@@ -7,6 +7,10 @@ instructionEl = document.getElementById('instruction');
 touchControls = document.getElementById('touch-controls');
 fullscreenBtn = document.getElementById('fullscreen-btn');
 headlightBtn = document.getElementById('headlight-btn');
+
+// Arrays fuer dynamische Effekte, falls sie in der config.js fehlen
+window.weatherParticles = window.weatherParticles || [];
+window.rainParticles = window.rainParticles || [];
 
 const fallbackLevelData = [
     { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
@@ -41,6 +45,7 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
 }
 resizeCanvas();
 
+// Lichtschalter-Logik
 function checkHeadlight() {
     if (currentLevel === 3) {
         isHeadlightOn = true;
@@ -59,6 +64,7 @@ if (headlightBtn) {
     });
 }
 
+// Level-Daten laden
 function loadLevelData(levelNum) {
     fetch(`level${levelNum}.json`)
         .then(function(response) {
@@ -132,6 +138,7 @@ function initBackground() {
     });
 }
 
+// Spielsteuerung
 function startNewGame() {
     lives = 3;
     score = 0;
@@ -148,6 +155,9 @@ function advanceLevel() {
 
 function restartLevel() {
     flyingObjects = [];
+    window.weatherParticles = [];
+    window.rainParticles = [];
+    
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
@@ -164,6 +174,7 @@ function restartLevel() {
     player.rearWheel.vy = 0;
     player.rearWheel.isJumping = false;
     player.rearWheel.isHittingWall = false;
+    player.rearWheel.onUphillLiana = false;
     player.rearWheel.onSurface = true;
     
     player.frontWheel.y = getTerrainY(90);
@@ -172,6 +183,7 @@ function restartLevel() {
     player.frontWheel.vy = 0;
     player.frontWheel.isJumping = false;
     player.frontWheel.isHittingWall = false;
+    player.frontWheel.onUphillLiana = false;
     player.frontWheel.onSurface = true;
     
     obstacles.length = 0;
@@ -219,6 +231,7 @@ function respawnPlayer() {
     player.rearWheel.vy = 0;
     player.rearWheel.isJumping = false;
     player.rearWheel.isHittingWall = false;
+    player.rearWheel.onUphillLiana = false;
     player.rearWheel.onSurface = true;
     
     player.frontWheel.y = getTerrainY(worldDistance + 90);
@@ -227,6 +240,7 @@ function respawnPlayer() {
     player.frontWheel.vy = 0;
     player.frontWheel.isJumping = false;
     player.frontWheel.isHittingWall = false;
+    player.frontWheel.onUphillLiana = false;
     player.frontWheel.onSurface = true;
 
     keys.up = false;
@@ -256,6 +270,7 @@ function respawnPlayer() {
     startMusic();
 }
 
+// Eingabebehandlung
 function handleInputEvent() {
     initAudio();
     if (isGameOver) {
@@ -382,6 +397,7 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 
+// Hindernisse und Feinde spawnen
 function spawnObstaclesFromData(timeScale, moveScale) {
     if (finishLineActive) return; 
 
@@ -389,7 +405,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     if (nextObstacleIndex < levelData.length) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
-            if (nextObs.type === 'wasp' || nextObs.type === 'bird' || nextObs.type === 'meteorite') {
+            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball'].includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
@@ -399,6 +415,18 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     startY = -20;
                     vxVal = -speedVal * 0.7; 
                     vyVal = speedVal * 0.8;
+                } else if (nextObs.type === 'monkey') {
+                    let tY = getTerrainY(worldDistance + canvas.width);
+                    startY = tY - 80;
+                    vxVal = -speedVal; 
+                } else if (nextObs.type === 'bat') {
+                    let tY = getTerrainY(worldDistance + canvas.width);
+                    startY = tY - 60;
+                    vxVal = -speedVal; 
+                } else if (nextObs.type === 'fireball') {
+                    startY = canvas.height + 20; 
+                    vxVal = -gameSpeed; 
+                    vyVal = -8; 
                 } else {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
@@ -406,8 +434,9 @@ function spawnObstaclesFromData(timeScale, moveScale) {
 
                 flyingObjects.push({
                     id: nextObs.id,
-                    x: canvas.width,
+                    x: canvas.width + 50,
                     y: startY,
+                    spawnY: startY,
                     vx: vxVal,
                     vy: vyVal,
                     type: nextObs.type,
@@ -434,6 +463,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     }
 }
 
+// Haupt-Gameloop
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
     if (!lastTime) lastTime = timestamp;
@@ -464,8 +494,13 @@ function gameLoop(timestamp) {
             let isAccelerating = keys.up || touchGas;
             let isBraking = keys.down || touchBrake;
 
-            if (isAccelerating) player.targetBikeX += 2.5 * timeScale;
-            if (isBraking) player.targetBikeX -= 2.5 * timeScale;
+            // Lianen-Steigung zwingt zum Gas geben (sonst rutscht man zurueck)
+            if (player.rearWheel.onUphillLiana && !isAccelerating) {
+                player.targetBikeX -= 3.5 * timeScale;
+            } else {
+                if (isAccelerating) player.targetBikeX += 2.5 * timeScale;
+                if (isBraking) player.targetBikeX -= 2.5 * timeScale;
+            }
         } else {
             player.targetBikeX += 2.0 * timeScale;
             if (player.frontWheel.x >= canvas.width / 2) {
@@ -487,7 +522,6 @@ function gameLoop(timestamp) {
         player.rearWheel.defaultX = player.targetBikeX;
         player.frontWheel.defaultX = player.targetBikeX + 60;
 
-        // Die Physik-Funktionen liegen in physics.js
         if (typeof updateWheel === 'function') {
             updateWheel(player.rearWheel, timeScale);
             updateWheel(player.frontWheel, timeScale);
@@ -523,8 +557,9 @@ function gameLoop(timestamp) {
         isLevelComplete = true;
     }
 
-    // Rendern aus render.js
+    // Grafik-Updates
     if (typeof drawEnvironment === 'function') drawEnvironment(moveScale);
+    
     spawnObstaclesFromData(timeScale, moveScale);
     if (typeof updateFlyingObjects === 'function') updateFlyingObjects(timeScale, moveScale);
     
@@ -532,12 +567,16 @@ function gameLoop(timestamp) {
         let obs = obstacles[i];
         obs.x -= gameSpeed * moveScale;
 
-        if (obs.type !== 'chasm') {
+        if (obs.type !== 'chasm' && obs.type !== 'lava' && obs.type !== 'liana_bridge') {
             ctx.fillStyle = obs.color;
             ctx.strokeStyle = '#000';
             ctx.beginPath();
-            if (obs.type === 'block') { 
+            if (obs.type === 'block' || obs.type === 'ice_block') { 
                 ctx.rect(obs.x, obs.y, obs.width, obs.height); 
+                if (obs.type === 'ice_block') {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.fill();
+                }
             } 
             else if (obs.type === 'ramp') { 
                 ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
@@ -553,6 +592,38 @@ function gameLoop(timestamp) {
                 ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5 - obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5); 
             }
             ctx.fill(); ctx.stroke();
+        } else if (obs.type === 'liana_bridge') {
+            ctx.fillStyle = '#5C4033';
+            ctx.fillRect(obs.x - 10, getTerrainY(worldDistance + obs.x) + 5 - 100, 20, 100);
+            ctx.fillRect(obs.x + obs.width - 10, getTerrainY(worldDistance + obs.x + obs.width) + 5 - 100, 20, 100);
+            
+            ctx.strokeStyle = '#228B22'; 
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            for (let j = 0; j <= obs.width; j += 5) {
+                let progress = j / obs.width;
+                if (progress < 0.05 || progress > 0.95) continue;
+                let dy = Math.sin(progress * Math.PI) * obs.height;
+                let tY = getTerrainY(worldDistance + obs.x + j) + 5;
+                if (j === 5 || j === Math.ceil(0.05 * obs.width)) ctx.moveTo(obs.x + j, tY + dy);
+                else ctx.lineTo(obs.x + j, tY + dy);
+            }
+            ctx.stroke();
+
+            ctx.fillStyle = '#006400';
+            ctx.beginPath(); ctx.arc(obs.x, getTerrainY(worldDistance + obs.x) + 5 - 100, 25, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5 - 100, 25, 0, Math.PI*2); ctx.fill();
+        } else if (obs.type === 'lava') {
+            ctx.fillStyle = '#FF4500';
+            ctx.fillRect(obs.x, canvas.height - 30, obs.width, 40);
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            for (let j = 0; j <= obs.width; j+=10) {
+                let waveY = canvas.height - 30 + Math.sin(performance.now()*0.005 + j)*5;
+                if(j===0) ctx.moveTo(obs.x+j, waveY);
+                else ctx.lineTo(obs.x+j, waveY);
+            }
+            ctx.lineTo(obs.x+obs.width, canvas.height); ctx.lineTo(obs.x, canvas.height); ctx.fill();
         }
 
         if (!isCrashing && !obs.passed && obs.x + obs.width < player.rearWheel.defaultX) {
@@ -569,11 +640,10 @@ function gameLoop(timestamp) {
     if (typeof drawPlayer === 'function') drawPlayer();
     if (isCrashing && typeof drawCrashBean === 'function') drawCrashBean();
     if (typeof drawFlyingObjects === 'function') drawFlyingObjects();
+    if (typeof drawWeather === 'function') drawWeather(timeScale);
 
-    // UI Rendering mit Kontur fuer bessere Lesbarkeit
+    // UI Rendering
     ctx.font = 'bold 16px Courier New';
-    
-    // Schwarze Kontur
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 3;
     ctx.strokeText('Punkte: ' + score, 10, 20);
@@ -581,7 +651,6 @@ function gameLoop(timestamp) {
     let distanceLeft = Math.max(0, Math.floor((levelDistance - worldDistance) / 10));
     ctx.strokeText('Ziel: ' + distanceLeft + 'm', canvas.width - 120, 20);
     
-    // Weisse Fuellung
     ctx.fillStyle = '#FFF';
     ctx.fillText('Punkte: ' + score, 10, 20);
     ctx.fillText('Leben: ' + lives, 10, 40);
@@ -590,7 +659,7 @@ function gameLoop(timestamp) {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Direkter Start beim Neuladen, sofern Dateien da sind
+// Initialer Start des Renderings
 if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
     drawEnvironment(0);
     drawPlayer();

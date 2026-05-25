@@ -1,0 +1,45 @@
+{
+    "theme": {
+        "skyColor": "#2E8B57",
+        "groundColor": "#3CB371",
+        "surfaceColor": "#006400",
+        "music": "Jungle_Theme.mp3",
+        "sun": { "active": true, "color": "#FFD700", "size": 20, "xOffset": 100, "y": 20 },
+        "weather": "rain_intervals",
+        "headlightOn": false
+    },
+    "physics": {
+        "gravity": 0.35,
+        "jumpStrength": -6.5,
+        "horizonY": 185,
+        "terrainType": "wavy",
+        "baseGroundY": 185,
+        "amplitude1": 15,
+        "frequency1": 0.004,
+        "levelDistance": 6000
+    },
+    "objects": [
+        {
+            "type": "tree",
+            "count": 8,
+            "minWidth": 40,
+            "maxWidth": 70,
+            "minHeight": 80,
+            "maxHeight": 150,
+            "color1": "#5C4033",
+            "color2": "#228B22",
+            "speedModifier": 0.4
+        },
+        {
+            "type": "mountain",
+            "count": 3,
+            "minWidth": 150,
+            "maxWidth": 250,
+            "minHeight": 100,
+            "maxHeight": 160,
+            "color1": "#2E8B57",
+            "color2": "",
+            "speedModifier": 0.2
+        }
+    ]
+}

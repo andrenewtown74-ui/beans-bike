@@ -31,7 +31,7 @@ function getHorizonY() {
 function getObstacleSurface(x, obs) {
     if (x < obs.x || x > obs.x + obs.width) return null;
     
-    if (obs.type === 'block') return obs.baseY; 
+    if (obs.type === 'block' || obs.type === 'ice_block') return obs.baseY; 
     
     if (obs.type === 'ramp') {
         let progress = (x - obs.x) / obs.width;
@@ -52,7 +52,16 @@ function getObstacleSurface(x, obs) {
         let tY = getTerrainY(worldDistance + x);
         return tY - dy;
     }
-    if (obs.type === 'chasm') {
+    if (obs.type === 'liana_bridge') {
+        let progress = (x - obs.x) / obs.width;
+        // Gefahr: An den Befestigungspunkten (Rändern) gibt es eine Luecke -> Absturzgefahr!
+        if (progress < 0.05 || progress > 0.95) return 1000;
+        
+        let tY = getTerrainY(worldDistance + x);
+        // Haengebruecke sackt in der Mitte physikalisch nach unten ab
+        return tY + Math.sin(progress * Math.PI) * obs.height;
+    }
+    if (obs.type === 'chasm' || obs.type === 'lava') {
         return 1000; 
     }
     return null;
@@ -65,16 +74,23 @@ function updateWheel(wheel, timeScale) {
 
     let currentSurface = getTerrainY(worldDistance + wheel.x);
     wheel.isHittingWall = false;
+    wheel.onUphillLiana = false;
     let onRamp = false;
     let overChasm = false;
 
     for (let obs of obstacles) {
         let surface = getObstacleSurface(wheel.x, obs);
         if (surface !== null) {
-            if (obs.type === 'chasm') {
+            if (obs.type === 'chasm' || obs.type === 'lava') {
                 overChasm = true;
                 currentSurface = surface;
-            } else if (obs.type === 'block' && wheel.x < obs.x + 5 && wheel.y > obs.y) {
+            } else if (obs.type === 'liana_bridge') {
+                overChasm = true; // Unter der Bruecke ist der Abgrund
+                currentSurface = surface;
+                let progress = (wheel.x - obs.x) / obs.width;
+                // Wenn wir in der zweiten Haelfte der Bruecke sind, geht es steil bergauf
+                if (progress > 0.5 && progress < 0.95) wheel.onUphillLiana = true;
+            } else if ((obs.type === 'block' || obs.type === 'ice_block') && wheel.x < obs.x + 5 && wheel.y > obs.y) {
                 wheel.isHittingWall = true;
             } else if (obs.type === 'round' && wheel.x < obs.x + 8 && wheel.y > obs.y + (obs.height * 0.4)) {
                 wheel.isHittingWall = true;
@@ -128,7 +144,7 @@ function handleFrameCollision(timeScale) {
         let ty = getTerrainY(worldDistance + px);
         let overChasm = false;
         for (let obs of obstacles) {
-            if (obs.type === 'chasm' && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
         }
         if (!overChasm && py > ty) {
             let pen = py - ty;
@@ -136,10 +152,10 @@ function handleFrameCollision(timeScale) {
         }
 
         for (let obs of obstacles) {
-            if (obs.type === 'ramp' || obs.type === 'chasm') continue;
+            if (obs.type === 'ramp' || obs.type === 'chasm' || obs.type === 'lava') continue;
             if (px >= obs.x && px <= obs.x + obs.width) {
                 let surfaceY = getObstacleSurface(px, obs);
-                if (surfaceY !== null && py > surfaceY) {
+                if (surfaceY !== null && py > surfaceY && surfaceY !== 1000) {
                     let pen = py - surfaceY;
                     if (pen > maxPenetration) maxPenetration = pen;
                 }
@@ -262,9 +278,26 @@ function updateFlyingObjects(timeScale, moveScale) {
     for (let i = flyingObjects.length - 1; i >= 0; i--) {
         let obj = flyingObjects[i];
 
-        // Bewegung kombiniert aus Eigengeschwindigkeit und der Bewegung des Levels (Kamera)
-        obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-        obj.y += obj.vy * timeScale;
+        if (obj.type === 'monkey' && !obj.deflected) {
+            obj.time = (obj.time || 0) + timeScale * 0.05;
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            // Affe schwingt an der Liane auf und ab
+            obj.y = obj.spawnY + Math.sin(obj.time) * 50;
+        } else if (obj.type === 'bat' && !obj.deflected) {
+            obj.time = (obj.time || 0) + timeScale * 0.1;
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            // Fledermaus flattert wellenfoermig
+            obj.y = obj.spawnY + Math.sin(obj.time) * 20;
+        } else if (obj.type === 'fireball' && !obj.deflected) {
+            // Feuerball steigt auf und faellt (Parabel/Schwerkraft)
+            obj.vy += 0.15 * timeScale; 
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y += obj.vy * timeScale;
+        } else {
+            // Standardbewegung (Wespen, Voegel, Meteoriten oder abgelenkte Objekte)
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y += obj.vy * timeScale;
+        }
 
         // Meteoriten schlagen schraeg auf dem Boden ein und bilden ein Hindernis
         if (obj.type === 'meteorite' && !obj.deflected) {
@@ -281,7 +314,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                     color: '#444444',
                     passed: false
                 });
-                playCrash(); // Sound fuer Einschlag
+                playCrash(); 
                 flyingObjects.splice(i, 1);
                 continue;
             }

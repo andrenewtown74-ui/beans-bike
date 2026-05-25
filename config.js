@@ -13,6 +13,8 @@ let lives = 3;
 let highestScoredObstacle = -1;
 let isHeadlightOn = false;
 let flyingObjects = [];
+let rainParticles = [];
+let isRaining = false;
 
 let keys = { up: false, down: false };
 let touchGas = false;
@@ -38,8 +40,8 @@ let beanCrash = { x: 0, y: 0, vx: 0, vy: 0, rotation: 0, isSplat: false };
 
 let player = {
     targetBikeX: 30,
-    rearWheel: { x: 30, defaultX: 30, y: 185, vy: 0, isJumping: false, isHittingWall: false, onSurface: true },
-    frontWheel: { x: 90, defaultX: 90, y: 185, vy: 0, isJumping: false, isHittingWall: false, onSurface: true },
+    rearWheel: { x: 30, defaultX: 30, y: 185, vy: 0, isJumping: false, isHittingWall: false, onUphillLiana: false, onSurface: true },
+    frontWheel: { x: 90, defaultX: 90, y: 185, vy: 0, isJumping: false, isHittingWall: false, onUphillLiana: false, onSurface: true },
     gravity: 0.35,
     jumpStrength: -6.5
 };

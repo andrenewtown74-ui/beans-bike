@@ -1,4 +1,4 @@
-// Hintergrund und Terrain rendern
+// Umgebung und Hintergrund rendern
 function drawEnvironment(moveScale) {
     if (designData && designData.theme) ctx.fillStyle = designData.theme.skyColor;
     else ctx.fillStyle = '#87CEEB';
@@ -83,7 +83,7 @@ function drawEnvironment(moveScale) {
     for (let x = 0; x <= canvas.width; x += 5) {
         let isChasm = false;
         for (let obs of obstacles) {
-            if (obs.type === 'chasm' && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
         }
         let ty = isChasm ? canvas.height + 10 : getTerrainY(worldDistance + x) + 5;
         ctx.lineTo(x, ty);
@@ -100,7 +100,7 @@ function drawEnvironment(moveScale) {
     for (let x = 0; x <= canvas.width; x += 5) {
         let isChasm = false;
         for (let obs of obstacles) {
-            if (obs.type === 'chasm' && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
         }
         if (!isChasm) {
             let ty = getTerrainY(worldDistance + x) + 5;
@@ -119,6 +119,49 @@ function drawEnvironment(moveScale) {
         for(let i=0; i<10; i++) {
             ctx.fillRect(finishLineX, ty + 5 - (i*10), 10, 10);
         }
+    }
+}
+
+// Wettereffekte (Regen) zeichnen
+function drawWeather(timeScale) {
+    if (designData && designData.theme && designData.theme.weather === 'rain_intervals') {
+        // Regen abwechselnd an und aus alle 2000 Distanz-Einheiten
+        isRaining = (Math.floor(worldDistance / 2000) % 2 !== 0);
+    } else {
+        isRaining = false;
+    }
+
+    if (isRaining && rainParticles.length < 150) {
+        rainParticles.push({
+            x: Math.random() * canvas.width * 1.5,
+            y: Math.random() * canvas.height - canvas.height,
+            vy: 12 + Math.random() * 5,
+            vx: -3 - Math.random() * 2
+        });
+    }
+
+    if (rainParticles.length > 0) {
+        ctx.strokeStyle = 'rgba(200, 220, 255, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = rainParticles.length - 1; i >= 0; i--) {
+            let p = rainParticles[i];
+            p.x += p.vx * timeScale;
+            p.y += p.vy * timeScale;
+            
+            if (p.y > canvas.height || p.x < 0) {
+                if (isRaining) {
+                    p.y = -20;
+                    p.x = Math.random() * canvas.width * 1.5;
+                } else {
+                    rainParticles.splice(i, 1);
+                    continue;
+                }
+            }
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.vx, p.y - p.vy);
+        }
+        ctx.stroke();
     }
 }
 
@@ -146,6 +189,7 @@ function drawCrashBean() {
         ctx.translate(beanCrash.x, beanCrash.y);
         ctx.rotate(beanCrash.rotation);
         
+        // Rucksack
         ctx.fillStyle = '#FFF';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -157,6 +201,7 @@ function drawCrashBean() {
         ctx.lineTo(-11, 4);
         ctx.stroke();
 
+        // Koerper
         ctx.fillStyle = '#FFF'; 
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
@@ -165,6 +210,7 @@ function drawCrashBean() {
         ctx.fill();
         ctx.stroke();
 
+        // Gesicht
         ctx.save();
         ctx.rotate(Math.PI / 8);
         ctx.fillStyle = '#000';
@@ -176,6 +222,7 @@ function drawCrashBean() {
         ctx.fill();
         ctx.restore();
         
+        // Gliedmassen
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(0, 5); ctx.lineTo(5, 12);
@@ -259,6 +306,7 @@ function drawPlayer() {
     const lampX = localX + 5;
     const lampY = -20;
 
+    // Fahrradrahmen
     ctx.beginPath();
     ctx.arc(-localX, 0, 5, 0, Math.PI * 2);
     ctx.arc(localX, 0, 5, 0, Math.PI * 2);
@@ -270,6 +318,7 @@ function drawPlayer() {
     ctx.moveTo(localX, 0); ctx.lineTo(localX - 5, -20); ctx.lineTo(lampX, lampY);
     ctx.stroke();
 
+    // Scheinwerfer Gehaeuse
     ctx.fillStyle = '#A9A9A9';
     ctx.beginPath();
     ctx.rect(lampX, lampY - 2, 6, 4);
@@ -291,6 +340,7 @@ function drawPlayer() {
         ctx.restore();
     }
 
+    // Sattel
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.ellipse(seatX, seatY, 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
 
@@ -324,11 +374,13 @@ function drawPlayer() {
             ctx.stroke();
         };
 
+        // Kurbel hinten
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = '#555';
         drawLeg(px2, py2);
         ctx.beginPath(); ctx.moveTo(crankX, crankY); ctx.lineTo(px2, py2); ctx.stroke();
 
+        // Rucksack
         ctx.save();
         ctx.translate(seatX, seatY + beanOffsetY);
         ctx.rotate(beanAngle);
@@ -345,6 +397,7 @@ function drawPlayer() {
         ctx.stroke();
         ctx.restore();
 
+        // Figur Koerper
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#000';
         ctx.fillStyle = '#FFF'; 
@@ -355,6 +408,7 @@ function drawPlayer() {
 
         ctx.beginPath(); ctx.ellipse(0, -10, 8, 12, Math.PI / 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
+        // Gesicht
         ctx.save();
         ctx.translate(0, -10);
         ctx.rotate(Math.PI / 8);
@@ -369,9 +423,11 @@ function drawPlayer() {
 
         ctx.restore();
 
+        // Kurbel vorne
         drawLeg(px1, py1);
         ctx.beginPath(); ctx.moveTo(crankX, crankY); ctx.lineTo(px1, py1); ctx.stroke();
 
+        // Arme gestreckt zum Lenker
         const shoulderX = seatX + 4 * Math.cos(beanAngle) - (-8) * Math.sin(beanAngle);
         const shoulderY = (seatY + beanOffsetY) + 4 * Math.sin(beanAngle) + (-8) * Math.cos(beanAngle);
 
@@ -396,16 +452,19 @@ function drawFlyingObjects() {
         ctx.translate(obj.x, obj.y);
 
         if (obj.type === 'wasp') {
+            // Wespe zeichnen (gelb/schwarz gestreift)
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
             ctx.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
+            // Streifen
             ctx.fillStyle = '#000000';
             ctx.fillRect(-3, -4, 2, 8);
             ctx.fillRect(1, -4, 2, 8);
 
+            // Fluegel flattern
             let wingOffset = Math.sin(performance.now() * 0.1) * 6;
             ctx.fillStyle = 'rgba(200, 240, 255, 0.7)';
             ctx.beginPath();
@@ -414,12 +473,14 @@ function drawFlyingObjects() {
             ctx.stroke();
         } 
         else if (obj.type === 'bird') {
+            // Vogel zeichnen (braun)
             ctx.fillStyle = '#8B5A2B';
             ctx.beginPath();
             ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
+            // Schnabel
             ctx.fillStyle = '#FF9900';
             ctx.beginPath();
             ctx.moveTo(8, -2);
@@ -428,6 +489,7 @@ function drawFlyingObjects() {
             ctx.closePath();
             ctx.fill();
 
+            // Flattern
             let wingY = Math.sin(performance.now() * 0.05) * 8;
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 2;
@@ -438,6 +500,7 @@ function drawFlyingObjects() {
             ctx.stroke();
         } 
         else if (obj.type === 'meteorite') {
+            // Meteorit (feuriger Schweif)
             let gradient = ctx.createLinearGradient(0, 0, 15, -15);
             gradient.addColorStop(0, '#FF3300');
             gradient.addColorStop(0.5, '#FF9900');
@@ -450,6 +513,7 @@ function drawFlyingObjects() {
             ctx.closePath();
             ctx.fill();
 
+            // Kern
             ctx.fillStyle = '#555555';
             ctx.strokeStyle = '#FF3300';
             ctx.lineWidth = 1.5;
@@ -463,6 +527,32 @@ function drawFlyingObjects() {
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
+        }
+        else if (obj.type === 'monkey') {
+            // Liane von oben
+            ctx.strokeStyle = '#228B22';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(20, -200); 
+            ctx.stroke();
+
+            // Affen-Koerper
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-4, -6, 5, 0, Math.PI * 2); ctx.fill();
+            
+            // Schwanz (Schwingend)
+            ctx.strokeStyle = '#8B4513';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.moveTo(6, 2); 
+            ctx.quadraticCurveTo(12, Math.sin(performance.now()*0.01)*5, 10, -8); 
+            ctx.stroke();
+            
+            // Gesicht
+            ctx.fillStyle = '#FFDAB9';
+            ctx.beginPath(); ctx.arc(-6, -6, 3, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
     }
