@@ -1,3 +1,4 @@
+// Hintergrund und Terrain rendern
 function drawEnvironment(moveScale) {
     if (designData && designData.theme) ctx.fillStyle = designData.theme.skyColor;
     else ctx.fillStyle = '#87CEEB';
@@ -20,13 +21,35 @@ function drawEnvironment(moveScale) {
                 ctx.fillStyle = bg.color1;
                 ctx.fillRect(bg.x, horizon - bg.height, bg.width, bg.width);
             } else if (bg.type === 'planet') {
-                ctx.fillStyle = bg.color1;
+                // Basis-Planet (Ozean)
+                ctx.fillStyle = bg.color1 || '#1E90FF';
                 ctx.beginPath();
                 ctx.arc(bg.x, horizon - bg.height, bg.width, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.fillStyle = bg.color2;
+
+                // Kontinente
+                ctx.fillStyle = bg.color2 || '#32CD32';
                 ctx.beginPath();
-                ctx.arc(bg.x - bg.width/4, horizon - bg.height + bg.width/4, bg.width/2, 0, Math.PI * 2);
+                ctx.ellipse(bg.x - bg.width * 0.2, horizon - bg.height - bg.width * 0.2, bg.width * 0.4, bg.width * 0.25, 0.5, 0, Math.PI * 2);
+                ctx.ellipse(bg.x + bg.width * 0.3, horizon - bg.height + bg.width * 0.1, bg.width * 0.3, bg.width * 0.4, -0.2, 0, Math.PI * 2);
+                ctx.ellipse(bg.x - bg.width * 0.1, horizon - bg.height + bg.width * 0.4, bg.width * 0.5, bg.width * 0.15, 0.1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Wolkenbaender
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.ellipse(bg.x + bg.width * 0.1, horizon - bg.height - bg.width * 0.4, bg.width * 0.6, bg.width * 0.1, 0, 0, Math.PI * 2);
+                ctx.ellipse(bg.x - bg.width * 0.3, horizon - bg.height + bg.width * 0.1, bg.width * 0.4, bg.width * 0.08, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Sphaerischer Schatteneffekt fuer 3D-Look
+                let shadowGrad = ctx.createLinearGradient(bg.x - bg.width, horizon - bg.height - bg.width, bg.x + bg.width, horizon - bg.height + bg.width);
+                shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                shadowGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
+                shadowGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+                ctx.fillStyle = shadowGrad;
+                ctx.beginPath();
+                ctx.arc(bg.x, horizon - bg.height, bg.width, 0, Math.PI * 2);
                 ctx.fill();
             } else if (bg.type === 'tree') {
                 ctx.fillStyle = bg.color1;
@@ -99,6 +122,7 @@ function drawEnvironment(moveScale) {
     }
 }
 
+// Bohne bei Unfall zeichnen
 function drawCrashBean() {
     if (beanCrash.isSplat) {
         ctx.fillStyle = '#FFF'; 
@@ -162,6 +186,7 @@ function drawCrashBean() {
     }
 }
 
+// Zerrissenes Fahrrad zeichnen
 function drawBrokenBike() {
     if(crashType === 'fall') return; 
     ctx.lineWidth = 2;
@@ -204,6 +229,7 @@ function drawBrokenBike() {
     ctx.restore();
 }
 
+// Spieler zeichnen
 function drawPlayer() {
     if (crashType === 'tear' || crashType === 'fall') {
         drawBrokenBike();
@@ -370,19 +396,16 @@ function drawFlyingObjects() {
         ctx.translate(obj.x, obj.y);
 
         if (obj.type === 'wasp') {
-            // Wespe zeichnen (gelb/schwarz gestreift)
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
             ctx.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            // Streifen
             ctx.fillStyle = '#000000';
             ctx.fillRect(-3, -4, 2, 8);
             ctx.fillRect(1, -4, 2, 8);
 
-            // Fluegel
             let wingOffset = Math.sin(performance.now() * 0.1) * 6;
             ctx.fillStyle = 'rgba(200, 240, 255, 0.7)';
             ctx.beginPath();
@@ -391,14 +414,12 @@ function drawFlyingObjects() {
             ctx.stroke();
         } 
         else if (obj.type === 'bird') {
-            // Vogel zeichnen (braun)
             ctx.fillStyle = '#8B5A2B';
             ctx.beginPath();
             ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            // Schnabel
             ctx.fillStyle = '#FF9900';
             ctx.beginPath();
             ctx.moveTo(8, -2);
@@ -407,7 +428,6 @@ function drawFlyingObjects() {
             ctx.closePath();
             ctx.fill();
 
-            // Flattern
             let wingY = Math.sin(performance.now() * 0.05) * 8;
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 2;
@@ -418,7 +438,6 @@ function drawFlyingObjects() {
             ctx.stroke();
         } 
         else if (obj.type === 'meteorite') {
-            // Meteorit (feuriger Schweif)
             let gradient = ctx.createLinearGradient(0, 0, 15, -15);
             gradient.addColorStop(0, '#FF3300');
             gradient.addColorStop(0.5, '#FF9900');
@@ -431,7 +450,6 @@ function drawFlyingObjects() {
             ctx.closePath();
             ctx.fill();
 
-            // Kern
             ctx.fillStyle = '#555555';
             ctx.strokeStyle = '#FF3300';
             ctx.lineWidth = 1.5;

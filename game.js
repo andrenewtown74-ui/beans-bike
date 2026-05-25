@@ -1,4 +1,4 @@
-// Zuweisung der DOM-Elemente (Variablen sind in audio.js deklariert)
+// Zuweisung der DOM-Elemente (Variablen sind in config.js deklariert)
 canvas = document.getElementById('gameCanvas');
 ctx = canvas.getContext('2d');
 uiLayer = document.getElementById('ui-layer');
@@ -570,12 +570,21 @@ function gameLoop(timestamp) {
     if (isCrashing && typeof drawCrashBean === 'function') drawCrashBean();
     if (typeof drawFlyingObjects === 'function') drawFlyingObjects();
 
-    ctx.fillStyle = '#000';
-    ctx.font = '16px Courier New';
+    // UI Rendering mit Kontur fuer bessere Lesbarkeit
+    ctx.font = 'bold 16px Courier New';
+    
+    // Schwarze Kontur
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.strokeText('Punkte: ' + score, 10, 20);
+    ctx.strokeText('Leben: ' + lives, 10, 40);
+    let distanceLeft = Math.max(0, Math.floor((levelDistance - worldDistance) / 10));
+    ctx.strokeText('Ziel: ' + distanceLeft + 'm', canvas.width - 120, 20);
+    
+    // Weisse Fuellung
+    ctx.fillStyle = '#FFF';
     ctx.fillText('Punkte: ' + score, 10, 20);
     ctx.fillText('Leben: ' + lives, 10, 40);
-    
-    let distanceLeft = Math.max(0, Math.floor((levelDistance - worldDistance) / 10));
     ctx.fillText('Ziel: ' + distanceLeft + 'm', canvas.width - 120, 20);
 
     animationFrameId = requestAnimationFrame(gameLoop);
