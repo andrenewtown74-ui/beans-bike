@@ -11,9 +11,9 @@
     "physics": {
         "gravity": 0.35,
         "jumpStrength": -6.5,
-        "horizonY": 185,
+        "horizonY": 110,
         "terrainType": "wavy",
-        "baseGroundY": 185,
+        "baseGroundY": 110,
         "amplitude1": 15,
         "frequency1": 0.004,
         "levelDistance": 6000

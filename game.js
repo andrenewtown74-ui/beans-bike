@@ -1,4 +1,4 @@
-// Zuweisung der DOM-Elemente
+// Zuweisung der DOM-Elemente (Variablen sind in config.js deklariert)
 canvas = document.getElementById('gameCanvas');
 ctx = canvas.getContext('2d');
 uiLayer = document.getElementById('ui-layer');
@@ -8,9 +8,8 @@ touchControls = document.getElementById('touch-controls');
 fullscreenBtn = document.getElementById('fullscreen-btn');
 headlightBtn = document.getElementById('headlight-btn');
 
-// Arrays fuer dynamische Effekte, falls sie in der config.js fehlen
+// Sichere Initialisierung für dynamische Partikel (falls in config nicht vorhanden)
 window.weatherParticles = window.weatherParticles || [];
-window.rainParticles = window.rainParticles || [];
 
 const fallbackLevelData = [
     { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
@@ -45,7 +44,6 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
 }
 resizeCanvas();
 
-// Lichtschalter-Logik
 function checkHeadlight() {
     if (currentLevel === 3) {
         isHeadlightOn = true;
@@ -64,7 +62,6 @@ if (headlightBtn) {
     });
 }
 
-// Level-Daten laden
 function loadLevelData(levelNum) {
     fetch(`level${levelNum}.json`)
         .then(function(response) {
@@ -138,7 +135,6 @@ function initBackground() {
     });
 }
 
-// Spielsteuerung
 function startNewGame() {
     lives = 3;
     score = 0;
@@ -156,7 +152,6 @@ function advanceLevel() {
 function restartLevel() {
     flyingObjects = [];
     window.weatherParticles = [];
-    window.rainParticles = [];
     
     player.targetBikeX = 30;
     keys.up = false;
@@ -270,7 +265,6 @@ function respawnPlayer() {
     startMusic();
 }
 
-// Eingabebehandlung
 function handleInputEvent() {
     initAudio();
     if (isGameOver) {
@@ -397,7 +391,6 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 
-// Hindernisse und Feinde spawnen
 function spawnObstaclesFromData(timeScale, moveScale) {
     if (finishLineActive) return; 
 
@@ -417,7 +410,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     vyVal = speedVal * 0.8;
                 } else if (nextObs.type === 'monkey') {
                     let tY = getTerrainY(worldDistance + canvas.width);
-                    startY = tY - 80;
+                    startY = tY - 100; // Ausserhalb des Bildes starten
                     vxVal = -speedVal; 
                 } else if (nextObs.type === 'bat') {
                     let tY = getTerrainY(worldDistance + canvas.width);
@@ -463,7 +456,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     }
 }
 
-// Haupt-Gameloop
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
     if (!lastTime) lastTime = timestamp;
@@ -498,8 +490,15 @@ function gameLoop(timestamp) {
             if (player.rearWheel.onUphillLiana && !isAccelerating) {
                 player.targetBikeX -= 3.5 * timeScale;
             } else {
-                if (isAccelerating) player.targetBikeX += 2.5 * timeScale;
-                if (isBraking) player.targetBikeX -= 2.5 * timeScale;
+                if (isAccelerating) {
+                    player.targetBikeX += 2.5 * timeScale;
+                } else if (isBraking) {
+                    player.targetBikeX -= 2.5 * timeScale;
+                } else {
+                    // Das Fahrrad sanft horizontal in Richtung Mitte gleiten lassen
+                    let centerTargetX = canvas.width * 0.4;
+                    player.targetBikeX += (centerTargetX - player.targetBikeX) * 0.02 * timeScale;
+                }
             }
         } else {
             player.targetBikeX += 2.0 * timeScale;
@@ -557,7 +556,6 @@ function gameLoop(timestamp) {
         isLevelComplete = true;
     }
 
-    // Grafik-Updates
     if (typeof drawEnvironment === 'function') drawEnvironment(moveScale);
     
     spawnObstaclesFromData(timeScale, moveScale);
@@ -642,7 +640,6 @@ function gameLoop(timestamp) {
     if (typeof drawFlyingObjects === 'function') drawFlyingObjects();
     if (typeof drawWeather === 'function') drawWeather(timeScale);
 
-    // UI Rendering
     ctx.font = 'bold 16px Courier New';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 3;
@@ -659,7 +656,6 @@ function gameLoop(timestamp) {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Initialer Start des Renderings
 if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
     drawEnvironment(0);
     drawPlayer();

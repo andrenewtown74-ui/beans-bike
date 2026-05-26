@@ -54,7 +54,7 @@ function getObstacleSurface(x, obs) {
     }
     if (obs.type === 'liana_bridge') {
         let progress = (x - obs.x) / obs.width;
-        // Gefahr: An den Befestigungspunkten (Rändern) gibt es eine Luecke -> Absturzgefahr!
+        // Gefahr: An den Befestigungspunkten (Raendern) gibt es eine Luecke -> Absturzgefahr!
         if (progress < 0.05 || progress > 0.95) return 1000;
         
         let tY = getTerrainY(worldDistance + x);
@@ -279,10 +279,10 @@ function updateFlyingObjects(timeScale, moveScale) {
         let obj = flyingObjects[i];
 
         if (obj.type === 'monkey' && !obj.deflected) {
-            obj.time = (obj.time || 0) + timeScale * 0.05;
+            obj.time = (obj.time || 0) + timeScale * 0.04;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-            // Affe schwingt an der Liane auf und ab
-            obj.y = obj.spawnY + Math.sin(obj.time) * 50;
+            // Affe springt/schwingt an der Liane bis zum Boden (Amplitude 100)
+            obj.y = obj.spawnY + Math.abs(Math.sin(obj.time)) * 100;
         } else if (obj.type === 'bat' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.1;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);

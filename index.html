@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='50' rx='40' ry='25' fill='%238B4513' transform='rotate(-20 50 50)'/></svg>" type="image/svg+xml">
     <title>Bohnen-Bike</title>
-      <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='50' rx='40' ry='25' fill='%238B4513' transform='rotate(-20 50 50)'/></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,25 +13,23 @@
         
         <div id="touch-controls" class="hidden">
             <div class="touch-zone" id="zone-left">
-                <div class="control-box">HINTEN SPRINGEN</div>
-                <div class="control-box">BREMSE (HALTEN)</div>
-             </div>
+                <div class="control-box">BREMSE</div>
+                <div class="control-box">GAS</div>
+            </div>
             <div class="touch-zone" id="zone-right">
-                <div class="control-box">VORN SPRINGEN</div>
-                <div class="control-box">GAS (HALTEN)</div>
+                <div class="control-box">HINTEN</div>
+                <div class="control-box">VORN</div>
             </div>
         </div>
 
-        <button id="headlight-btn">Licht: AUS</button>
         <button id="fullscreen-btn">Vollbild</button>
-        
         <div id="msg-box" class="hidden"></div>
         <div id="ui-layer">
             <h1 id="title">Bohnen-Bike</h1>
             <p id="instruction">Berühre den Bildschirm oder drücke eine Taste zum Starten</p>
             <div id="credits">
-                <p>Bohne von: kiwilu</p>
-                <p>Spiellogik von: newtown</p>
+                <p>Bohne: kiwilu</p>
+                <p>Spiel: newtown</p>
             </div>
         </div>
     </div>
