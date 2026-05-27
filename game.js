@@ -327,23 +327,28 @@ function handleTouch(e) {
 
     touchBrake = false;
     touchGas = false;
-    const midX = window.innerWidth / 2;
-    const midY = window.innerHeight / 2;
+    const w = window.innerWidth;
+    const q1 = w * 0.25;
+    const q2 = w * 0.50;
+    const q3 = w * 0.75;
 
     for (let i = 0; i < e.touches.length; i++) {
         const t = e.touches[i];
-        if (t.clientX < midX) {
-            if (t.clientY > midY) touchBrake = true;
-        } else {
-            if (t.clientY > midY) touchGas = true;
+        if (t.clientX < q1) {
+            touchBrake = true;
+        } else if (t.clientX >= q1 && t.clientX < q2) {
+            touchGas = true;
         }
     }
 
     if (e.type === 'touchstart') {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const t = e.changedTouches[i];
-            if (t.clientX < midX && t.clientY <= midY) jump('rear');
-            else if (t.clientX >= midX && t.clientY <= midY) jump('front');
+            if (t.clientX >= q2 && t.clientX < q3) {
+                jump('rear');
+            } else if (t.clientX >= q3) {
+                jump('front');
+            }
         }
     }
     if (e.cancelable) e.preventDefault();
@@ -359,9 +364,14 @@ window.addEventListener('mousedown', function(e) {
     if (handleInputEvent()) return;
     if (isLevelComplete) return;
 
-    if (e.clientY < window.innerHeight / 2) {
-        if (e.clientX < window.innerWidth / 2) jump('rear');
-        else jump('front');
+    const w = window.innerWidth;
+    const q2 = w * 0.50;
+    const q3 = w * 0.75;
+
+    if (e.clientX >= q2 && e.clientX < q3) {
+        jump('rear');
+    } else if (e.clientX >= q3) {
+        jump('front');
     }
 });
 
