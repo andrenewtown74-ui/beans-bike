@@ -46,42 +46,47 @@ canvas {
     z-index: 30;
 }
 
+/* Touch Controls Layout komplett ueberarbeitet */
 #touch-controls {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 35%;
-    pointer-events: none;
+    height: 60px; /* Feste, kleine Hoehe am unteren Rand */
+    pointer-events: none; /* Container fängt keine Klicks */
     display: flex;
-    z-index: 10;
-    align-items: flex-end;
-    padding-bottom: 20px;
+    z-index: 40; /* Ueber dem UI-Layer */
+    justify-content: space-between;
+    padding: 0 5px 5px 5px;
     box-sizing: border-box;
 }
 
 .touch-zone {
     flex: 1;
-    height: auto;
     display: flex;
     flex-direction: row;
-    justify-content: space-evenly;
-    align-items: flex-end;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: bold;
-    font-size: 1.2rem;
-    text-align: center;
+    justify-content: space-between;
+    gap: 5px;
+    pointer-events: none;
+}
+
+#zone-left {
+    margin-right: 20px; /* Platz in der Mitte */
 }
 
 .control-box {
-    padding: 15px 5px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    width: 45%;
-    box-sizing: border-box;
+    flex: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: bold;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; /* Visuelles Element, Touch Logik ist global */
+    text-transform: uppercase;
 }
 
 #fullscreen-btn {
@@ -94,7 +99,22 @@ canvas {
     border: 2px solid #fff;
     font-family: 'Courier New', Courier, monospace;
     cursor: pointer;
-    z-index: 20;
+    z-index: 50; /* Ganz nach oben */
+    pointer-events: auto;
+}
+
+#headlight-btn {
+    position: absolute;
+    top: 15px;
+    right: 130px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: 2px solid #fff;
+    font-family: 'Courier New', Courier, monospace;
+    cursor: pointer;
+    z-index: 50; /* Ganz nach oben */
+    pointer-events: auto;
 }
 
 .hidden { 
@@ -151,11 +171,24 @@ p {
         padding: 4px 8px;
         font-size: 0.8rem;
     }
-    .touch-zone {
-        font-size: 0.9rem;
+    #headlight-btn {
+        top: 5px;
+        right: 90px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
     }
     .control-box {
-        padding: 10px 2px;
-        border-radius: 6px;
+        font-size: 0.7rem;
+        padding: 5px;
+    }
+    #touch-controls {
+        height: 45px;
+    }
+    #credits {
+        font-size: 0.7rem;
+        margin-top: 20px;
+    }
+    #credits p {
+        font-size: 0.7rem;
     }
 }
