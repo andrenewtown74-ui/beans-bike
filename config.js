@@ -23,6 +23,7 @@ let isGameRunning = false;
 let isGameOver = false;
 let isCrashing = false;
 let score = 0;
+let levelStartScore = 0;
 let gameSpeed = 1.5;
 let animationFrameId;
 let lastTime = 0;

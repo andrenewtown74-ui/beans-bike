@@ -1,14 +1,12 @@
-// Zuweisung der DOM-Elemente (Variablen sind in config.js deklariert)
-canvas = document.getElementById('gameCanvas');
-ctx = canvas.getContext('2d');
-uiLayer = document.getElementById('ui-layer');
-titleEl = document.getElementById('title');
-instructionEl = document.getElementById('instruction');
-touchControls = document.getElementById('touch-controls');
-fullscreenBtn = document.getElementById('fullscreen-btn');
-headlightBtn = document.getElementById('headlight-btn');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiLayer = document.getElementById('ui-layer');
+const titleEl = document.getElementById('title');
+const instructionEl = document.getElementById('instruction');
+const touchControls = document.getElementById('touch-controls');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+const headlightBtn = document.getElementById('headlight-btn');
 
-// Sichere Initialisierung für dynamische Partikel (falls in config nicht vorhanden)
 window.weatherParticles = window.weatherParticles || [];
 window.rainParticles = window.rainParticles || [];
 
@@ -36,10 +34,8 @@ const fallbackDesignData = {
     "objects": []
 };
 
-// Lade-Status um Mehrfach-Klicks waehrend des Ladens zu verhindern
 let isLoadingData = false;
 
-// Initialisierung
 designData = fallbackDesignData;
 loadLevelData(currentLevel);
 
@@ -66,7 +62,6 @@ if (headlightBtn) {
     });
 }
 
-// Asynchrones Laden der Level-Daten, um Race-Conditions zu vermeiden
 async function loadLevelData(levelNum) {
     try {
         const response = await fetch(`level${levelNum}.json`);
@@ -136,7 +131,8 @@ async function startNewGame() {
     isLoadingData = true;
     lives = 3;
     score = 0;
-    // currentLevel wird NICHT zurueckgesetzt, so startet man das aktuelle Level neu
+    levelStartScore = 0;
+    currentLevel = 1;
     await loadLevelData(currentLevel);
     restartLevel();
     isLoadingData = false;
@@ -146,6 +142,17 @@ async function advanceLevel() {
     if (isLoadingData) return;
     isLoadingData = true;
     currentLevel++;
+    levelStartScore = score;
+    await loadLevelData(currentLevel);
+    restartLevel();
+    isLoadingData = false;
+}
+
+async function handleGameOverRestart() {
+    if (isLoadingData) return;
+    isLoadingData = true;
+    lives = 3;
+    score = levelStartScore;
     await loadLevelData(currentLevel);
     restartLevel();
     isLoadingData = false;
@@ -172,6 +179,7 @@ function restartLevel() {
     player.rearWheel.vy = 0;
     player.rearWheel.isJumping = false;
     player.rearWheel.isHittingWall = false;
+    player.rearWheel.onUphillLiana = false;
     player.rearWheel.onSurface = true;
     
     player.frontWheel.y = getTerrainY(90);
@@ -180,6 +188,7 @@ function restartLevel() {
     player.frontWheel.vy = 0;
     player.frontWheel.isJumping = false;
     player.frontWheel.isHittingWall = false;
+    player.frontWheel.onUphillLiana = false;
     player.frontWheel.onSurface = true;
     
     obstacles.length = 0;
@@ -227,6 +236,7 @@ function respawnPlayer() {
     player.rearWheel.vy = 0;
     player.rearWheel.isJumping = false;
     player.rearWheel.isHittingWall = false;
+    player.rearWheel.onUphillLiana = false;
     player.rearWheel.onSurface = true;
     
     player.frontWheel.y = getTerrainY(worldDistance + 90);
@@ -235,6 +245,7 @@ function respawnPlayer() {
     player.frontWheel.vy = 0;
     player.frontWheel.isJumping = false;
     player.frontWheel.isHittingWall = false;
+    player.frontWheel.onUphillLiana = false;
     player.frontWheel.onSurface = true;
 
     keys.up = false;
@@ -267,7 +278,7 @@ function respawnPlayer() {
 function handleInputEvent() {
     initAudio();
     if (isGameOver) {
-        startNewGame();
+        handleGameOverRestart();
         return true;
     }
     if (isLevelComplete && bikeStopped) {
@@ -315,7 +326,6 @@ window.addEventListener('keyup', function(e) {
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.down = false;
 });
 
-// Touchsteuerung im 2x2 Raster (wie im Screenshot/CSS definiert)
 function handleTouch(e) {
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
     
@@ -327,25 +337,50 @@ function handleTouch(e) {
 
     touchBrake = false;
     touchGas = false;
-    const midX = window.innerWidth / 2;
-    const midY = window.innerHeight / 2;
+    let touchingRear = false;
+    let touchingFront = false;
+
+    const w = window.innerWidth;
+    const q1 = w * 0.25;
+    const q2 = w * 0.50;
+    const q3 = w * 0.75;
 
     for (let i = 0; i < e.touches.length; i++) {
         const t = e.touches[i];
-        if (t.clientX < midX) {
-            if (t.clientY > midY) touchBrake = true;
-        } else {
-            if (t.clientY > midY) touchGas = true;
+        if (t.clientX < q1) {
+            touchBrake = true;
+        } else if (t.clientX >= q1 && t.clientX < q2) {
+            touchGas = true;
+        } else if (t.clientX >= q2 && t.clientX < q3) {
+            touchingRear = true;
+        } else if (t.clientX >= q3) {
+            touchingFront = true;
         }
     }
 
     if (e.type === 'touchstart') {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const t = e.changedTouches[i];
-            if (t.clientX < midX && t.clientY <= midY) jump('rear');
-            else if (t.clientX >= midX && t.clientY <= midY) jump('front');
+            if (t.clientX >= q2 && t.clientX < q3) {
+                jump('rear');
+            } else if (t.clientX >= q3) {
+                jump('front');
+            }
         }
     }
+
+    const zoneBrake = document.getElementById('zone-brake');
+    const zoneGas = document.getElementById('zone-gas');
+    const zoneRear = document.getElementById('zone-rear');
+    const zoneFront = document.getElementById('zone-front');
+
+    if (zoneBrake) {
+        zoneBrake.classList.toggle('active', touchBrake);
+        zoneGas.classList.toggle('active', touchGas);
+        zoneRear.classList.toggle('active', touchingRear);
+        zoneFront.classList.toggle('active', touchingFront);
+    }
+
     if (e.cancelable) e.preventDefault();
 }
 
@@ -360,9 +395,19 @@ window.addEventListener('mousedown', function(e) {
     if (handleInputEvent()) return;
     if (isLevelComplete) return;
 
-    if (e.clientY < window.innerHeight / 2) {
-        if (e.clientX < window.innerWidth / 2) jump('rear');
-        else jump('front');
+    const w = window.innerWidth;
+    const q1 = w * 0.25;
+    const q2 = w * 0.50;
+    const q3 = w * 0.75;
+
+    if (e.clientX >= q2 && e.clientX < q3) {
+        jump('rear');
+        const z = document.getElementById('zone-rear');
+        if(z) { z.classList.add('active'); setTimeout(() => z.classList.remove('active'), 150); }
+    } else if (e.clientX >= q3) {
+        jump('front');
+        const z = document.getElementById('zone-front');
+        if(z) { z.classList.add('active'); setTimeout(() => z.classList.remove('active'), 150); }
     }
 });
 
@@ -411,7 +456,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     vyVal = speedVal * 0.8;
                 } else if (nextObs.type === 'monkey') {
                     let tY = getTerrainY(worldDistance + canvas.width);
-                    startY = tY - 100;
+                    startY = tY - 100; 
                     vxVal = -speedVal; 
                 } else if (nextObs.type === 'bat') {
                     let tY = getTerrainY(worldDistance + canvas.width);
@@ -588,6 +633,10 @@ function gameLoop(timestamp) {
                 ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5); 
                 ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5 - obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5); 
             }
+            else if (obs.type === 'crater') {
+                ctx.moveTo(obs.x, getTerrainY(worldDistance + obs.x) + 5);
+                ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5 + obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5);
+            }
             ctx.fill(); ctx.stroke();
         } else if (obs.type === 'liana_bridge') {
             ctx.fillStyle = '#5C4033';
@@ -655,7 +704,6 @@ function gameLoop(timestamp) {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Direkter Start beim Neuladen, sofern Dateien da sind
 if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
     drawEnvironment(0);
     drawPlayer();

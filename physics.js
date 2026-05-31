@@ -1,4 +1,4 @@
-// Berechnung des Terrain-Profils aus den Level-Konfigurationen
+// Berechnung der Y-Koordinate des Terrains basierend auf der Welt-X-Koordinate
 function getTerrainY(worldX) {
     if (!designData || !designData.physics) return 185;
     const config = designData.physics;
@@ -19,7 +19,7 @@ function getTerrainY(worldX) {
     return 185;
 }
 
-// Horizont fuer Hintergrundobjekte dynamisch anpassen
+// Horizont fuer Hintergrundobjekte abfragen
 function getHorizonY() {
     if (designData && designData.physics && designData.physics.horizonY !== undefined) {
         return designData.physics.horizonY;
@@ -27,7 +27,7 @@ function getHorizonY() {
     return 185;
 }
 
-// Ermittlung der Oberflaeche anhand aktueller Hindernisse
+// Oberflaeche eines spezifischen Hindernisses berechnen
 function getObstacleSurface(x, obs) {
     if (x < obs.x || x > obs.x + obs.width) return null;
     
@@ -52,13 +52,16 @@ function getObstacleSurface(x, obs) {
         let tY = getTerrainY(worldDistance + x);
         return tY - dy;
     }
+    if (obs.type === 'crater') {
+        let progress = (x - obs.x) / obs.width;
+        let dy = Math.sin(progress * Math.PI) * obs.height;
+        let tY = getTerrainY(worldDistance + x);
+        return tY + dy; 
+    }
     if (obs.type === 'liana_bridge') {
         let progress = (x - obs.x) / obs.width;
-        // Gefahr: An den Befestigungspunkten (Raendern) gibt es eine Luecke -> Absturzgefahr!
         if (progress < 0.05 || progress > 0.95) return 1000;
-        
         let tY = getTerrainY(worldDistance + x);
-        // Haengebruecke sackt in der Mitte physikalisch nach unten ab
         return tY + Math.sin(progress * Math.PI) * obs.height;
     }
     if (obs.type === 'chasm' || obs.type === 'lava') {
@@ -67,7 +70,7 @@ function getObstacleSurface(x, obs) {
     return null;
 }
 
-// Physik-Update fuer ein einzelnes Rad
+// Physik-Status eines einzelnen Rades aktualisieren
 function updateWheel(wheel, timeScale) {
     wheel.vy += player.gravity * timeScale;
     wheel.y += wheel.vy * timeScale;
@@ -84,11 +87,12 @@ function updateWheel(wheel, timeScale) {
             if (obs.type === 'chasm' || obs.type === 'lava') {
                 overChasm = true;
                 currentSurface = surface;
+            } else if (obs.type === 'crater') {
+                currentSurface = surface;
             } else if (obs.type === 'liana_bridge') {
-                overChasm = true; // Unter der Bruecke ist der Abgrund
+                overChasm = true; 
                 currentSurface = surface;
                 let progress = (wheel.x - obs.x) / obs.width;
-                // Wenn wir in der zweiten Haelfte der Bruecke sind, geht es steil bergauf
                 if (progress > 0.5 && progress < 0.95) wheel.onUphillLiana = true;
             } else if ((obs.type === 'block' || obs.type === 'ice_block') && wheel.x < obs.x + 5 && wheel.y > obs.y) {
                 wheel.isHittingWall = true;
@@ -108,7 +112,6 @@ function updateWheel(wheel, timeScale) {
         wheel.x += (wheel.defaultX - wheel.x) * (0.1 * timeScale);
     }
 
-    // Bergab-Haftung haelt das Rad bei Talfahrten am Boden
     if (!wheel.isJumping && !overChasm && wheel.y < currentSurface && wheel.y > currentSurface - 20) {
         wheel.y = currentSurface;
         wheel.vy = 0;
@@ -132,7 +135,7 @@ function updateWheel(wheel, timeScale) {
     }
 }
 
-// Kollision zwischen Rahmen und Untergrund
+// Pruefung auf Kollision des Fahrradrahmens mit dem Boden oder Hindernissen
 function handleFrameCollision(timeScale) {
     let isScraping = false;
     let maxPenetration = 0;
@@ -145,6 +148,10 @@ function handleFrameCollision(timeScale) {
         let overChasm = false;
         for (let obs of obstacles) {
             if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
+            if (obs.type === 'crater' && px >= obs.x && px <= obs.x + obs.width) {
+                let craterSur = getObstacleSurface(px, obs);
+                if (craterSur !== null) ty = craterSur;
+            }
         }
         if (!overChasm && py > ty) {
             let pen = py - ty;
@@ -178,7 +185,7 @@ function handleFrameCollision(timeScale) {
     }
 }
 
-// Initiierung der Absturzsequenz
+// Start der Crash-Sequenz abhaengig vom Typ
 function startCrash(type) {
     if (isCrashing) return;
     isCrashing = true;
@@ -210,7 +217,7 @@ function startCrash(type) {
     beanCrash.isSplat = false;
 }
 
-// Fortschreibung der Crash-Animation
+// Berechnung der Animationsobjekte waehrend des Crashes
 function updateCrashAnimation(timeScale) {
     if (crashType === 'flip') {
         let targetAngle = Math.PI; 
@@ -260,7 +267,7 @@ function updateCrashAnimation(timeScale) {
         gameOverTimer += timeScale * 16.66;
         if (gameOverTimer > 1200) {
             if (lives > 0) {
-                respawnPlayer();
+                handleGameOverRestart();
             } else {
                 isGameOver = true;
             }
@@ -268,7 +275,7 @@ function updateCrashAnimation(timeScale) {
     }
 }
 
-// Aktualisierung der fliegenden Objekte (Flug, Ablenkung, Einschlag und Treffer)
+// Bewegung und Interaktion der fliegenden Objekte
 function updateFlyingObjects(timeScale, moveScale) {
     let cx = (player.rearWheel.x + player.frontWheel.x) / 2;
     let cy = (player.rearWheel.y + player.frontWheel.y) / 2;
@@ -278,40 +285,46 @@ function updateFlyingObjects(timeScale, moveScale) {
     for (let i = flyingObjects.length - 1; i >= 0; i--) {
         let obj = flyingObjects[i];
 
+        if (obj.type === 'bubble') {
+            obj.vy -= 0.05 * timeScale;
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y += obj.vy * timeScale;
+            
+            if (obj.y < -50 || obj.x < -100) {
+                flyingObjects.splice(i, 1);
+            }
+            continue;
+        }
+
         if (obj.type === 'monkey' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.04;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-            // Affe springt/schwingt an der Liane bis zum Boden (Amplitude 100)
             obj.y = obj.spawnY + Math.abs(Math.sin(obj.time)) * 100;
         } else if (obj.type === 'bat' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.1;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-            // Fledermaus flattert wellenfoermig
             obj.y = obj.spawnY + Math.sin(obj.time) * 20;
         } else if (obj.type === 'fireball' && !obj.deflected) {
-            // Feuerball steigt auf und faellt (Parabel/Schwerkraft)
             obj.vy += 0.15 * timeScale; 
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
         } else {
-            // Standardbewegung (Wespen, Voegel, Meteoriten oder abgelenkte Objekte)
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
         }
 
-        // Meteoriten schlagen schraeg auf dem Boden ein und bilden ein Hindernis
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
             if (obj.y >= tY) {
                 obstacles.push({
-                    id: 20000 + obj.id, // Eindeutige ID um doppelte Punkte zu vermeiden
-                    x: obj.x,
-                    y: tY + 5 - 20, 
-                    baseY: tY + 5 - 20,
-                    width: 30,
-                    height: 20,
-                    type: 'block',
-                    color: '#444444',
+                    id: 20000 + obj.id, 
+                    x: obj.x - 20, 
+                    y: tY + 5, 
+                    baseY: tY + 5,
+                    width: 40,
+                    height: 15,
+                    type: 'crater',
+                    color: '#333333',
                     passed: false
                 });
                 playCrash(); 
@@ -320,27 +333,42 @@ function updateFlyingObjects(timeScale, moveScale) {
             }
         }
 
-        // Ablenkung durch Vorder- oder Hinterrad (Abwehr-Mechanik)
         let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);
         let fDist = Math.hypot(player.frontWheel.x - obj.x, player.frontWheel.y - obj.y);
+        
+        let rx = player.rearWheel.x, ry = player.rearWheel.y;
+        let fx = player.frontWheel.x, fy = player.frontWheel.y;
+        let l2 = (fx - rx) * (fx - rx) + (fy - ry) * (fy - ry);
+        let frameDist = 1000;
+        if (l2 > 0) {
+            let t = Math.max(0, Math.min(1, ((obj.x - rx) * (fx - rx) + (obj.y - ry) * (fy - ry)) / l2));
+            let projX = rx + t * (fx - rx);
+            let projY = ry + t * (fy - ry);
+            frameDist = Math.hypot(obj.x - projX, obj.y - projY);
+        }
+
         if ((rDist < 18 || fDist < 18) && !obj.deflected) {
             obj.deflected = true;
             obj.vx = 4;
             obj.vy = -3;
-            playJump(); // Feedback Sound
-        }
-
-        // Treffer der ungeschuetzten Bohne
-        if (!obj.deflected && !isCrashing) {
+            playJump(); 
+        } else if (!obj.deflected && !isCrashing) {
             let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
             if (bDist < 15) {
                 startCrash('flip');
                 flyingObjects.splice(i, 1);
                 continue;
+            } else if (frameDist < 10) {
+                obj.type = 'bubble';
+                obj.deflected = true;
+                obj.vx = -gameSpeed * 0.5;
+                obj.vy = -1.0;
+                score += 3;
+                playScore(); 
+                continue;
             }
         }
 
-        // Punktevergabe, wenn das Objekt sicher das Hinterrad passiert hat
         if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 10) {
             obj.passed = true;
             if (obj.id > highestScoredObstacle) {
@@ -350,7 +378,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             }
         }
 
-        // Bereinigung ausserhalb des sichtbaren Bereichs
         if (obj.x < -100 || obj.x > canvas.width + 200 || obj.y > canvas.height + 100 || obj.y < -150) {
             flyingObjects.splice(i, 1);
         }
