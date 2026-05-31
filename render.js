@@ -451,10 +451,10 @@ function drawPlayer() {
         ctx.beginPath(); ctx.arc(7, -14, 1.2, 0, Math.PI*2); ctx.fill();
 
         // Mund
-        ctx.beginPath();
-        ctx.moveTo(7, -8);
-        ctx.quadraticCurveTo(9, -7, 11, -8);
-        ctx.stroke();
+        //ctx.beginPath();
+        //ctx.moveTo(7, -8);
+        //ctx.quadraticCurveTo(9, -7, 11, -8);
+        //ctx.stroke();
 
         ctx.restore();
 
