@@ -1,4 +1,4 @@
-// Berechnung der Y-Koordinate des Terrains basierend auf der Welt-X-Koordinate
+// Berechnung des Terrain-Profils aus den Level-Konfigurationen
 function getTerrainY(worldX) {
     if (!designData || !designData.physics) return 185;
     const config = designData.physics;
@@ -19,7 +19,7 @@ function getTerrainY(worldX) {
     return 185;
 }
 
-// Horizont fuer Hintergrundobjekte abfragen
+// Horizont fuer Hintergrundobjekte dynamisch anpassen
 function getHorizonY() {
     if (designData && designData.physics && designData.physics.horizonY !== undefined) {
         return designData.physics.horizonY;
@@ -27,7 +27,7 @@ function getHorizonY() {
     return 185;
 }
 
-// Oberflaeche eines spezifischen Hindernisses berechnen
+// Ermittlung der Oberflaeche anhand aktueller Hindernisse
 function getObstacleSurface(x, obs) {
     if (x < obs.x || x > obs.x + obs.width) return null;
     
@@ -70,7 +70,7 @@ function getObstacleSurface(x, obs) {
     return null;
 }
 
-// Physik-Status eines einzelnen Rades aktualisieren
+// Physik-Update fuer ein einzelnes Rad
 function updateWheel(wheel, timeScale) {
     wheel.vy += player.gravity * timeScale;
     wheel.y += wheel.vy * timeScale;
@@ -135,7 +135,7 @@ function updateWheel(wheel, timeScale) {
     }
 }
 
-// Pruefung auf Kollision des Fahrradrahmens mit dem Boden oder Hindernissen
+// Kollision zwischen Rahmen und Untergrund
 function handleFrameCollision(timeScale) {
     let isScraping = false;
     let maxPenetration = 0;
@@ -185,7 +185,7 @@ function handleFrameCollision(timeScale) {
     }
 }
 
-// Start der Crash-Sequenz abhaengig vom Typ
+// Initiierung der Absturzsequenz
 function startCrash(type) {
     if (isCrashing) return;
     isCrashing = true;
@@ -217,7 +217,7 @@ function startCrash(type) {
     beanCrash.isSplat = false;
 }
 
-// Berechnung der Animationsobjekte waehrend des Crashes
+// Fortschreibung der Crash-Animation
 function updateCrashAnimation(timeScale) {
     if (crashType === 'flip') {
         let targetAngle = Math.PI; 
@@ -267,7 +267,7 @@ function updateCrashAnimation(timeScale) {
         gameOverTimer += timeScale * 16.66;
         if (gameOverTimer > 1200) {
             if (lives > 0) {
-                handleGameOverRestart();
+                respawnPlayer();
             } else {
                 isGameOver = true;
             }
@@ -275,7 +275,7 @@ function updateCrashAnimation(timeScale) {
     }
 }
 
-// Bewegung und Interaktion der fliegenden Objekte
+// Aktualisierung der fliegenden Objekte (Flug, Ablenkung, Einschlag und Treffer)
 function updateFlyingObjects(timeScale, moveScale) {
     let cx = (player.rearWheel.x + player.frontWheel.x) / 2;
     let cy = (player.rearWheel.y + player.frontWheel.y) / 2;
@@ -313,6 +313,7 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.y += obj.vy * timeScale;
         }
 
+        // Meteoriten schlagen schraeg auf dem Boden ein und bilden ein Krater-Hindernis
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
             if (obj.y >= tY) {
@@ -336,6 +337,7 @@ function updateFlyingObjects(timeScale, moveScale) {
         let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);
         let fDist = Math.hypot(player.frontWheel.x - obj.x, player.frontWheel.y - obj.y);
         
+        // Abstand zum Rahmen berechnen
         let rx = player.rearWheel.x, ry = player.rearWheel.y;
         let fx = player.frontWheel.x, fy = player.frontWheel.y;
         let l2 = (fx - rx) * (fx - rx) + (fy - ry) * (fy - ry);
@@ -347,6 +349,7 @@ function updateFlyingObjects(timeScale, moveScale) {
             frameDist = Math.hypot(obj.x - projX, obj.y - projY);
         }
 
+        // Kollisions-Logik
         if ((rDist < 18 || fDist < 18) && !obj.deflected) {
             obj.deflected = true;
             obj.vx = 4;
@@ -355,26 +358,29 @@ function updateFlyingObjects(timeScale, moveScale) {
         } else if (!obj.deflected && !isCrashing) {
             let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
             if (bDist < 15) {
+                // Bohne getroffen -> Crash
                 startCrash('flip');
                 flyingObjects.splice(i, 1);
                 continue;
             } else if (frameDist < 10) {
+                // Rahmen getroffen -> Seifenblase
                 obj.type = 'bubble';
                 obj.deflected = true;
                 obj.vx = -gameSpeed * 0.5;
                 obj.vy = -1.0;
                 score += 3;
-                playScore(); 
+                if (typeof playScore === 'function') playScore(); 
                 continue;
             }
         }
 
+        // Punkte vergeben beim Passieren
         if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 10) {
             obj.passed = true;
             if (obj.id > highestScoredObstacle) {
                 score += 1;
                 highestScoredObstacle = obj.id;
-                playScore();
+                if (typeof playScore === 'function') playScore();
             }
         }
 

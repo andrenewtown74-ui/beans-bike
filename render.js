@@ -21,11 +21,9 @@ function drawEnvironment(moveScale) {
                 ctx.fillStyle = bg.color1;
                 ctx.fillRect(bg.x, horizon - bg.height, bg.width, bg.width);
             } else if (bg.type === 'planet') {
-                // Basis-Planet (Ozean)
                 ctx.fillStyle = bg.color1 || '#1E90FF';
                 ctx.beginPath(); ctx.arc(bg.x, horizon - bg.height, bg.width, 0, Math.PI * 2); ctx.fill();
                 
-                // Kontinente
                 ctx.fillStyle = bg.color2 || '#32CD32';
                 ctx.beginPath();
                 ctx.ellipse(bg.x - bg.width * 0.2, horizon - bg.height - bg.width * 0.2, bg.width * 0.4, bg.width * 0.25, 0.5, 0, Math.PI * 2);
@@ -33,14 +31,12 @@ function drawEnvironment(moveScale) {
                 ctx.ellipse(bg.x - bg.width * 0.1, horizon - bg.height + bg.width * 0.4, bg.width * 0.5, bg.width * 0.15, 0.1, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Wolkenbaender
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
                 ctx.beginPath();
                 ctx.ellipse(bg.x + bg.width * 0.1, horizon - bg.height - bg.width * 0.4, bg.width * 0.6, bg.width * 0.1, 0, 0, Math.PI * 2);
                 ctx.ellipse(bg.x - bg.width * 0.3, horizon - bg.height + bg.width * 0.1, bg.width * 0.4, bg.width * 0.08, 0.2, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Sphaerischer Schatteneffekt
                 let shadowGrad = ctx.createLinearGradient(bg.x - bg.width, horizon - bg.height - bg.width, bg.x + bg.width, horizon - bg.height + bg.width);
                 shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
                 shadowGrad.addColorStop(0.5, 'rgba(0,0,0,0)');
@@ -118,7 +114,7 @@ function drawEnvironment(moveScale) {
     }
 }
 
-// Zeichnen von Partikeleffekten (Regen, Schnee, Asche)
+// Wettereffekte zeichnen
 function drawWeather(timeScale) {
     if (!designData || !designData.theme || !designData.theme.weather) return;
     let weatherType = designData.theme.weather;
@@ -193,7 +189,6 @@ function drawWeather(timeScale) {
     }
 }
 
-// Bohne bei Unfall zeichnen
 function drawCrashBean() {
     if (beanCrash.isSplat) {
         ctx.fillStyle = '#D2B48C';
@@ -246,7 +241,6 @@ function drawCrashBean() {
     }
 }
 
-// Zerrissenes Fahrrad zeichnen
 function drawBrokenBike() {
     if(crashType === 'fall') return; 
     ctx.lineWidth = 2;
@@ -289,7 +283,6 @@ function drawBrokenBike() {
     ctx.restore();
 }
 
-// Spieler zeichnen
 function drawPlayer() {
     if (crashType === 'tear' || crashType === 'fall') {
         drawBrokenBike();
@@ -435,7 +428,6 @@ function drawPlayer() {
     ctx.restore();
 }
 
-// Zeichnen aller Flugobjekte
 function drawFlyingObjects() {
     for (let obj of flyingObjects) {
         ctx.save();
