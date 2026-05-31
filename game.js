@@ -1,11 +1,12 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const uiLayer = document.getElementById('ui-layer');
-const titleEl = document.getElementById('title');
-const instructionEl = document.getElementById('instruction');
-const touchControls = document.getElementById('touch-controls');
-const fullscreenBtn = document.getElementById('fullscreen-btn');
-const headlightBtn = document.getElementById('headlight-btn');
+// Zuweisung der DOM-Elemente ohne erneute Deklaration
+canvas = document.getElementById('gameCanvas');
+ctx = canvas.getContext('2d');
+uiLayer = document.getElementById('ui-layer');
+titleEl = document.getElementById('title');
+instructionEl = document.getElementById('instruction');
+touchControls = document.getElementById('touch-controls');
+fullscreenBtn = document.getElementById('fullscreen-btn');
+headlightBtn = document.getElementById('headlight-btn');
 
 window.weatherParticles = window.weatherParticles || [];
 window.rainParticles = window.rainParticles || [];
