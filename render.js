@@ -189,9 +189,10 @@ function drawWeather(timeScale) {
     }
 }
 
+// Bohne bei Unfall zeichnen
 function drawCrashBean() {
     if (beanCrash.isSplat) {
-        ctx.fillStyle = '#D2B48C';
+        ctx.fillStyle = '#FFF';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -211,36 +212,55 @@ function drawCrashBean() {
         ctx.translate(beanCrash.x, beanCrash.y);
         ctx.rotate(beanCrash.rotation);
         
-        ctx.fillStyle = '#D2B48C';
-        ctx.strokeStyle = '#000';
+        // Rucksack im Flug
+        ctx.fillStyle = '#FFF';
         ctx.lineWidth = 2;
+        ctx.strokeStyle = '#000';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 8, 12, Math.PI / 8, 0, Math.PI * 2);
+        ctx.moveTo(-8, -8);
+        ctx.lineTo(-13, -8);
+        ctx.quadraticCurveTo(-16, -8, -16, -5);
+        ctx.lineTo(-16, 5);
+        ctx.quadraticCurveTo(-16, 8, -13, 8);
+        ctx.lineTo(-6, 8);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.beginPath(); ctx.moveTo(-16, -2); ctx.lineTo(-8, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-8, -6); ctx.lineTo(-2, -2); ctx.stroke();
+
+        // Nierenfoermiger Koerper im Flug
+        ctx.beginPath();
+        ctx.moveTo(2, 10);
+        ctx.bezierCurveTo(-10, 10, -16, 0, -10, -12);
+        ctx.bezierCurveTo(-6, -20, 10, -20, 12, -10);
+        ctx.bezierCurveTo(14, -2, 4, -2, 4, 2);
+        ctx.bezierCurveTo(8, 6, 6, 10, 2, 10);
         ctx.fill();
         ctx.stroke();
 
-        ctx.save();
-        ctx.rotate(Math.PI / 8);
-        ctx.lineWidth = 1.5;
+        // Gesicht im Flug
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(2, -12, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(7, -12, 1.2, 0, Math.PI*2); ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(-3, -4); ctx.lineTo(0, -2);
-        ctx.moveTo(0, -4); ctx.lineTo(3, -2);
+        ctx.moveTo(7, -6);
+        ctx.quadraticCurveTo(9, -5, 11, -6);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, 3, 2, 0, Math.PI);
-        ctx.stroke();
-        ctx.restore();
         
+        // Gliedmassen im Flug
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(0, 5); ctx.lineTo(5, 12);
-        ctx.moveTo(-2, 5); ctx.lineTo(-8, 10);
-        ctx.moveTo(4, -2); ctx.lineTo(12, -8);
+        ctx.moveTo(0, 8); ctx.lineTo(5, 15);
+        ctx.moveTo(-2, 8); ctx.lineTo(-8, 13);
+        ctx.moveTo(-2, -2); ctx.lineTo(6, -8);
         ctx.stroke();
+        
         ctx.restore();
     }
 }
 
+// Zerrissenes Fahrrad zeichnen
 function drawBrokenBike() {
     if(crashType === 'fall') return; 
     ctx.lineWidth = 2;
@@ -283,6 +303,7 @@ function drawBrokenBike() {
     ctx.restore();
 }
 
+// Spieler und Fahrrad regulär zeichnen
 function drawPlayer() {
     if (crashType === 'tear' || crashType === 'fall') {
         drawBrokenBike();
@@ -382,37 +403,70 @@ function drawPlayer() {
         drawLeg(px2, py2);
         ctx.beginPath(); ctx.moveTo(crankX, crankY); ctx.lineTo(px2, py2); ctx.stroke();
 
+        ctx.save();
+        
+        ctx.translate(seatX, seatY + beanOffsetY - 6);
+        ctx.rotate(beanAngle);
+        
+        // Angepasster Schulranzen
+        ctx.fillStyle = '#FFF';
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#000';
-        ctx.fillStyle = '#D2B48C'; 
-
-        ctx.save();
-        ctx.translate(seatX, seatY + beanOffsetY);
-        ctx.rotate(beanAngle);
-
-        ctx.beginPath(); ctx.ellipse(0, -10, 8, 12, Math.PI / 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-
-        ctx.save();
-        ctx.translate(0, -10);
-        ctx.rotate(Math.PI / 8);
-        ctx.fillStyle = '#FFF';
-        ctx.beginPath(); ctx.arc(3, -3, 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.arc(0, -3, 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(4, -3, 0.8, 0, Math.PI * 2); ctx.fill(); 
-        ctx.beginPath(); ctx.arc(1, -3, 0.8, 0, Math.PI * 2); ctx.fill(); 
-        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(2, 2, 3, 0.2 * Math.PI, 0.8 * Math.PI);
+        ctx.moveTo(-8, -10);
+        ctx.lineTo(-13, -10);
+        ctx.quadraticCurveTo(-16, -10, -16, -7);
+        ctx.lineTo(-16, 3);
+        ctx.quadraticCurveTo(-16, 6, -13, 6);
+        ctx.lineTo(-6, 6);
+        ctx.fill();
         ctx.stroke();
-        ctx.restore();
+        
+        // Rucksack Klappe
+        ctx.beginPath();
+        ctx.moveTo(-16, -4);
+        ctx.lineTo(-8, -2);
+        ctx.stroke();
+        
+        // Rucksack Traeger
+        ctx.beginPath();
+        ctx.moveTo(-8, -8);
+        ctx.lineTo(-2, -4);
+        ctx.stroke();
+
+        // Nierenfoermiger Koerper (Bohne)
+        ctx.fillStyle = '#FFF'; 
+        ctx.beginPath();
+        ctx.moveTo(2, 8);
+        ctx.bezierCurveTo(-10, 8, -16, -2, -10, -14);
+        ctx.bezierCurveTo(-6, -22, 10, -22, 12, -12);
+        ctx.bezierCurveTo(14, -4, 4, -4, 4, 0);
+        ctx.bezierCurveTo(8, 4, 6, 8, 2, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        // Gesicht und Augen
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(2, -14, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(7, -14, 1.2, 0, Math.PI*2); ctx.fill();
+
+        // Mund
+        ctx.beginPath();
+        ctx.moveTo(7, -8);
+        ctx.quadraticCurveTo(9, -7, 11, -8);
+        ctx.stroke();
+
         ctx.restore();
 
+        // Vorderes Bein
         drawLeg(px1, py1);
         ctx.beginPath(); ctx.moveTo(crankX, crankY); ctx.lineTo(px1, py1); ctx.stroke();
 
-        const shoulderX = seatX + 4 * Math.cos(beanAngle) - (-8) * Math.sin(beanAngle);
-        const shoulderY = (seatY + beanOffsetY) + 4 * Math.sin(beanAngle) + (-8) * Math.cos(beanAngle);
+        // Berechnung Startpunkt Arm (Schulterbereich)
+        const localShoulderX = -2;
+        const localShoulderY = -4;
+        const shoulderX = seatX + localShoulderX * Math.cos(beanAngle) - localShoulderY * Math.sin(beanAngle);
+        const shoulderY = (seatY + beanOffsetY - 6) + localShoulderX * Math.sin(beanAngle) + localShoulderY * Math.cos(beanAngle);
 
         ctx.beginPath();
         ctx.moveTo(shoulderX, shoulderY);
@@ -421,7 +475,8 @@ function drawPlayer() {
             let wave = Math.sin(performance.now() / 100) * 15;
             ctx.quadraticCurveTo(0, -40 + wave, 10, -50 + wave);
         } else {
-            ctx.bezierCurveTo(-localX/2, -10, localX/2, -30, localX, -20);
+            // Arm ueberkreuzt den Koerper dynamisch zum Lenker
+            ctx.bezierCurveTo(seatX + 10, seatY + 5, localX / 1.5, -25, localX, -20);
         }
         ctx.stroke();
     }
