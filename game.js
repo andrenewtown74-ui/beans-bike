@@ -10,6 +10,7 @@ headlightBtn = document.getElementById('headlight-btn');
 
 // Sichere Initialisierung für dynamische Partikel (falls in config nicht vorhanden)
 window.weatherParticles = window.weatherParticles || [];
+window.rainParticles = window.rainParticles || [];
 
 const fallbackLevelData = [
     { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
@@ -34,6 +35,9 @@ const fallbackDesignData = {
     },
     "objects": []
 };
+
+// Lade-Status um Mehrfach-Klicks waehrend des Ladens zu verhindern
+let isLoadingData = false;
 
 // Initialisierung
 designData = fallbackDesignData;
@@ -62,39 +66,31 @@ if (headlightBtn) {
     });
 }
 
-function loadLevelData(levelNum) {
-    fetch(`level${levelNum}.json`)
-        .then(function(response) {
-            if (!response.ok) throw new Error('HTTP Status ' + response.status);
-            return response.json();
-        })
-        .then(function(data) {
-            levelData = data;
-            for(let i = 0; i < levelData.length; i++) levelData[i].id = i;
-        })
-        .catch(function(error) {
-            levelData = fallbackLevelData;
-        });
+// Asynchrones Laden der Level-Daten, um Race-Conditions zu vermeiden
+async function loadLevelData(levelNum) {
+    try {
+        const response = await fetch(`level${levelNum}.json`);
+        if (!response.ok) throw new Error('HTTP Status ' + response.status);
+        const data = await response.json();
+        levelData = data;
+        for(let i = 0; i < levelData.length; i++) levelData[i].id = i;
+    } catch (error) {
+        levelData = fallbackLevelData;
+    }
 
-    fetch(`design_level_${levelNum}.json`)
-        .then(function(response) {
-            if (!response.ok) throw new Error('HTTP Status ' + response.status);
-            return response.json();
-        })
-        .then(function(data) {
-            designData = data;
-            initBackground();
-            updateMusic();
-            updatePhysicsConfig();
-            checkHeadlight();
-        })
-        .catch(function(error) {
-            designData = fallbackDesignData;
-            initBackground();
-            updateMusic();
-            updatePhysicsConfig();
-            checkHeadlight();
-        });
+    try {
+        const response = await fetch(`design_level_${levelNum}.json`);
+        if (!response.ok) throw new Error('HTTP Status ' + response.status);
+        const data = await response.json();
+        designData = data;
+    } catch (error) {
+        designData = fallbackDesignData;
+    }
+
+    initBackground();
+    updateMusic();
+    updatePhysicsConfig();
+    checkHeadlight();
 }
 
 function updateMusic() {
@@ -135,23 +131,30 @@ function initBackground() {
     });
 }
 
-function startNewGame() {
+async function startNewGame() {
+    if (isLoadingData) return;
+    isLoadingData = true;
     lives = 3;
     score = 0;
-    currentLevel = 1;
-    loadLevelData(currentLevel);
+    // currentLevel wird NICHT zurueckgesetzt, so startet man das aktuelle Level neu
+    await loadLevelData(currentLevel);
     restartLevel();
+    isLoadingData = false;
 }
 
-function advanceLevel() {
+async function advanceLevel() {
+    if (isLoadingData) return;
+    isLoadingData = true;
     currentLevel++;
-    loadLevelData(currentLevel);
+    await loadLevelData(currentLevel);
     restartLevel();
+    isLoadingData = false;
 }
 
 function restartLevel() {
     flyingObjects = [];
     window.weatherParticles = [];
+    window.rainParticles = [];
     
     player.targetBikeX = 30;
     keys.up = false;
@@ -169,7 +172,6 @@ function restartLevel() {
     player.rearWheel.vy = 0;
     player.rearWheel.isJumping = false;
     player.rearWheel.isHittingWall = false;
-    player.rearWheel.onUphillLiana = false;
     player.rearWheel.onSurface = true;
     
     player.frontWheel.y = getTerrainY(90);
@@ -178,7 +180,6 @@ function restartLevel() {
     player.frontWheel.vy = 0;
     player.frontWheel.isJumping = false;
     player.frontWheel.isHittingWall = false;
-    player.frontWheel.onUphillLiana = false;
     player.frontWheel.onSurface = true;
     
     obstacles.length = 0;
@@ -226,7 +227,6 @@ function respawnPlayer() {
     player.rearWheel.vy = 0;
     player.rearWheel.isJumping = false;
     player.rearWheel.isHittingWall = false;
-    player.rearWheel.onUphillLiana = false;
     player.rearWheel.onSurface = true;
     
     player.frontWheel.y = getTerrainY(worldDistance + 90);
@@ -235,7 +235,6 @@ function respawnPlayer() {
     player.frontWheel.vy = 0;
     player.frontWheel.isJumping = false;
     player.frontWheel.isHittingWall = false;
-    player.frontWheel.onUphillLiana = false;
     player.frontWheel.onSurface = true;
 
     keys.up = false;
@@ -316,6 +315,7 @@ window.addEventListener('keyup', function(e) {
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.down = false;
 });
 
+// Touchsteuerung im 2x2 Raster (wie im Screenshot/CSS definiert)
 function handleTouch(e) {
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
     
@@ -327,28 +327,23 @@ function handleTouch(e) {
 
     touchBrake = false;
     touchGas = false;
-    const w = window.innerWidth;
-    const q1 = w * 0.25;
-    const q2 = w * 0.50;
-    const q3 = w * 0.75;
+    const midX = window.innerWidth / 2;
+    const midY = window.innerHeight / 2;
 
     for (let i = 0; i < e.touches.length; i++) {
         const t = e.touches[i];
-        if (t.clientX < q1) {
-            touchBrake = true;
-        } else if (t.clientX >= q1 && t.clientX < q2) {
-            touchGas = true;
+        if (t.clientX < midX) {
+            if (t.clientY > midY) touchBrake = true;
+        } else {
+            if (t.clientY > midY) touchGas = true;
         }
     }
 
     if (e.type === 'touchstart') {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const t = e.changedTouches[i];
-            if (t.clientX >= q2 && t.clientX < q3) {
-                jump('rear');
-            } else if (t.clientX >= q3) {
-                jump('front');
-            }
+            if (t.clientX < midX && t.clientY <= midY) jump('rear');
+            else if (t.clientX >= midX && t.clientY <= midY) jump('front');
         }
     }
     if (e.cancelable) e.preventDefault();
@@ -357,6 +352,7 @@ function handleTouch(e) {
 window.addEventListener('touchstart', handleTouch, { passive: false });
 window.addEventListener('touchmove', handleTouch, { passive: false });
 window.addEventListener('touchend', handleTouch, { passive: false });
+window.addEventListener('touchcancel', handleTouch, { passive: false });
 
 window.addEventListener('mousedown', function(e) {
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
@@ -364,14 +360,9 @@ window.addEventListener('mousedown', function(e) {
     if (handleInputEvent()) return;
     if (isLevelComplete) return;
 
-    const w = window.innerWidth;
-    const q2 = w * 0.50;
-    const q3 = w * 0.75;
-
-    if (e.clientX >= q2 && e.clientX < q3) {
-        jump('rear');
-    } else if (e.clientX >= q3) {
-        jump('front');
+    if (e.clientY < window.innerHeight / 2) {
+        if (e.clientX < window.innerWidth / 2) jump('rear');
+        else jump('front');
     }
 });
 
@@ -420,7 +411,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     vyVal = speedVal * 0.8;
                 } else if (nextObs.type === 'monkey') {
                     let tY = getTerrainY(worldDistance + canvas.width);
-                    startY = tY - 100; // Ausserhalb des Bildes starten
+                    startY = tY - 100;
                     vxVal = -speedVal; 
                 } else if (nextObs.type === 'bat') {
                     let tY = getTerrainY(worldDistance + canvas.width);
@@ -496,7 +487,6 @@ function gameLoop(timestamp) {
             let isAccelerating = keys.up || touchGas;
             let isBraking = keys.down || touchBrake;
 
-            // Lianen-Steigung zwingt zum Gas geben (sonst rutscht man zurueck)
             if (player.rearWheel.onUphillLiana && !isAccelerating) {
                 player.targetBikeX -= 3.5 * timeScale;
             } else {
@@ -505,7 +495,6 @@ function gameLoop(timestamp) {
                 } else if (isBraking) {
                     player.targetBikeX -= 2.5 * timeScale;
                 } else {
-                    // Das Fahrrad sanft horizontal in Richtung Mitte gleiten lassen
                     let centerTargetX = canvas.width * 0.4;
                     player.targetBikeX += (centerTargetX - player.targetBikeX) * 0.02 * timeScale;
                 }
@@ -666,6 +655,7 @@ function gameLoop(timestamp) {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
+// Direkter Start beim Neuladen, sofern Dateien da sind
 if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
     drawEnvironment(0);
     drawPlayer();
