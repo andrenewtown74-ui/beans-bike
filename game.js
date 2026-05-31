@@ -1,12 +1,15 @@
-// Initialisierung und UI
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const uiLayer = document.getElementById('ui-layer');
-const titleEl = document.getElementById('title');
-const instructionEl = document.getElementById('instruction');
-const touchControls = document.getElementById('touch-controls');
-const fullscreenBtn = document.getElementById('fullscreen-btn');
-const headlightBtn = document.getElementById('headlight-btn');
+// Zuweisung der DOM-Elemente (Variablen sind in config.js deklariert)
+canvas = document.getElementById('gameCanvas');
+ctx = canvas.getContext('2d');
+uiLayer = document.getElementById('ui-layer');
+titleEl = document.getElementById('title');
+instructionEl = document.getElementById('instruction');
+touchControls = document.getElementById('touch-controls');
+fullscreenBtn = document.getElementById('fullscreen-btn');
+headlightBtn = document.getElementById('headlight-btn');
+
+// Sichere Initialisierung für dynamische Partikel (falls in config nicht vorhanden)
+window.weatherParticles = window.weatherParticles || [];
 
 const fallbackLevelData = [
     { "id": 0, "spawnDistance": 300, "type": "block", "width": 40, "height": 15, "color": "#8B4513" }
@@ -32,6 +35,7 @@ const fallbackDesignData = {
     "objects": []
 };
 
+// Initialisierung
 designData = fallbackDesignData;
 loadLevelData(currentLevel);
 
@@ -134,6 +138,7 @@ function initBackground() {
 function startNewGame() {
     lives = 3;
     score = 0;
+    currentLevel = 1;
     loadLevelData(currentLevel);
     restartLevel();
 }
@@ -146,7 +151,8 @@ function advanceLevel() {
 
 function restartLevel() {
     flyingObjects = [];
-    weatherParticles = [];
+    window.weatherParticles = [];
+    
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
@@ -321,9 +327,6 @@ function handleTouch(e) {
 
     touchBrake = false;
     touchGas = false;
-    let touchingRear = false;
-    let touchingFront = false;
-
     const w = window.innerWidth;
     const q1 = w * 0.25;
     const q2 = w * 0.50;
@@ -335,10 +338,6 @@ function handleTouch(e) {
             touchBrake = true;
         } else if (t.clientX >= q1 && t.clientX < q2) {
             touchGas = true;
-        } else if (t.clientX >= q2 && t.clientX < q3) {
-            touchingRear = true;
-        } else if (t.clientX >= q3) {
-            touchingFront = true;
         }
     }
 
@@ -352,26 +351,12 @@ function handleTouch(e) {
             }
         }
     }
-
-    const zoneBrake = document.getElementById('zone-brake');
-    const zoneGas = document.getElementById('zone-gas');
-    const zoneRear = document.getElementById('zone-rear');
-    const zoneFront = document.getElementById('zone-front');
-
-    if (zoneBrake) {
-        zoneBrake.classList.toggle('active', touchBrake);
-        zoneGas.classList.toggle('active', touchGas);
-        zoneRear.classList.toggle('active', touchingRear);
-        zoneFront.classList.toggle('active', touchingFront);
-    }
-
     if (e.cancelable) e.preventDefault();
 }
 
 window.addEventListener('touchstart', handleTouch, { passive: false });
 window.addEventListener('touchmove', handleTouch, { passive: false });
 window.addEventListener('touchend', handleTouch, { passive: false });
-window.addEventListener('touchcancel', handleTouch, { passive: false });
 
 window.addEventListener('mousedown', function(e) {
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
@@ -380,18 +365,13 @@ window.addEventListener('mousedown', function(e) {
     if (isLevelComplete) return;
 
     const w = window.innerWidth;
-    const q1 = w * 0.25;
     const q2 = w * 0.50;
     const q3 = w * 0.75;
 
     if (e.clientX >= q2 && e.clientX < q3) {
         jump('rear');
-        const z = document.getElementById('zone-rear');
-        if(z) { z.classList.add('active'); setTimeout(() => z.classList.remove('active'), 150); }
     } else if (e.clientX >= q3) {
         jump('front');
-        const z = document.getElementById('zone-front');
-        if(z) { z.classList.add('active'); setTimeout(() => z.classList.remove('active'), 150); }
     }
 });
 
@@ -440,7 +420,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     vyVal = speedVal * 0.8;
                 } else if (nextObs.type === 'monkey') {
                     let tY = getTerrainY(worldDistance + canvas.width);
-                    startY = tY - 80;
+                    startY = tY - 100; // Ausserhalb des Bildes starten
                     vxVal = -speedVal; 
                 } else if (nextObs.type === 'bat') {
                     let tY = getTerrainY(worldDistance + canvas.width);
@@ -516,11 +496,19 @@ function gameLoop(timestamp) {
             let isAccelerating = keys.up || touchGas;
             let isBraking = keys.down || touchBrake;
 
-            if (player.rearWheel.onUphillLiana && !isAccelerating && !isLevelComplete) {
+            // Lianen-Steigung zwingt zum Gas geben (sonst rutscht man zurueck)
+            if (player.rearWheel.onUphillLiana && !isAccelerating) {
                 player.targetBikeX -= 3.5 * timeScale;
             } else {
-                if (isAccelerating) player.targetBikeX += 2.5 * timeScale;
-                if (isBraking) player.targetBikeX -= 2.5 * timeScale;
+                if (isAccelerating) {
+                    player.targetBikeX += 2.5 * timeScale;
+                } else if (isBraking) {
+                    player.targetBikeX -= 2.5 * timeScale;
+                } else {
+                    // Das Fahrrad sanft horizontal in Richtung Mitte gleiten lassen
+                    let centerTargetX = canvas.width * 0.4;
+                    player.targetBikeX += (centerTargetX - player.targetBikeX) * 0.02 * timeScale;
+                }
             }
         } else {
             player.targetBikeX += 2.0 * timeScale;
