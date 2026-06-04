@@ -1,4 +1,3 @@
-// Zuweisung der DOM-Elemente ohne erneute Deklaration
 canvas = document.getElementById('gameCanvas');
 ctx = canvas.getContext('2d');
 uiLayer = document.getElementById('ui-layer');
@@ -46,7 +45,7 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
 resizeCanvas();
 
 function checkHeadlight() {
-    if (currentLevel === 3) {
+    if (currentLevel === 3 || currentLevel === 5) {
         isHeadlightOn = true;
     }
     if (headlightBtn) {
@@ -445,16 +444,22 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     if (nextObstacleIndex < levelData.length) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
-            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball'].includes(nextObs.type)) {
+            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock'].includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
                 let vyVal = 0;
+                let spawnX = canvas.width + 50;
 
                 if (nextObs.type === 'meteorite') {
                     startY = -20;
                     vxVal = -speedVal * 0.7; 
                     vyVal = speedVal * 0.8;
+                } else if (nextObs.type === 'falling_rock') {
+                    startY = -40;
+                    vxVal = 0;
+                    vyVal = speedVal;
+                    spawnX = player.targetBikeX + 150 + Math.random() * 50; 
                 } else if (nextObs.type === 'monkey') {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = tY - 100; 
@@ -474,7 +479,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
 
                 flyingObjects.push({
                     id: nextObs.id,
-                    x: canvas.width + 50,
+                    x: spawnX,
                     y: startY,
                     spawnY: startY,
                     vx: vxVal,
@@ -533,8 +538,23 @@ function gameLoop(timestamp) {
             let isAccelerating = keys.up || touchGas;
             let isBraking = keys.down || touchBrake;
 
+            let onMud = false;
+            for (let obs of obstacles) {
+                if (obs.type === 'mud' && player.rearWheel.defaultX >= obs.x && player.rearWheel.defaultX <= obs.x + obs.width) {
+                    onMud = true;
+                }
+            }
+
             if (player.rearWheel.onUphillLiana && !isAccelerating) {
                 player.targetBikeX -= 3.5 * timeScale;
+            } else if (onMud) {
+                if (isAccelerating) {
+                    player.targetBikeX -= 0.5 * timeScale;
+                } else if (isBraking) {
+                    player.targetBikeX -= 3.5 * timeScale;
+                } else {
+                    player.targetBikeX -= 2.0 * timeScale;
+                }
             } else {
                 if (isAccelerating) {
                     player.targetBikeX += 2.5 * timeScale;
@@ -610,7 +630,7 @@ function gameLoop(timestamp) {
         let obs = obstacles[i];
         obs.x -= gameSpeed * moveScale;
 
-        if (obs.type !== 'chasm' && obs.type !== 'lava' && obs.type !== 'liana_bridge') {
+        if (obs.type !== 'chasm' && obs.type !== 'lava' && obs.type !== 'liana_bridge' && obs.type !== 'mud') {
             ctx.fillStyle = obs.color;
             ctx.strokeStyle = '#000';
             ctx.beginPath();
@@ -639,6 +659,23 @@ function gameLoop(timestamp) {
                 ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5 + obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5);
             }
             ctx.fill(); ctx.stroke();
+        } else if (obs.type === 'mud') {
+            ctx.fillStyle = obs.color || '#1c140d';
+            ctx.beginPath();
+            for (let j = 0; j <= obs.width; j += 5) {
+                let tY = getTerrainY(worldDistance + obs.x + j) + 5;
+                if (j === 0) ctx.moveTo(obs.x + j, tY - 1);
+                else ctx.lineTo(obs.x + j, tY - 1);
+            }
+            ctx.lineTo(obs.x + obs.width, canvas.height);
+            ctx.lineTo(obs.x, canvas.height);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.arc(obs.x + obs.width * 0.3, getTerrainY(worldDistance + obs.x + obs.width*0.3) + 3, 3, 0, Math.PI*2);
+            ctx.arc(obs.x + obs.width * 0.7, getTerrainY(worldDistance + obs.x + obs.width*0.7) + 3, 2, 0, Math.PI*2);
+            ctx.fill();
         } else if (obs.type === 'liana_bridge') {
             ctx.fillStyle = '#5C4033';
             ctx.fillRect(obs.x - 10, getTerrainY(worldDistance + obs.x) + 5 - 100, 20, 100);

@@ -1,4 +1,3 @@
-// Berechnung des Terrain-Profils aus den Level-Konfigurationen
 function getTerrainY(worldX) {
     if (!designData || !designData.physics) return 185;
     const config = designData.physics;
@@ -19,7 +18,6 @@ function getTerrainY(worldX) {
     return 185;
 }
 
-// Horizont fuer Hintergrundobjekte dynamisch anpassen
 function getHorizonY() {
     if (designData && designData.physics && designData.physics.horizonY !== undefined) {
         return designData.physics.horizonY;
@@ -27,7 +25,6 @@ function getHorizonY() {
     return 185;
 }
 
-// Ermittlung der Oberflaeche anhand aktueller Hindernisse
 function getObstacleSurface(x, obs) {
     if (x < obs.x || x > obs.x + obs.width) return null;
     
@@ -67,10 +64,12 @@ function getObstacleSurface(x, obs) {
     if (obs.type === 'chasm' || obs.type === 'lava') {
         return 1000; 
     }
+    if (obs.type === 'mud') {
+        return getTerrainY(worldDistance + x); 
+    }
     return null;
 }
 
-// Physik-Update fuer ein einzelnes Rad
 function updateWheel(wheel, timeScale) {
     wheel.vy += player.gravity * timeScale;
     wheel.y += wheel.vy * timeScale;
@@ -87,7 +86,7 @@ function updateWheel(wheel, timeScale) {
             if (obs.type === 'chasm' || obs.type === 'lava') {
                 overChasm = true;
                 currentSurface = surface;
-            } else if (obs.type === 'crater') {
+            } else if (obs.type === 'crater' || obs.type === 'mud') {
                 currentSurface = surface;
             } else if (obs.type === 'liana_bridge') {
                 overChasm = true; 
@@ -135,7 +134,6 @@ function updateWheel(wheel, timeScale) {
     }
 }
 
-// Kollision zwischen Rahmen und Untergrund
 function handleFrameCollision(timeScale) {
     let isScraping = false;
     let maxPenetration = 0;
@@ -159,7 +157,7 @@ function handleFrameCollision(timeScale) {
         }
 
         for (let obs of obstacles) {
-            if (obs.type === 'ramp' || obs.type === 'chasm' || obs.type === 'lava') continue;
+            if (obs.type === 'ramp' || obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'mud') continue;
             if (px >= obs.x && px <= obs.x + obs.width) {
                 let surfaceY = getObstacleSurface(px, obs);
                 if (surfaceY !== null && py > surfaceY && surfaceY !== 1000) {
@@ -185,7 +183,6 @@ function handleFrameCollision(timeScale) {
     }
 }
 
-// Initiierung der Absturzsequenz
 function startCrash(type) {
     if (isCrashing) return;
     isCrashing = true;
@@ -217,7 +214,6 @@ function startCrash(type) {
     beanCrash.isSplat = false;
 }
 
-// Fortschreibung der Crash-Animation
 function updateCrashAnimation(timeScale) {
     if (crashType === 'flip') {
         let targetAngle = Math.PI; 
@@ -275,7 +271,6 @@ function updateCrashAnimation(timeScale) {
     }
 }
 
-// Aktualisierung der fliegenden Objekte (Flug, Ablenkung, Einschlag und Treffer)
 function updateFlyingObjects(timeScale, moveScale) {
     let cx = (player.rearWheel.x + player.frontWheel.x) / 2;
     let cy = (player.rearWheel.y + player.frontWheel.y) / 2;
@@ -308,12 +303,15 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.vy += 0.15 * timeScale; 
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
+        } else if (obj.type === 'falling_rock' && !obj.deflected) {
+            obj.vy += 0.2 * timeScale; 
+            obj.x -= (gameSpeed * moveScale); 
+            obj.y += obj.vy * timeScale;
         } else {
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
         }
 
-        // Meteoriten schlagen schraeg auf dem Boden ein und bilden ein Krater-Hindernis
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
             if (obj.y >= tY) {
@@ -333,11 +331,19 @@ function updateFlyingObjects(timeScale, moveScale) {
                 continue;
             }
         }
+        
+        if (obj.type === 'falling_rock' && !obj.deflected) {
+            let tY = getTerrainY(worldDistance + obj.x);
+            if (obj.y >= tY) {
+                playCrash(); 
+                flyingObjects.splice(i, 1);
+                continue;
+            }
+        }
 
         let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);
         let fDist = Math.hypot(player.frontWheel.x - obj.x, player.frontWheel.y - obj.y);
         
-        // Abstand zum Rahmen berechnen
         let rx = player.rearWheel.x, ry = player.rearWheel.y;
         let fx = player.frontWheel.x, fy = player.frontWheel.y;
         let l2 = (fx - rx) * (fx - rx) + (fy - ry) * (fy - ry);
@@ -349,7 +355,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             frameDist = Math.hypot(obj.x - projX, obj.y - projY);
         }
 
-        // Kollisions-Logik
         if ((rDist < 18 || fDist < 18) && !obj.deflected) {
             obj.deflected = true;
             obj.vx = 4;
@@ -358,12 +363,10 @@ function updateFlyingObjects(timeScale, moveScale) {
         } else if (!obj.deflected && !isCrashing) {
             let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
             if (bDist < 15) {
-                // Bohne getroffen -> Crash
                 startCrash('flip');
                 flyingObjects.splice(i, 1);
                 continue;
             } else if (frameDist < 10) {
-                // Rahmen getroffen -> Seifenblase
                 obj.type = 'bubble';
                 obj.deflected = true;
                 obj.vx = -gameSpeed * 0.5;
@@ -374,7 +377,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             }
         }
 
-        // Punkte vergeben beim Passieren
         if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 10) {
             obj.passed = true;
             if (obj.id > highestScoredObstacle) {

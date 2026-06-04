@@ -1,0 +1,36 @@
+{
+    "theme": {
+        "skyColor": "#0d0d12",
+        "groundColor": "#2f2f36",
+        "surfaceColor": "#4b4b57",
+        "music": "Cold_Obsidian.mp3",
+        "sun": { "active": false },
+        "headlightOn": true,
+        "cave": true
+    },
+    "physics": {
+        "gravity": 0.35,
+        "jumpStrength": -6.5,
+        "horizonY": 150,
+        "terrainType": "wavy",
+        "baseGroundY": 160,
+        "amplitude1": 25,
+        "frequency1": 0.005,
+        "amplitude2": 10,
+        "frequency2": 0.008,
+        "levelDistance": 7500
+    },
+    "objects": [
+        {
+            "type": "mountain",
+            "count": 6,
+            "minWidth": 100,
+            "maxWidth": 200,
+            "minHeight": 80,
+            "maxHeight": 180,
+            "color1": "#1a1a24",
+            "color2": "",
+            "speedModifier": 0.2
+        }
+    ]
+}
