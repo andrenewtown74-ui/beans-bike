@@ -190,18 +190,18 @@ function startCrash(type) {
     lives--; 
     
     if (type === 'flip') {
-        playHit();
+        if (typeof playHit === 'function') playHit();
         crashAngle = Math.atan2(player.frontWheel.y - player.rearWheel.y, player.frontWheel.x - player.rearWheel.x);
         if (crashAngle < 0) crashAngle += Math.PI * 2;
         crashBikeLength = Math.hypot(player.frontWheel.x - player.rearWheel.x, player.frontWheel.y - player.rearWheel.y);
     } else if (type === 'tear') {
-        playTear();
+        if (typeof playTear === 'function') playTear();
         bikeParts = {
             rear: { x: player.rearWheel.x, y: player.rearWheel.y, vx: -4, vy: -4, rot: 0, rotV: -0.2 },
             front: { x: player.frontWheel.x, y: player.frontWheel.y, vx: gameSpeed * 2, vy: -6, rot: 0, rotV: 0.3 }
         };
     } else if (type === 'fall') {
-        playTear();
+        if (typeof playTear === 'function') playTear();
     }
     
     const cx = (player.rearWheel.x + player.frontWheel.x) / 2;
@@ -255,7 +255,7 @@ function updateCrashAnimation(timeScale) {
             beanCrash.y = tY + 5;
             beanCrash.isSplat = true;
             if (!hasPlayedSplatSound) {
-                playCrash();
+                if (typeof playCrash === 'function') playCrash();
                 hasPlayedSplatSound = true;
             }
         }
@@ -358,7 +358,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                         score += 5;
                         if (typeof playScore === 'function') playScore();
                     }
-                    playJump();
+                    if (typeof playJump === 'function') playJump();
                 } else if (!isCrashing) {
                     if ((rx > obj.x && rx < obj.x + carW && ry > roofY + 5) || 
                         (fx > obj.x && fx < obj.x + carW && fy > roofY + 5) ||
@@ -410,7 +410,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.y += obj.vy * timeScale;
         }
 
-        // Alles was fliegt ist jetzt fangbar!
         let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock'].includes(obj.type);
 
         if (obj.type === 'meteorite' && !obj.deflected) {
@@ -427,7 +426,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                     color: '#333333',
                     passed: false
                 });
-                playCrash(); 
+                if (typeof playCrash === 'function') playCrash(); 
                 flyingObjects.splice(i, 1);
                 continue;
             }
@@ -436,7 +435,7 @@ function updateFlyingObjects(timeScale, moveScale) {
         if (obj.type === 'falling_rock' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
             if (obj.y >= tY) {
-                playCrash(); 
+                if (typeof playCrash === 'function') playCrash(); 
                 flyingObjects.splice(i, 1);
                 continue;
             }

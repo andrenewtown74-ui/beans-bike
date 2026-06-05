@@ -7,6 +7,11 @@ touchControls = document.getElementById('touch-controls');
 fullscreenBtn = document.getElementById('fullscreen-btn');
 headlightBtn = document.getElementById('headlight-btn');
 
+namePopup = document.getElementById('name-popup');
+popupScore = document.getElementById('popup-score');
+playerNameInput = document.getElementById('player-name-input');
+saveScoreBtn = document.getElementById('save-score-btn');
+
 window.weatherParticles = window.weatherParticles || [];
 window.rainParticles = window.rainParticles || [];
 
@@ -90,7 +95,7 @@ async function loadLevelData(levelNum) {
 
 function updateMusic() {
     if (designData && designData.theme && designData.theme.music) {
-        if (!bgMusic.src.endsWith(designData.theme.music)) {
+        if (typeof bgMusic !== 'undefined' && !bgMusic.src.endsWith(designData.theme.music)) {
             bgMusic.src = designData.theme.music;
             if (isGameRunning && !isLevelComplete) {
                 bgMusic.play().catch(function(err) {});
@@ -165,7 +170,9 @@ function restartLevel() {
     flyingObjects = [];
     window.weatherParticles = [];
     window.rainParticles = [];
-    window.scoreSubmitted = false; // Zuruecksetzen des Upload-Status
+    
+    window.scoreSubmitted = false; 
+    
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
@@ -219,8 +226,8 @@ function restartLevel() {
     uiLayer.classList.add('hidden');
     isGameRunning = true;
     
-    initAudio();
-    startMusic();
+    if (typeof initAudio === 'function') initAudio();
+    if (typeof startMusic === 'function') startMusic();
     
     cancelAnimationFrame(animationFrameId);
     animationFrameId = requestAnimationFrame(gameLoop);
@@ -278,17 +285,23 @@ function respawnPlayer() {
     hasPlayedSplatSound = false;
     
     lastTime = performance.now();
-    startMusic();
+    if (typeof startMusic === 'function') startMusic();
 }
 
 function handleInputEvent() {
-    initAudio();
+    if (isPopupOpen) return true; 
+
+    if (typeof initAudio === 'function') initAudio();
     if (isGameOver) {
         handleGameOverRestart();
         return true;
     }
     if (isLevelComplete && bikeStopped) {
-        advanceLevel();
+        if (currentLevel >= 5) {
+            startNewGame();
+        } else {
+            advanceLevel();
+        }
         return true;
     }
     if (!isGameRunning) {
@@ -306,12 +319,12 @@ function jump(wheel) {
         player.rearWheel.vy = player.jumpStrength;
         player.rearWheel.isJumping = true;
         player.rearWheel.onSurface = false;
-        playJump();
+        if (typeof playJump === 'function') playJump();
     } else if (wheel === 'front' && player.frontWheel.onSurface) {
         player.frontWheel.vy = player.jumpStrength;
         player.frontWheel.isJumping = true;
         player.frontWheel.onSurface = false;
-        playJump();
+        if (typeof playJump === 'function') playJump();
     }
 }
 
@@ -334,7 +347,6 @@ window.addEventListener('keyup', function(e) {
 
 function handleTouch(e) {
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
-    
     if (handleInputEvent()) {
         if (e.cancelable) e.preventDefault();
         return;
@@ -402,7 +414,6 @@ window.addEventListener('mousedown', function(e) {
     if (isLevelComplete) return;
 
     const w = window.innerWidth;
-    const q1 = w * 0.25;
     const q2 = w * 0.50;
     const q3 = w * 0.75;
 
@@ -451,8 +462,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
             const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer'];
-            
-            // HIER WAR DER FEHLER: Die vehicleTypes wurden nicht richtig verknüpft
             if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock'].concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
@@ -534,22 +543,16 @@ function gameLoop(timestamp) {
     if (deltaTime > 100) deltaTime = 16.66;
     const timeScale = deltaTime / 16.666;
 
-/* game.js (Auszug in der gameLoop Funktion) */
     if (isGameOver) {
         isGameRunning = false;
-        
-        // Verhindert mehrfaches Abfragen des Namens
-        if (!window.scoreSubmitted && score > 0) {
-            window.scoreSubmitted = true;
-            let pName = prompt("Spiel vorbei! Deine Punkte: " + score + "\nGib deinen Namen für die Highscore-Liste ein:", "Bohne");
-            if (pName && pName.trim() !== "") {
-                saveHighscore(pName.trim().substring(0, 15), score);
-            }
-        }
-        
         titleEl.innerText = "Game Over!";
-        instructionEl.innerText = "Punkte: " + score + " | KLICK fuer Neustart";
-        uiLayer.classList.remove('hidden');
+        
+        if (!window.scoreSubmitted && score > 0) {
+            showNamePopup();
+        } else if (!isPopupOpen) {
+            instructionEl.innerText = "Punkte: " + score + " | KLICK fuer Neustart";
+            uiLayer.classList.remove('hidden');
+        }
         return;
     }
 
@@ -599,12 +602,22 @@ function gameLoop(timestamp) {
             if (player.frontWheel.x >= canvas.width / 2) {
                 bikeStopped = true;
                 if (!hasPlayedFanfare) {
-                    playFanfare();
+                    if (typeof playFanfare === 'function') playFanfare();
                     hasPlayedFanfare = true;
                     
-                    titleEl.innerText = `Level ${currentLevel} Geschafft!`;
-                    instructionEl.innerText = "Klick / Touch fuer naechstes Level";
-                    uiLayer.classList.remove('hidden');
+                    if (currentLevel >= 5) {
+                        titleEl.innerText = "Herzlichen Glückwunsch!";
+                        if (!window.scoreSubmitted && score > 0) {
+                            showNamePopup();
+                        } else if (!isPopupOpen) {
+                            instructionEl.innerText = "Spiel durchgespielt! Klick fuer einen Neustart.";
+                            uiLayer.classList.remove('hidden');
+                        }
+                    } else {
+                        titleEl.innerText = `Level ${currentLevel} Geschafft!`;
+                        instructionEl.innerText = "Klick / Touch fuer naechstes Level";
+                        uiLayer.classList.remove('hidden');
+                    }
                 }
             }
         }
@@ -618,7 +631,7 @@ function gameLoop(timestamp) {
         if (typeof updateWheel === 'function') {
             updateWheel(player.rearWheel, timeScale);
             updateWheel(player.frontWheel, timeScale);
-            handleFrameCollision(timeScale);
+            if (typeof handleFrameCollision === 'function') handleFrameCollision(timeScale);
         }
 
         if (player.rearWheel.y > canvas.height + 50 || player.frontWheel.y > canvas.height + 50) {
@@ -639,7 +652,9 @@ function gameLoop(timestamp) {
                 
                 let oldAngle = pedalAngle;
                 pedalAngle += currentPedalSpeed * timeScale;
-                if (Math.floor(oldAngle / Math.PI) < Math.floor(pedalAngle / Math.PI)) playPedalSound();
+                if (Math.floor(oldAngle / Math.PI) < Math.floor(pedalAngle / Math.PI)) {
+                    if (typeof playPedalSound === 'function') playPedalSound();
+                }
             }
         }
     } else {
@@ -744,7 +759,7 @@ function gameLoop(timestamp) {
             if (obs.id > highestScoredObstacle) {
                 score += 1;
                 highestScoredObstacle = obs.id;
-                playScore();
+                if (typeof playScore === 'function') playScore();
             }
         }
         if (obs.x + obs.width < 0) obstacles.splice(i, 1);
@@ -848,14 +863,9 @@ function playYell() {
     } catch(e) {}
 }
 
-if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
-    drawEnvironment(0);
-    drawPlayer();
-}
-// Ruft die Top 5 Highscores aus Firestore ab und aktualisiert die HTML-Liste
 function fetchHighscores() {
     const listEl = document.getElementById('highscore-list');
-    if (!listEl) return;
+    if (!listEl || !db) return;
 
     db.collection("highscores")
       .orderBy("score", "desc")
@@ -883,18 +893,63 @@ function fetchHighscores() {
       });
 }
 
-// Speichert einen neuen Eintrag in der Firestore-Sammlung
-function saveHighscore(playerName, finalScore) {
+async function saveHighscore(playerName, finalScore) {
+    if (!db) return;
+    let playerIP = "Unbekannt";
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        playerIP = data.ip;
+    } catch (e) {
+        console.log("IP konnte nicht abgerufen werden");
+    }
+
     db.collection("highscores").add({
         name: playerName,
         score: finalScore,
+        ip: playerIP,
         date: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
         fetchHighscores();
     }).catch(function(error) {
-        // Fehlerbehandlung
+        console.error("Fehler beim Speichern in Firebase:", error);
     });
 }
 
-// Initialer Aufruf beim Laden des Skripts
+function showNamePopup() {
+    if (!window.scoreSubmitted && score > 0) {
+        window.scoreSubmitted = true;
+        isPopupOpen = true;
+        popupScore.innerText = score;
+        instructionEl.classList.add('hidden'); 
+        namePopup.classList.remove('hidden');
+        uiLayer.classList.remove('hidden');
+        playerNameInput.focus();
+    }
+}
+
+if (saveScoreBtn) {
+    saveScoreBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        let pName = playerNameInput.value.trim();
+        if (pName === "") pName = "Bohne";
+        
+        saveHighscore(pName.substring(0, 15), score);
+        
+        namePopup.classList.add('hidden');
+        instructionEl.classList.remove('hidden');
+        playerNameInput.value = '';
+        isPopupOpen = false;
+        
+        startNewGame(); 
+    });
+}
+
 fetchHighscores();
+
+if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
+    drawEnvironment(0);
+    drawPlayer();
+}

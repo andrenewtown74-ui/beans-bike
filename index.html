@@ -2,33 +2,14 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='50' rx='40' ry='25' fill='%238B4513' transform='rotate(-20 50 50)'/></svg>" type="image/svg+xml">
     <title>Bohnen-Bike</title>
-      <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='50' rx='40' ry='25' fill='%238B4513' transform='rotate(-20 50 50)'/></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-container">
-        <canvas id="gameCanvas" width="400" height="200"></canvas>
-        
-        <div id="touch-controls" class="hidden">
-            <div class="touch-zone">
-                <div class="control-box">BREMSE</div>
-            </div>
-            <div class="touch-zone">
-                <div class="control-box">GAS</div>
-            </div>
-            <div class="touch-zone">
-                <div class="control-box">HINTEN</div>
-            </div>
-            <div class="touch-zone">
-                <div class="control-box">VORN</div>
-            </div>
-        </div>
-        <button id="headlight-btn">Licht: AUS</button>
-        <button id="fullscreen-btn">Vollbild</button>
-        
-        
+        <canvas id="gameCanvas"></canvas>
         <div id="msg-box" class="hidden"></div>
         <div id="ui-layer">
             <h1 id="title">Bohnen-Bike</h1>
@@ -44,10 +25,37 @@
                 <p>Spiel: newtown</p>
             </div>
         </div>
+
+        <div id="name-popup" class="hidden">
+            <h2>Neuer Highscore!</h2>
+            <p>Du hast <span id="popup-score">0</span> Punkte erreicht.</p>
+            <input type="text" id="player-name-input" placeholder="Dein Name" maxlength="15">
+            <br>
+            <button id="save-score-btn">Speichern & Neustart</button>
+        </div>
+
+            <div id="touch-controls" class="hidden">
+            <div class="touch-zone">
+                <div class="control-box">BREMSE</div>
+            </div>
+            <div class="touch-zone">
+                <div class="control-box">GAS</div>
+            </div>
+            <div class="touch-zone">
+                <div class="control-box">HINTEN</div>
+            </div>
+            <div class="touch-zone">
+                <div class="control-box">VORN</div>
+            </div>
+        </div>
+        
+        <button id="headlight-btn">Licht: AUS</button>
+        <button id="fullscreen-btn">Vollbild</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <script src="config.js"></script>
     <script src="audio.js"></script>
     <script src="physics.js"></script>
