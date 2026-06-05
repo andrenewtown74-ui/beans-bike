@@ -1,6 +1,4 @@
 let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-let hasPlayedSplatSound = false;
-let hasPlayedFanfare = false;
 let bgMusic = new Audio();
 bgMusic.loop = true;
 bgMusic.volume = 0.4;
