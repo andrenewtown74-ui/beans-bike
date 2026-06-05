@@ -159,6 +159,9 @@ async function handleGameOverRestart() {
 }
 
 function restartLevel() {
+    if (typeof stopEngineSound === 'function') {
+        flyingObjects.forEach(function(obj) { stopEngineSound(obj); });
+    }
     flyingObjects = [];
     window.weatherParticles = [];
     window.rainParticles = [];
@@ -224,6 +227,9 @@ function restartLevel() {
 }
 
 function respawnPlayer() {
+    if (typeof stopEngineSound === 'function') {
+        flyingObjects.forEach(function(obj) { stopEngineSound(obj); });
+    }
     flyingObjects = [];
     worldDistance = Math.max(0, worldDistance - 400);
 
@@ -444,14 +450,15 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     if (nextObstacleIndex < levelData.length) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
-            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'car'].includes(nextObs.type)) {
+            const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer'];
+            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock'].concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
                 let vyVal = 0;
                 let spawnX = canvas.width + 50;
 
-                if (nextObs.type === 'car') {
+                if (vehicleTypes.includes(nextObs.type)) {
                     spawnX = -150; 
                     vxVal = gameSpeed + speedVal; 
                     startY = getTerrainY(worldDistance + spawnX);
@@ -495,7 +502,8 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     passed: false,
                     crashed: false,
                     smokeTimer: 0,
-                    speechTimer: 0
+                    speechTimer: 0,
+                    engineStarted: false
                 });
             } else {
                 let tY = getTerrainY(worldDistance + canvas.width);
@@ -723,7 +731,7 @@ function gameLoop(timestamp) {
             if (obs.id > highestScoredObstacle) {
                 score += 1;
                 highestScoredObstacle = obs.id;
-                if (typeof playScore === 'function') playScore();
+                playScore();
             }
         }
         if (obs.x + obs.width < 0) obstacles.splice(i, 1);
@@ -750,7 +758,48 @@ function gameLoop(timestamp) {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Sound-Synthesizer fuer Quietschende Reifen
+function startEngineSound(obj) {
+    try {
+        if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        let osc = audioCtx.createOscillator();
+        let filter = audioCtx.createBiquadFilter();
+        let gain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.value = 40 + Math.random() * 10; 
+        
+        filter.type = 'lowpass';
+        filter.frequency.value = 150; 
+
+        gain.gain.value = 0.0;
+        gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.5);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        obj.engineOsc = osc;
+        obj.engineGain = gain;
+        obj.engineStarted = true;
+    } catch(e) {
+        obj.engineStarted = true; 
+    }
+}
+
+function stopEngineSound(obj) {
+    if (obj.engineOsc && obj.engineGain) {
+        try {
+            obj.engineGain.gain.cancelScheduledValues(audioCtx.currentTime);
+            obj.engineGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            obj.engineOsc.stop(audioCtx.currentTime + 0.2);
+        } catch(e) {}
+        obj.engineOsc = null;
+    }
+}
+
 function playSqueal() {
     try {
         if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -768,7 +817,6 @@ function playSqueal() {
     } catch(e) {}
 }
 
-// Sound-Synthesizer fuer fluchenden Autofahrer
 function playYell() {
     try {
         if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();

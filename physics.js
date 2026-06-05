@@ -276,6 +276,7 @@ function updateFlyingObjects(timeScale, moveScale) {
     let cy = (player.rearWheel.y + player.frontWheel.y) / 2;
     let beanX = cx;
     let beanY = cy - 25;
+    const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer'];
 
     for (let i = flyingObjects.length - 1; i >= 0; i--) {
         let obj = flyingObjects[i];
@@ -291,19 +292,21 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
 
-        if (obj.type === 'car') {
+        if (vehicleTypes.includes(obj.type)) {
+            if (!obj.engineStarted && typeof startEngineSound === 'function') {
+                startEngineSound(obj);
+            }
+
             if (obj.crashed) {
-                // Auto bremst
                 if (obj.vx > 0) {
                     obj.vx -= 0.1 * timeScale; 
                     if (obj.vx < 0) obj.vx = 0;
                     
-                    // Rauchpartikel an den Reifen
                     obj.smokeTimer = (obj.smokeTimer || 0) + timeScale;
                     if (obj.smokeTimer > 2) {
                         obj.smokeTimer = 0;
                         window.weatherParticles.push({
-                            x: obj.x + 10 + Math.random() * 30, // zwischen den Raedern
+                            x: obj.x + 20 + Math.random() * 20, 
                             y: getTerrainY(worldDistance + obj.x) - 5,
                             vx: -0.5 + Math.random(),
                             vy: -1 - Math.random(),
@@ -317,7 +320,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                     obj.speechTimer -= timeScale;
                 }
                 
-                // Mit dem Terrain mitscrollen, wenn das Auto steht (vx = 0)
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 obj.y = getTerrainY(worldDistance + obj.x);
 
@@ -327,10 +329,14 @@ function updateFlyingObjects(timeScale, moveScale) {
                 
                 let carW = 50;
                 let roofY = obj.y - 25;
+                
+                if (obj.type === 'snowcat') { carW = 60; roofY = obj.y - 30; }
+                else if (obj.type === 'rover') { carW = 55; roofY = obj.y - 25; }
+                else if (obj.type === 'jeep') { carW = 55; roofY = obj.y - 35; }
+                else if (obj.type === 'borer') { carW = 80; roofY = obj.y - 40; }
 
                 let rx = player.rearWheel.x, ry = player.rearWheel.y;
                 let fx = player.frontWheel.x, fy = player.frontWheel.y;
-
                 let onRoof = false;
                 
                 if (rx > obj.x - 5 && rx < obj.x + carW + 5 && ry >= roofY - 15 && ry <= roofY + 5 && player.rearWheel.vy >= 0) {
@@ -360,18 +366,24 @@ function updateFlyingObjects(timeScale, moveScale) {
                         
                         startCrash('flip');
                         
-                        // Auto schrotten / anhalten
                         obj.crashed = true;
-                        obj.speechTimer = 100; // Anzeigezeit für Fluch-Blase
+                        obj.speechTimer = 100; 
+                        if (typeof stopEngineSound === 'function') stopEngineSound(obj);
                         if (typeof playSqueal === 'function') playSqueal();
-                        setTimeout(() => { if (typeof playYell === 'function') playYell(); }, 400);
+                        setTimeout(function() { if (typeof playYell === 'function') playYell(); }, 400);
                         
                         continue;
                     }
                 }
+                
+                if (obj.engineOsc && obj.engineGain) {
+                    let targetFreq = 40 + (obj.vx * 5);
+                    obj.engineOsc.frequency.setTargetAtTime(targetFreq, window.audioCtx.currentTime + 0.1);
+                }
             }
             
             if (obj.x > canvas.width + 200 || obj.x < -200) {
+                if (typeof stopEngineSound === 'function') stopEngineSound(obj);
                 flyingObjects.splice(i, 1);
             }
             continue; 

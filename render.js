@@ -655,18 +655,77 @@ function drawFlyingObjects() {
             ctx.arc(-3, -4, 2, 0, Math.PI * 2);
             ctx.fill();
         }
-        else if (obj.type === 'car') {
-            ctx.fillStyle = obj.color || '#B22222';
-            ctx.fillRect(0, -20, 50, 15); 
-            ctx.fillRect(10, -30, 30, 10); 
-            
-            ctx.fillStyle = '#ADD8E6';
-            ctx.fillRect(12, -28, 10, 8);
-            ctx.fillRect(28, -28, 10, 8);
+        else if (['car', 'snowcat', 'rover', 'jeep', 'borer'].includes(obj.type)) {
+            if (obj.type === 'car') {
+                ctx.fillStyle = obj.color || '#B22222';
+                ctx.fillRect(0, -20, 50, 15); 
+                ctx.fillRect(10, -30, 30, 10); 
+                
+                ctx.fillStyle = '#ADD8E6';
+                ctx.fillRect(12, -28, 10, 8);
+                ctx.fillRect(28, -28, 10, 8);
 
-            ctx.fillStyle = '#111';
-            ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(40, -5, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#111';
+                ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(40, -5, 6, 0, Math.PI * 2); ctx.fill();
+            } 
+            else if (obj.type === 'snowcat') {
+                ctx.fillStyle = '#A9A9A9';
+                ctx.beginPath();
+                ctx.moveTo(-5, -5); ctx.lineTo(55, -5); ctx.lineTo(60, 0); ctx.lineTo(55, 5); ctx.lineTo(-5, 5); ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                
+                ctx.fillStyle = '#FF4500';
+                ctx.fillRect(5, -25, 45, 20);
+                
+                ctx.fillStyle = '#ADD8E6';
+                ctx.fillRect(35, -20, 10, 10);
+                
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath(); ctx.moveTo(60, -15); ctx.lineTo(70, 0); ctx.lineTo(60, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+            }
+            else if (obj.type === 'rover') {
+                ctx.fillStyle = '#E0E0E0';
+                ctx.fillRect(0, -20, 55, 15);
+                ctx.fillStyle = '#ADD8E6';
+                ctx.beginPath(); ctx.arc(40, -20, 10, Math.PI, 0); ctx.fill();
+                
+                ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(15, -20); ctx.lineTo(15, -35); ctx.stroke();
+                ctx.beginPath(); ctx.arc(15, -35, 5, 0, Math.PI, true); ctx.stroke();
+
+                ctx.fillStyle = '#A9A9A9';
+                ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(27, -5, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(45, -5, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            }
+            else if (obj.type === 'jeep') {
+                ctx.fillStyle = '#556B2F';
+                ctx.fillRect(0, -20, 55, 15); 
+                ctx.fillRect(15, -35, 30, 15); 
+                
+                ctx.strokeStyle = '#222'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(15, -35); ctx.lineTo(45, -35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(30, -35); ctx.lineTo(30, -20); ctx.stroke();
+
+                ctx.fillStyle = '#111';
+                ctx.beginPath(); ctx.arc(12, -5, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(43, -5, 8, 0, Math.PI * 2); ctx.fill();
+            }
+            else if (obj.type === 'borer') {
+                ctx.fillStyle = '#808080';
+                ctx.fillRect(0, -35, 60, 30);
+                
+                ctx.fillStyle = '#A9A9A9';
+                ctx.beginPath(); ctx.moveTo(60, -35); ctx.lineTo(85, -20); ctx.lineTo(60, -5); ctx.closePath(); ctx.fill();
+                
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+                let offset = (worldDistance * 0.5) % 10;
+                ctx.beginPath(); ctx.moveTo(60 + offset, -30 + offset/2); ctx.lineTo(60 + offset, -10 - offset/2); ctx.stroke();
+                
+                ctx.fillStyle = '#333';
+                ctx.fillRect(10, -5, 40, 10);
+            }
 
             if (obj.crashed) {
                 ctx.fillStyle = '#FF0000';
@@ -692,18 +751,19 @@ function drawFlyingObjects() {
                     ctx.font = 'bold 12px Arial';
                     ctx.fillText('!#@*%', 14, -47);
                 }
-            } else {
+            } else if (obj.type === 'car' || obj.type === 'jeep' || obj.type === 'snowcat') {
                 ctx.fillStyle = '#FFD700';
-                ctx.fillRect(45, -15, 5, 5);
+                let lightX = (obj.type === 'snowcat') ? 55 : (obj.type === 'jeep' ? 50 : 45);
+                ctx.fillRect(lightX, -15, 5, 5);
                 
-                let grad = ctx.createLinearGradient(50, -12, 100, -12);
+                let grad = ctx.createLinearGradient(lightX + 5, -12, lightX + 55, -12);
                 grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
                 grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
                 ctx.fillStyle = grad;
                 ctx.beginPath();
-                ctx.moveTo(50, -15);
-                ctx.lineTo(100, -30);
-                ctx.lineTo(100, 5);
+                ctx.moveTo(lightX + 5, -15);
+                ctx.lineTo(lightX + 55, -30);
+                ctx.lineTo(lightX + 55, 5);
                 ctx.closePath();
                 ctx.fill();
             }
