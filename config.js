@@ -67,4 +67,7 @@ let touchBrake = false;
 let lastTime = 0;
 let animationFrameId;
 
+let isPopupOpen = false;
+
 let canvas, ctx, uiLayer, titleEl, instructionEl, touchControls, fullscreenBtn, headlightBtn;
+let namePopup, popupScore, playerNameInput, saveScoreBtn;
