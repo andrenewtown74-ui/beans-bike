@@ -14,7 +14,7 @@ const db = typeof firebase !== 'undefined' ? firebase.firestore() : null;
 
 // Globale Variablen
 let currentLevel = 1;
-let lives = 3;
+let lives = 5;
 let score = 0;
 let levelStartScore = 0;
 let highScore = 0;
