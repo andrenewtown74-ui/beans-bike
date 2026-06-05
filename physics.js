@@ -376,9 +376,9 @@ function updateFlyingObjects(timeScale, moveScale) {
                     }
                 }
                 
-                if (obj.engineOsc && obj.engineGain) {
+                    if (obj.engineOsc && obj.engineGain) {
                     let targetFreq = 40 + (obj.vx * 5);
-                    obj.engineOsc.frequency.setTargetAtTime(targetFreq, window.audioCtx.currentTime + 0.1);
+                    obj.engineOsc.frequency.linearRampToValueAtTime(targetFreq, window.audioCtx.currentTime + 0.1);
                 }
             }
             
