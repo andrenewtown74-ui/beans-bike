@@ -637,6 +637,33 @@ function drawFlyingObjects() {
             ctx.arc(-3, -4, 2, 0, Math.PI * 2);
             ctx.fill();
         }
+        else if (obj.type === 'car') {
+            ctx.fillStyle = obj.color || '#B22222';
+            ctx.fillRect(0, -20, 50, 15); 
+            ctx.fillRect(10, -30, 30, 10); 
+            
+            ctx.fillStyle = '#ADD8E6';
+            ctx.fillRect(12, -28, 10, 8);
+            ctx.fillRect(28, -28, 10, 8);
+
+            ctx.fillStyle = '#111';
+            ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(40, -5, 6, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(45, -15, 5, 5);
+            
+            let grad = ctx.createLinearGradient(50, -12, 100, -12);
+            grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
+            grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(50, -15);
+            ctx.lineTo(100, -30);
+            ctx.lineTo(100, 5);
+            ctx.closePath();
+            ctx.fill();
+        }
         ctx.restore();
     }
 }

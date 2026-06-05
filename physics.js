@@ -291,6 +291,54 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
 
+        if (obj.type === 'car') {
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y = getTerrainY(worldDistance + obj.x);
+            
+            let carW = 50;
+            let roofY = obj.y - 25;
+
+            let rx = player.rearWheel.x, ry = player.rearWheel.y;
+            let fx = player.frontWheel.x, fy = player.frontWheel.y;
+
+            let onRoof = false;
+            
+            if (rx > obj.x - 5 && rx < obj.x + carW + 5 && ry >= roofY - 15 && ry <= roofY + 5 && player.rearWheel.vy >= 0) {
+                player.rearWheel.vy = player.jumpStrength * 1.5; 
+                player.rearWheel.isJumping = true;
+                player.rearWheel.onSurface = false;
+                onRoof = true;
+            }
+            if (fx > obj.x - 5 && fx < obj.x + carW + 5 && fy >= roofY - 15 && fy <= roofY + 5 && player.frontWheel.vy >= 0) {
+                player.frontWheel.vy = player.jumpStrength * 1.5;
+                player.frontWheel.isJumping = true;
+                player.frontWheel.onSurface = false;
+                onRoof = true;
+            }
+
+            if (onRoof) {
+                if (!obj.stomped) {
+                    obj.stomped = true;
+                    score += 5;
+                    if (typeof playScore === 'function') playScore();
+                }
+                playJump();
+            } else if (!isCrashing) {
+                if ((rx > obj.x && rx < obj.x + carW && ry > roofY + 5) || 
+                    (fx > obj.x && fx < obj.x + carW && fy > roofY + 5) ||
+                    (beanX > obj.x && beanX < obj.x + carW && beanY > roofY + 5)) {
+                    startCrash('flip');
+                    flyingObjects.splice(i, 1);
+                    continue;
+                }
+            }
+            
+            if (obj.x > canvas.width + 200) {
+                flyingObjects.splice(i, 1);
+            }
+            continue; 
+        }
+
         if (obj.type === 'monkey' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.04;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
@@ -311,6 +359,9 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
         }
+
+        let isAnimal = ['wasp', 'bird', 'bat', 'monkey'].includes(obj.type);
+        let isHazard = ['meteorite', 'falling_rock', 'fireball'].includes(obj.type);
 
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
@@ -354,26 +405,29 @@ function updateFlyingObjects(timeScale, moveScale) {
             let projY = ry + t * (fy - ry);
             frameDist = Math.hypot(obj.x - projX, obj.y - projY);
         }
+        
+        let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
 
-        if ((rDist < 18 || fDist < 18) && !obj.deflected) {
-            obj.deflected = true;
-            obj.vx = 4;
-            obj.vy = -3;
-            playJump(); 
-        } else if (!obj.deflected && !isCrashing) {
-            let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
-            if (bDist < 15) {
-                startCrash('flip');
-                flyingObjects.splice(i, 1);
-                continue;
-            } else if (frameDist < 10) {
+        if (isAnimal && !obj.deflected && !isCrashing) {
+            if (bDist < 20 || frameDist < 15 || rDist < 20 || fDist < 20) {
                 obj.type = 'bubble';
                 obj.deflected = true;
                 obj.vx = -gameSpeed * 0.5;
                 obj.vy = -1.0;
-                score += 3;
+                score += 5;
                 if (typeof playScore === 'function') playScore(); 
                 continue;
+            }
+        } else if (isHazard && !obj.deflected && !isCrashing) {
+            if (bDist < 15 || frameDist < 10) {
+                startCrash('flip');
+                flyingObjects.splice(i, 1);
+                continue;
+            } else if (rDist < 18 || fDist < 18) {
+                obj.deflected = true;
+                obj.vx = 4;
+                obj.vy = -3;
+                playJump(); 
             }
         }
 
@@ -386,7 +440,7 @@ function updateFlyingObjects(timeScale, moveScale) {
             }
         }
 
-        if (obj.x < -100 || obj.x > canvas.width + 200 || obj.y > canvas.height + 100 || obj.y < -150) {
+        if (obj.x < -200 || obj.x > canvas.width + 200 || obj.y > canvas.height + 100 || obj.y < -150) {
             flyingObjects.splice(i, 1);
         }
     }

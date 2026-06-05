@@ -444,14 +444,18 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     if (nextObstacleIndex < levelData.length) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
-            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock'].includes(nextObs.type)) {
+            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'car'].includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
                 let vyVal = 0;
                 let spawnX = canvas.width + 50;
 
-                if (nextObs.type === 'meteorite') {
+                if (nextObs.type === 'car') {
+                    spawnX = -150; 
+                    vxVal = gameSpeed + speedVal; 
+                    startY = getTerrainY(worldDistance + spawnX);
+                } else if (nextObs.type === 'meteorite') {
                     startY = -20;
                     vxVal = -speedVal * 0.7; 
                     vyVal = speedVal * 0.8;
@@ -486,6 +490,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     vy: vyVal,
                     type: nextObs.type,
                     speed: speedVal,
+                    color: nextObs.color,
                     deflected: false,
                     passed: false
                 });
