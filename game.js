@@ -289,7 +289,7 @@ function respawnPlayer() {
 }
 
 function handleInputEvent() {
-    if (isPopupOpen) return true; 
+    if (isPopupOpen) return false; 
 
     if (typeof initAudio === 'function') initAudio();
     if (isGameOver) {
@@ -312,6 +312,7 @@ function handleInputEvent() {
 }
 
 function jump(wheel) {
+    if (isPopupOpen) return;
     if (handleInputEvent()) return;
     if (isLevelComplete || isCrashing) return;
     
@@ -329,6 +330,8 @@ function jump(wheel) {
 }
 
 window.addEventListener('keydown', function(e) {
+    if (isPopupOpen) return; 
+
     if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
         if (handleInputEvent()) { e.preventDefault(); return; }
     }
@@ -341,11 +344,15 @@ window.addEventListener('keydown', function(e) {
 });
 
 window.addEventListener('keyup', function(e) {
+    if (isPopupOpen) return;
+
     if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.up = false;
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.down = false;
 });
 
 function handleTouch(e) {
+    if (isPopupOpen) return; 
+
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
     if (handleInputEvent()) {
         if (e.cancelable) e.preventDefault();
@@ -408,6 +415,8 @@ window.addEventListener('touchend', handleTouch, { passive: false });
 window.addEventListener('touchcancel', handleTouch, { passive: false });
 
 window.addEventListener('mousedown', function(e) {
+    if (isPopupOpen) return; 
+
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
 
     if (handleInputEvent()) return;
