@@ -376,7 +376,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                     }
                 }
                 
-                    if (obj.engineOsc && obj.engineGain) {
+                if (obj.engineOsc && obj.engineGain) {
                     let targetFreq = 40 + (obj.vx * 5);
                     obj.engineOsc.frequency.linearRampToValueAtTime(targetFreq, window.audioCtx.currentTime + 0.1);
                 }
@@ -410,8 +410,8 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.y += obj.vy * timeScale;
         }
 
-        let isAnimal = ['wasp', 'bird', 'bat', 'monkey'].includes(obj.type);
-        let isHazard = ['meteorite', 'falling_rock', 'fireball'].includes(obj.type);
+        // Alles was fliegt ist jetzt fangbar!
+        let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock'].includes(obj.type);
 
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
@@ -458,7 +458,7 @@ function updateFlyingObjects(timeScale, moveScale) {
         
         let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
 
-        if (isAnimal && !obj.deflected && !isCrashing) {
+        if (isCatchable && !obj.deflected && !isCrashing) {
             if (bDist < 20 || frameDist < 15 || rDist < 20 || fDist < 20) {
                 obj.type = 'bubble';
                 obj.deflected = true;
@@ -467,17 +467,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                 score += 5;
                 if (typeof playScore === 'function') playScore(); 
                 continue;
-            }
-        } else if (isHazard && !obj.deflected && !isCrashing) {
-            if (bDist < 15 || frameDist < 10) {
-                startCrash('flip');
-                flyingObjects.splice(i, 1);
-                continue;
-            } else if (rDist < 18 || fDist < 18) {
-                obj.deflected = true;
-                obj.vx = 4;
-                obj.vy = -3;
-                playJump(); 
             }
         }
 
