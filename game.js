@@ -165,7 +165,7 @@ function restartLevel() {
     flyingObjects = [];
     window.weatherParticles = [];
     window.rainParticles = [];
-    
+    window.scoreSubmitted = false; // Zuruecksetzen des Upload-Status
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
@@ -534,8 +534,19 @@ function gameLoop(timestamp) {
     if (deltaTime > 100) deltaTime = 16.66;
     const timeScale = deltaTime / 16.666;
 
+/* game.js (Auszug in der gameLoop Funktion) */
     if (isGameOver) {
         isGameRunning = false;
+        
+        // Verhindert mehrfaches Abfragen des Namens
+        if (!window.scoreSubmitted && score > 0) {
+            window.scoreSubmitted = true;
+            let pName = prompt("Spiel vorbei! Deine Punkte: " + score + "\nGib deinen Namen für die Highscore-Liste ein:", "Bohne");
+            if (pName && pName.trim() !== "") {
+                saveHighscore(pName.trim().substring(0, 15), score);
+            }
+        }
+        
         titleEl.innerText = "Game Over!";
         instructionEl.innerText = "Punkte: " + score + " | KLICK fuer Neustart";
         uiLayer.classList.remove('hidden');
@@ -841,3 +852,49 @@ if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
     drawEnvironment(0);
     drawPlayer();
 }
+// Ruft die Top 5 Highscores aus Firestore ab und aktualisiert die HTML-Liste
+function fetchHighscores() {
+    const listEl = document.getElementById('highscore-list');
+    if (!listEl) return;
+
+    db.collection("highscores")
+      .orderBy("score", "desc")
+      .limit(5)
+      .get()
+      .then(function(querySnapshot) {
+          listEl.innerHTML = '';
+          querySnapshot.forEach(function(doc) {
+              let data = doc.data();
+              let li = document.createElement('li');
+              
+              let nameSpan = document.createElement('span');
+              nameSpan.innerText = data.name;
+              
+              let scoreSpan = document.createElement('span');
+              scoreSpan.innerText = data.score;
+              
+              li.appendChild(nameSpan);
+              li.appendChild(scoreSpan);
+              listEl.appendChild(li);
+          });
+      })
+      .catch(function(error) {
+          listEl.innerHTML = '<li>Fehler beim Laden</li>';
+      });
+}
+
+// Speichert einen neuen Eintrag in der Firestore-Sammlung
+function saveHighscore(playerName, finalScore) {
+    db.collection("highscores").add({
+        name: playerName,
+        score: finalScore,
+        date: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        fetchHighscores();
+    }).catch(function(error) {
+        // Fehlerbehandlung
+    });
+}
+
+// Initialer Aufruf beim Laden des Skripts
+fetchHighscores();

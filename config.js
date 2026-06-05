@@ -1,3 +1,20 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyBeGLo2fZeHpx2QShG3HzM_e-9Z1TqmL5Y",
+  authDomain: "bohnen-bike.firebaseapp.com",
+  projectId: "bohnen-bike",
+  storageBucket: "bohnen-bike.firebasestorage.app",
+  messagingSenderId: "813575639636",
+  appId: "1:813575639636:web:46bc5f60ee57572e3b13c1",
+  measurementId: "G-C5K21Q2VLD"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let isGameRunning = false;
+let isGameOver = false;
+let isCrashing = false;
+
+
 let canvas, ctx, uiLayer, titleEl, instructionEl, touchControls, fullscreenBtn, headlightBtn;
 let levelData = [];
 let designData = null;
