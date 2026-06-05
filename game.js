@@ -492,7 +492,10 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     speed: speedVal,
                     color: nextObs.color,
                     deflected: false,
-                    passed: false
+                    passed: false,
+                    crashed: false,
+                    smokeTimer: 0,
+                    speechTimer: 0
                 });
             } else {
                 let tY = getTerrainY(worldDistance + canvas.width);
@@ -720,7 +723,7 @@ function gameLoop(timestamp) {
             if (obs.id > highestScoredObstacle) {
                 score += 1;
                 highestScoredObstacle = obs.id;
-                playScore();
+                if (typeof playScore === 'function') playScore();
             }
         }
         if (obs.x + obs.width < 0) obstacles.splice(i, 1);
@@ -745,6 +748,43 @@ function gameLoop(timestamp) {
     ctx.fillText('Ziel: ' + distanceLeft + 'm', canvas.width - 120, 20);
 
     animationFrameId = requestAnimationFrame(gameLoop);
+}
+
+// Sound-Synthesizer fuer Quietschende Reifen
+function playSqueal() {
+    try {
+        if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    } catch(e) {}
+}
+
+// Sound-Synthesizer fuer fluchenden Autofahrer
+function playYell() {
+    try {
+        if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+        osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+    } catch(e) {}
 }
 
 if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {

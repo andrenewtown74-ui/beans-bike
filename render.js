@@ -164,13 +164,31 @@ function drawWeather(timeScale) {
     if (window.weatherParticles.length > 0) {
         for (let i = window.weatherParticles.length - 1; i >= 0; i--) {
             let p = window.weatherParticles[i];
+            
+            if (p.type === 'smoke') {
+                p.life -= 0.02 * timeScale;
+                if (p.life <= 0) {
+                    window.weatherParticles.splice(i, 1);
+                    continue;
+                }
+                p.x += p.vx * timeScale;
+                p.y += p.vy * timeScale;
+                ctx.globalAlpha = Math.max(0, p.life * 0.6);
+                ctx.fillStyle = '#666';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4 + (1 - p.life) * 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+                continue; 
+            }
+            
             p.x += p.vx * timeScale;
             p.y += p.vy * timeScale;
             
-            let isOut = (p.type === 'ash') ? (p.y < -20 || p.x < -20 || p.x > canvas.width + 20) : (p.y > canvas.height || p.x < -20);
+            let isOut = (p.type === 'ash' || p.type === 'smoke') ? (p.y < -20 || p.x < -20 || p.x > canvas.width + 20) : (p.y > canvas.height || p.x < -20);
             
             if (isOut) {
-                if (isRaining) {
+                if (isRaining && p.type !== 'smoke') {
                     p.y = (p.type === 'ash') ? canvas.height + 20 : -20;
                     p.x = Math.random() * canvas.width * 1.5;
                 } else {
@@ -650,19 +668,45 @@ function drawFlyingObjects() {
             ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill();
             ctx.beginPath(); ctx.arc(40, -5, 6, 0, Math.PI * 2); ctx.fill();
 
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(45, -15, 5, 5);
-            
-            let grad = ctx.createLinearGradient(50, -12, 100, -12);
-            grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
-            grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.moveTo(50, -15);
-            ctx.lineTo(100, -30);
-            ctx.lineTo(100, 5);
-            ctx.closePath();
-            ctx.fill();
+            if (obj.crashed) {
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(0, -15, 3, 6);
+                
+                if (obj.speechTimer > 0) {
+                    ctx.fillStyle = '#FFF';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.rect(10, -60, 40, 18);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(25, -42);
+                    ctx.lineTo(30, -35);
+                    ctx.lineTo(35, -42);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText('!#@*%', 14, -47);
+                }
+            } else {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(45, -15, 5, 5);
+                
+                let grad = ctx.createLinearGradient(50, -12, 100, -12);
+                grad.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
+                grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(50, -15);
+                ctx.lineTo(100, -30);
+                ctx.lineTo(100, 5);
+                ctx.closePath();
+                ctx.fill();
+            }
         }
         ctx.restore();
     }

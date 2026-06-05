@@ -292,48 +292,86 @@ function updateFlyingObjects(timeScale, moveScale) {
         }
 
         if (obj.type === 'car') {
-            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-            obj.y = getTerrainY(worldDistance + obj.x);
-            
-            let carW = 50;
-            let roofY = obj.y - 25;
-
-            let rx = player.rearWheel.x, ry = player.rearWheel.y;
-            let fx = player.frontWheel.x, fy = player.frontWheel.y;
-
-            let onRoof = false;
-            
-            if (rx > obj.x - 5 && rx < obj.x + carW + 5 && ry >= roofY - 15 && ry <= roofY + 5 && player.rearWheel.vy >= 0) {
-                player.rearWheel.vy = player.jumpStrength * 1.5; 
-                player.rearWheel.isJumping = true;
-                player.rearWheel.onSurface = false;
-                onRoof = true;
-            }
-            if (fx > obj.x - 5 && fx < obj.x + carW + 5 && fy >= roofY - 15 && fy <= roofY + 5 && player.frontWheel.vy >= 0) {
-                player.frontWheel.vy = player.jumpStrength * 1.5;
-                player.frontWheel.isJumping = true;
-                player.frontWheel.onSurface = false;
-                onRoof = true;
-            }
-
-            if (onRoof) {
-                if (!obj.stomped) {
-                    obj.stomped = true;
-                    score += 5;
-                    if (typeof playScore === 'function') playScore();
+            if (obj.crashed) {
+                // Auto bremst
+                if (obj.vx > 0) {
+                    obj.vx -= 0.1 * timeScale; 
+                    if (obj.vx < 0) obj.vx = 0;
+                    
+                    // Rauchpartikel an den Reifen
+                    obj.smokeTimer = (obj.smokeTimer || 0) + timeScale;
+                    if (obj.smokeTimer > 2) {
+                        obj.smokeTimer = 0;
+                        window.weatherParticles.push({
+                            x: obj.x + 10 + Math.random() * 30, // zwischen den Raedern
+                            y: getTerrainY(worldDistance + obj.x) - 5,
+                            vx: -0.5 + Math.random(),
+                            vy: -1 - Math.random(),
+                            type: 'smoke',
+                            color: 'rgba(150, 150, 150, 0.6)',
+                            life: 1.0
+                        });
+                    }
                 }
-                playJump();
-            } else if (!isCrashing) {
-                if ((rx > obj.x && rx < obj.x + carW && ry > roofY + 5) || 
-                    (fx > obj.x && fx < obj.x + carW && fy > roofY + 5) ||
-                    (beanX > obj.x && beanX < obj.x + carW && beanY > roofY + 5)) {
-                    startCrash('flip');
-                    flyingObjects.splice(i, 1);
-                    continue;
+                if (obj.speechTimer > 0) {
+                    obj.speechTimer -= timeScale;
+                }
+                
+                // Mit dem Terrain mitscrollen, wenn das Auto steht (vx = 0)
+                obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+                obj.y = getTerrainY(worldDistance + obj.x);
+
+            } else {
+                obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+                obj.y = getTerrainY(worldDistance + obj.x);
+                
+                let carW = 50;
+                let roofY = obj.y - 25;
+
+                let rx = player.rearWheel.x, ry = player.rearWheel.y;
+                let fx = player.frontWheel.x, fy = player.frontWheel.y;
+
+                let onRoof = false;
+                
+                if (rx > obj.x - 5 && rx < obj.x + carW + 5 && ry >= roofY - 15 && ry <= roofY + 5 && player.rearWheel.vy >= 0) {
+                    player.rearWheel.vy = player.jumpStrength * 1.5; 
+                    player.rearWheel.isJumping = true;
+                    player.rearWheel.onSurface = false;
+                    onRoof = true;
+                }
+                if (fx > obj.x - 5 && fx < obj.x + carW + 5 && fy >= roofY - 15 && fy <= roofY + 5 && player.frontWheel.vy >= 0) {
+                    player.frontWheel.vy = player.jumpStrength * 1.5;
+                    player.frontWheel.isJumping = true;
+                    player.frontWheel.onSurface = false;
+                    onRoof = true;
+                }
+
+                if (onRoof) {
+                    if (!obj.stomped) {
+                        obj.stomped = true;
+                        score += 5;
+                        if (typeof playScore === 'function') playScore();
+                    }
+                    playJump();
+                } else if (!isCrashing) {
+                    if ((rx > obj.x && rx < obj.x + carW && ry > roofY + 5) || 
+                        (fx > obj.x && fx < obj.x + carW && fy > roofY + 5) ||
+                        (beanX > obj.x && beanX < obj.x + carW && beanY > roofY + 5)) {
+                        
+                        startCrash('flip');
+                        
+                        // Auto schrotten / anhalten
+                        obj.crashed = true;
+                        obj.speechTimer = 100; // Anzeigezeit für Fluch-Blase
+                        if (typeof playSqueal === 'function') playSqueal();
+                        setTimeout(() => { if (typeof playYell === 'function') playYell(); }, 400);
+                        
+                        continue;
+                    }
                 }
             }
             
-            if (obj.x > canvas.width + 200) {
+            if (obj.x > canvas.width + 200 || obj.x < -200) {
                 flyingObjects.splice(i, 1);
             }
             continue; 
