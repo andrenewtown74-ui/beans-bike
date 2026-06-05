@@ -451,6 +451,8 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
             const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer'];
+            
+            // HIER WAR DER FEHLER: Die vehicleTypes wurden nicht richtig verknüpft
             if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock'].concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
