@@ -40,6 +40,7 @@ const fallbackDesignData = {
 };
 
 let isLoadingData = false;
+window.hasInteracted = false; // NEU: Merkt sich, ob der Spieler schon geklickt hat
 
 designData = fallbackDesignData;
 loadLevelData(currentLevel);
@@ -293,13 +294,29 @@ function respawnPlayer() {
 function handleInputEvent() {
     if (isPopupOpen) return false; 
 
+    // 1. Klick: Musik aktivieren, Spiel noch NICHT starten
+    if (!window.hasInteracted && !isGameRunning) {
+        window.hasInteracted = true;
+        
+        if (typeof playRandomMenuMusic === 'function') {
+            playRandomMenuMusic();
+        }
+        
+        // Text anpassen, um zu zeigen, dass das Spiel jetzt startklar ist
+        if (instructionEl) {
+            instructionEl.innerText = "Musik laeuft! Klick / Touch fuer Spielstart";
+        }
+        return true; // Bricht hier ab, das Spiel startet noch nicht
+    }
+
+    // 2. Klick: Spiel starten
     if (typeof initAudio === 'function') initAudio();
     if (isGameOver) {
         handleGameOverRestart();
         return true;
     }
     if (isLevelComplete && bikeStopped) {
-        if (currentLevel >= 6) { // Angepasst auf Level 6
+        if (currentLevel >= 6) { 
             startNewGame();
         } else {
             advanceLevel();
@@ -307,6 +324,7 @@ function handleInputEvent() {
         return true;
     }
     if (!isGameRunning) {
+        if (typeof stopMenuMusic === 'function') stopMenuMusic(); // Menue-Musik stoppen
         startNewGame();
         return true;
     }

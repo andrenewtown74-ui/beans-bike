@@ -101,3 +101,38 @@ function startMusic() {
 function stopMusic() { 
     bgMusic.pause(); 
 }
+// Liste aller verfuegbaren Menue-Songs
+const menuTracks = [
+    "Cold_Obsidian.mp3",
+    "Blauer_Marmor.mp3",
+    "Sprocket_Hill_Climb.mp3",
+    "Jungle_Theme.mp3",
+    "Gravity_Pulls_the_Chain.mp3",
+    "Gargoyle_Flight.mp3"
+    // Hier kannst du beliebig viele weitere Titel eintragen.
+    // Achte auf die exakte Schreibweise und das Komma am Ende jeder Zeile (ausser bei der letzten)!
+];
+
+let menuAudio = null;
+
+function playRandomMenuMusic() {
+    if (menuAudio && !menuAudio.paused) return; // Verhindert doppeltes Abspielen
+    
+    // Waehlt einen zufaelligen Titel aus der Liste
+    let randomTrack = menuTracks[Math.floor(Math.random() * menuTracks.length)];
+    
+    menuAudio = new Audio(randomTrack);
+    menuAudio.loop = true;
+    menuAudio.volume = 0.5; // Etwas leiser im Menue
+    
+    menuAudio.play().catch(function(e) {
+        console.log("Autoplay blockiert, warte auf Interaktion.");
+    });
+}
+
+function stopMenuMusic() {
+    if (menuAudio) {
+        menuAudio.pause();
+        menuAudio.currentTime = 0;
+    }
+}
