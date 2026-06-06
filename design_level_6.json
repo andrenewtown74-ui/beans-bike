@@ -1,17 +1,19 @@
 {
     "theme": {
-        "skyColor": "#B0C4DE",
-        "groundColor": "#333333",
-        "surfaceColor": "#555555",
+        "skyColor": "#FF8C69",
+        "groundColor": "#5C5C5C",
+        "surfaceColor": "#A0A0A0",
         "music": "Gargoyle_Flight.mp3",
-        "sun": { "active": false }
+        "sun": { "active": true, "color": "#FFD700", "size": 35, "xOffset": 150, "y": 60 }
     },
     "physics": {
         "terrainType": "flat",
         "levelDistance": 7000
     },
     "objects": [
-        { "type": "building", "count": 15, "minWidth": 60, "maxWidth": 120, "minHeight": 80, "maxHeight": 150, "speedModifier": 0.3, "color1": "#D3D3D3", "color2": "#A9A9A9" },
-        { "type": "eiffel", "count": 1, "minWidth": 150, "maxWidth": 150, "minHeight": 250, "maxHeight": 250, "speedModifier": 0.1, "color1": "#555", "color2": "#444" }
+        { "type": "eiffel", "count": 1, "minWidth": 280, "maxWidth": 280, "minHeight": 380, "maxHeight": 380, "speedModifier": 0.02, "color1": "#3A2F28", "color2": "#1A1512" },
+        { "type": "building", "count": 15, "minWidth": 60, "maxWidth": 90, "minHeight": 80, "maxHeight": 130, "speedModifier": 0.25, "color1": "#E3D5C8", "color2": "#2F4F4F" },
+        { "type": "building", "count": 12, "minWidth": 80, "maxWidth": 120, "minHeight": 110, "maxHeight": 160, "speedModifier": 0.35, "color1": "#D5C4B3", "color2": "#4A5D6B" },
+        { "type": "tree", "count": 8, "minWidth": 25, "maxWidth": 45, "minHeight": 50, "maxHeight": 90, "speedModifier": 0.5, "color1": "#8B4513", "color2": "#556B2F" }
     ]
 }

@@ -64,22 +64,66 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(bg.x + bg.width, horizon + 5);
                 ctx.fill();
             } else if (bg.type === 'eiffel') {
-                ctx.fillStyle = bg.color1;
+                let tw = bg.width;
+                let th = bg.height;
+                let tx = bg.x;
+                let ty = horizon + 5;
+
+                ctx.fillStyle = bg.color1 || '#4a3c31';
+                
+                // Linker Pfeiler
                 ctx.beginPath();
-                ctx.moveTo(bg.x + bg.width / 2, horizon + 5 - bg.height);
-                ctx.lineTo(bg.x + bg.width, horizon + 5);
-                ctx.lineTo(bg.x, horizon + 5);
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx + tw * 0.2, ty - th * 0.3);
+                ctx.lineTo(tx + tw * 0.35, ty - th * 0.3);
+                ctx.lineTo(tx + tw * 0.25, ty);
+                ctx.fill();
+
+                // Rechter Pfeiler
+                ctx.beginPath();
+                ctx.moveTo(tx + tw, ty);
+                ctx.lineTo(tx + tw * 0.8, ty - th * 0.3);
+                ctx.lineTo(tx + tw * 0.65, ty - th * 0.3);
+                ctx.lineTo(tx + tw * 0.75, ty);
+                ctx.fill();
+
+                // Mittlerer Teil nach oben
+                ctx.beginPath();
+                ctx.moveTo(tx + tw * 0.25, ty - th * 0.3);
+                ctx.lineTo(tx + tw * 0.4, ty - th * 0.8);
+                ctx.lineTo(tx + tw * 0.6, ty - th * 0.8);
+                ctx.lineTo(tx + tw * 0.75, ty - th * 0.3);
                 ctx.fill();
                 
-                ctx.fillStyle = designData.theme.skyColor || '#B0C4DE';
+                // Obere Spitze (angeschnitten)
                 ctx.beginPath();
-                ctx.moveTo(bg.x + bg.width / 2, horizon + 5 - bg.height / 2);
-                ctx.lineTo(bg.x + bg.width * 0.8, horizon + 5);
-                ctx.lineTo(bg.x + bg.width * 0.2, horizon + 5);
+                ctx.moveTo(tx + tw * 0.42, ty - th * 0.8);
+                ctx.lineTo(tx + tw * 0.47, ty - th);
+                ctx.lineTo(tx + tw * 0.53, ty - th);
+                ctx.lineTo(tx + tw * 0.58, ty - th * 0.8);
                 ctx.fill();
+
+                // Plattform 1 (unten)
+                ctx.fillStyle = bg.color2 || '#2a221c';
+                ctx.fillRect(tx + tw * 0.15, ty - th * 0.3, tw * 0.7, th * 0.05);
                 
-                ctx.fillStyle = bg.color2;
-                ctx.fillRect(bg.x + bg.width / 2 - 5, horizon + 5 - bg.height - 20, 10, 20); 
+                // Plattform 2 (Mitte)
+                ctx.fillRect(tx + tw * 0.35, ty - th * 0.6, tw * 0.3, th * 0.04);
+
+                // Bogen unten (Himmel-Farbe ausstanzen)
+                ctx.fillStyle = designData.theme.skyColor || '#87CEEB';
+                ctx.beginPath();
+                ctx.arc(tx + tw * 0.5, ty, tw * 0.25, Math.PI, 0);
+                ctx.fill();
+
+                // Stahlverstrebungen (Kreuzmuster)
+                ctx.strokeStyle = bg.color2 || '#2a221c';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(tx + tw * 0.25, ty - th * 0.3); ctx.lineTo(tx + tw * 0.75, ty - th * 0.6);
+                ctx.moveTo(tx + tw * 0.75, ty - th * 0.3); ctx.lineTo(tx + tw * 0.25, ty - th * 0.6);
+                ctx.moveTo(tx + tw * 0.1, ty - th * 0.15); ctx.lineTo(tx + tw * 0.9, ty - th * 0.15); 
+                ctx.stroke();
             }
         });
     });
@@ -679,24 +723,39 @@ function drawFlyingObjects() {
             ctx.fill();
         }
         else if (['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'].includes(obj.type)) {
-            if (obj.type === 'car' || obj.type === 'taxi' || obj.type === 'uber') {
-                ctx.fillStyle = obj.type === 'taxi' ? '#FFD700' : (obj.type === 'uber' ? '#111111' : (obj.color || '#B22222'));
+           if (obj.type === 'car' || obj.type === 'taxi' || obj.type === 'uber') {
+                // Karosserie
+                ctx.fillStyle = obj.type === 'taxi' ? '#FFFFFF' : (obj.type === 'uber' ? '#111111' : (obj.color || '#B22222'));
                 ctx.fillRect(0, -20, 50, 15); 
+                // Dach
                 ctx.fillRect(10, -30, 30, 10); 
                 
+                // Fenster
                 ctx.fillStyle = '#ADD8E6';
                 ctx.fillRect(12, -28, 10, 8);
                 ctx.fillRect(28, -28, 10, 8);
 
+                // Räder
                 ctx.fillStyle = '#111';
                 ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(40, -5, 6, 0, Math.PI * 2); ctx.fill();
                 
+                // Pariser Taxi Spezifikationen
                 if (obj.type === 'taxi') {
+                    // Leuchtschild
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillRect(20, -38, 10, 8);
                     ctx.fillStyle = '#000';
-                    ctx.fillRect(20, -35, 10, 5); 
+                    ctx.font = 'bold 8px Arial';
+                    ctx.fillText('TAXI', 21, -31);
+                    
+                    // Seitenstreifen (typisch schwarz/weiß Schachbrettmuster-Andeutung)
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(5, -18, 5, 3);
+                    ctx.fillRect(15, -18, 5, 3);
+                    ctx.fillRect(40, -18, 5, 3);
                 }
-            } 
+            }
             else if (obj.type === 'snowcat') {
                 ctx.fillStyle = '#A9A9A9';
                 ctx.beginPath();
