@@ -333,7 +333,19 @@ function jump(wheel) {
 
 window.addEventListener('keydown', function(e) {
     if (isPopupOpen) return; 
-
+// --- CHEAT / DEV-MODUS ---
+    // Mit den Tasten 1 bis 6 direkt in das jeweilige Level springen
+    if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].includes(e.code)) {
+        currentLevel = parseInt(e.key);
+        levelStartScore = score; 
+        
+        // Lade die neuen Level-Daten und starte direkt neu
+        loadLevelData(currentLevel).then(function() {
+            restartLevel();
+        });
+        e.preventDefault();
+        return;
+    }
     if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
         if (handleInputEvent()) { e.preventDefault(); return; }
     }
