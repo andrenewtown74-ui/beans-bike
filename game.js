@@ -298,15 +298,16 @@ function handleInputEvent() {
     if (!window.hasInteracted && !isGameRunning) {
         window.hasInteracted = true;
         
-        if (typeof playRandomMenuMusic === 'function') {
-            playRandomMenuMusic();
+        // NEU: Aufruf der sequenziellen Playlist-Funktion
+        if (typeof playMenuMusic === 'function') {
+            playMenuMusic();
         }
         
         // Text anpassen, um zu zeigen, dass das Spiel jetzt startklar ist
         if (instructionEl) {
             instructionEl.innerText = "Musik laeuft! Klick / Touch fuer Spielstart";
         }
-        return true; // Bricht hier ab, das Spiel startet noch nicht
+        return true; 
     }
 
     // 2. Klick: Spiel starten
@@ -324,7 +325,7 @@ function handleInputEvent() {
         return true;
     }
     if (!isGameRunning) {
-        if (typeof stopMenuMusic === 'function') stopMenuMusic(); // Menue-Musik stoppen
+        if (typeof stopMenuMusic === 'function') stopMenuMusic();
         startNewGame();
         return true;
     }
