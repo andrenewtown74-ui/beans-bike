@@ -103,27 +103,38 @@ function stopMusic() {
 }
 // Liste aller verfuegbaren Menue-Songs
 const menuTracks = [
-    "Cold_Obsidian.mp3",
-    "Blauer_Marmor.mp3",
     "Sprocket_Hill_Climb.mp3",
+    "Blauer_Marmor.mp3",
+    "Cold_Obsidian.mp3",
     "Jungle_Theme.mp3",
     "Gravity_Pulls_the_Chain.mp3",
     "Gargoyle_Flight.mp3"
     // Hier kannst du beliebig viele weitere Titel eintragen.
     // Achte auf die exakte Schreibweise und das Komma am Ende jeder Zeile (ausser bei der letzten)!
 ];
-
 let menuAudio = null;
+let currentMenuTrackIndex = 0;
 
-function playRandomMenuMusic() {
+function playMenuMusic() {
     if (menuAudio && !menuAudio.paused) return; // Verhindert doppeltes Abspielen
     
-    // Waehlt einen zufaelligen Titel aus der Liste
-    let randomTrack = menuTracks[Math.floor(Math.random() * menuTracks.length)];
-    
-    menuAudio = new Audio(randomTrack);
-    menuAudio.loop = true;
+    // Audio-Objekt mit dem aktuellen Track erstellen
+    menuAudio = new Audio(menuTracks[currentMenuTrackIndex]);
     menuAudio.volume = 0.5; // Etwas leiser im Menue
+    
+    // Event-Listener: Wenn das Lied zu Ende ist, starte das naechste
+    menuAudio.addEventListener('ended', function() {
+        currentMenuTrackIndex++;
+        // Wenn das Ende der Liste erreicht ist, fange wieder von vorne an
+        if (currentMenuTrackIndex >= menuTracks.length) {
+            currentMenuTrackIndex = 0;
+        }
+        // Quelle austauschen und abspielen
+        menuAudio.src = menuTracks[currentMenuTrackIndex];
+        menuAudio.play().catch(function(e) {
+            console.log("Autoplay blockiert beim naechsten Track.");
+        });
+    });
     
     menuAudio.play().catch(function(e) {
         console.log("Autoplay blockiert, warte auf Interaktion.");
