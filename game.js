@@ -46,6 +46,10 @@ loadLevelData(currentLevel);
 
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     if (touchControls) touchControls.classList.remove('hidden');
+    
+    // Versteckt die Tastatur-Tipps, wenn ein Touchscreen aktiv ist
+    let kbInst = document.getElementById('keyboard-instructions');
+    if (kbInst) kbInst.classList.add('hidden');
 }
 resizeCanvas();
 
