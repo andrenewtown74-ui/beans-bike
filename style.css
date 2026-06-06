@@ -291,3 +291,10 @@ p {
 #keyboard-instructions p {
     margin: 5px 0;
 }
+/* Verhindert das Kontextmenue, Markieren von Text und die Lupe auf iOS */
+body, #game-container, canvas, #ui-layer {
+    -webkit-touch-callout: none; /* Deaktiviert das iOS Popup-Menue */
+    -webkit-user-select: none;   /* Verhindert Textmarkierung Safari */
+    user-select: none;           /* Verhindert Textmarkierung */
+    touch-action: none;          /* Blockiert Browser-Scrollen und Zoom (Pinch-to-zoom) */
+}
