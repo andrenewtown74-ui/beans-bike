@@ -1015,7 +1015,19 @@ if (saveScoreBtn) {
 
 fetchHighscores();
 
-if (typeof drawEnvironment === 'function' && typeof drawPlayer === 'function') {
-    drawEnvironment(0);
-    drawPlayer();
+// NEUER CODE - Idle-Loop für die Startseite
+function idleLoop(timestamp) {
+    if (isGameRunning) return; // Stoppt die Schleife, sobald das Spiel startet
+    
+    if (typeof drawEnvironment === 'function') drawEnvironment(0);
+    if (typeof drawPlayer === 'function') drawPlayer();
+    
+    requestAnimationFrame(idleLoop);
 }
+
+// Initiale Position für die Startseite setzen, damit das Fahrrad nicht in der Luft hängt
+player.rearWheel.y = getTerrainY(30);
+player.frontWheel.y = getTerrainY(90);
+
+// Startbildschirm-Animation starten
+requestAnimationFrame(idleLoop);

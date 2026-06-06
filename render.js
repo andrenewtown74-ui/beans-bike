@@ -463,6 +463,12 @@ function drawPlayer() {
         let beanOffsetY = 0;
         let beanAngle = 0;
 
+        if (!isGameRunning && window.hasInteracted) {
+            // Die Bohne tanzt zur Musik!
+            let time = performance.now();
+            beanOffsetY = Math.abs(Math.sin(time * 0.006)) * -12; // Bouncen auf dem Sattel
+            beanAngle = Math.sin(time * 0.003) * 0.15; // Leichtes Wippen nach vorne und hinten
+            pedalAngle -= 0.05; // Rückwärts treten aus Langeweile
         if (player.rearWheel.isJumping && !player.frontWheel.isJumping) {
             beanOffsetY = -8; beanAngle = 0.2;
         } else if (player.frontWheel.isJumping && !player.rearWheel.isJumping) {
