@@ -138,10 +138,20 @@ function initBackground() {
 async function startNewGame() {
     if (isLoadingData) return;
     isLoadingData = true;
-    lives = 3;
+    lives = STARTING_LIVES;
     score = 0;
     levelStartScore = 0;
     currentLevel = 1;
+    await loadLevelData(currentLevel);
+    restartLevel();
+    isLoadingData = false;
+}
+
+async function handleGameOverRestart() {
+    if (isLoadingData) return;
+    isLoadingData = true;
+    lives = STARTING_LIVES;
+    score = levelStartScore;
     await loadLevelData(currentLevel);
     restartLevel();
     isLoadingData = false;
@@ -152,16 +162,6 @@ async function advanceLevel() {
     isLoadingData = true;
     currentLevel++;
     levelStartScore = score;
-    await loadLevelData(currentLevel);
-    restartLevel();
-    isLoadingData = false;
-}
-
-async function handleGameOverRestart() {
-    if (isLoadingData) return;
-    isLoadingData = true;
-    lives = 3;
-    score = levelStartScore;
     await loadLevelData(currentLevel);
     restartLevel();
     isLoadingData = false;
