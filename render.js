@@ -8,7 +8,7 @@ function drawEnvironment(moveScale) {
         ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
     }
 
-    const drawOrder = ['star', 'planet', 'mountain', 'tree', 'building'];
+    const drawOrder = ['star', 'planet', 'eiffel', 'mountain', 'tree', 'building'];
     let horizon = getHorizonY();
 
     drawOrder.forEach(function(type) {
@@ -63,6 +63,23 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(bg.x + bg.width / 2, horizon + 5 - bg.height);
                 ctx.lineTo(bg.x + bg.width, horizon + 5);
                 ctx.fill();
+            } else if (bg.type === 'eiffel') {
+                ctx.fillStyle = bg.color1;
+                ctx.beginPath();
+                ctx.moveTo(bg.x + bg.width / 2, horizon + 5 - bg.height);
+                ctx.lineTo(bg.x + bg.width, horizon + 5);
+                ctx.lineTo(bg.x, horizon + 5);
+                ctx.fill();
+                
+                ctx.fillStyle = designData.theme.skyColor || '#B0C4DE';
+                ctx.beginPath();
+                ctx.moveTo(bg.x + bg.width / 2, horizon + 5 - bg.height / 2);
+                ctx.lineTo(bg.x + bg.width * 0.8, horizon + 5);
+                ctx.lineTo(bg.x + bg.width * 0.2, horizon + 5);
+                ctx.fill();
+                
+                ctx.fillStyle = bg.color2;
+                ctx.fillRect(bg.x + bg.width / 2 - 5, horizon + 5 - bg.height - 20, 10, 20); 
             }
         });
     });
@@ -526,8 +543,8 @@ function drawFlyingObjects() {
             ctx.fill();
             ctx.stroke();
         } 
-        else if (obj.type === 'bird') {
-            ctx.fillStyle = '#8B5A2B';
+        else if (obj.type === 'bird' || obj.type === 'pigeon') {
+            ctx.fillStyle = obj.type === 'pigeon' ? '#A9A9A9' : '#8B5A2B';
             ctx.beginPath();
             ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI * 2);
             ctx.fill();
@@ -550,6 +567,12 @@ function drawFlyingObjects() {
             ctx.lineTo(2, 0);
             ctx.stroke();
         } 
+        else if (obj.type === 'pigeon_poop') {
+            ctx.fillStyle = '#E8E8E8';
+            ctx.beginPath();
+            ctx.arc(0, 0, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
         else if (obj.type === 'meteorite') {
             let gradient = ctx.createLinearGradient(0, 0, 15, -15);
             gradient.addColorStop(0, '#FF3300');
@@ -655,9 +678,9 @@ function drawFlyingObjects() {
             ctx.arc(-3, -4, 2, 0, Math.PI * 2);
             ctx.fill();
         }
-        else if (['car', 'snowcat', 'rover', 'jeep', 'borer'].includes(obj.type)) {
-            if (obj.type === 'car') {
-                ctx.fillStyle = obj.color || '#B22222';
+        else if (['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'].includes(obj.type)) {
+            if (obj.type === 'car' || obj.type === 'taxi' || obj.type === 'uber') {
+                ctx.fillStyle = obj.type === 'taxi' ? '#FFD700' : (obj.type === 'uber' ? '#111111' : (obj.color || '#B22222'));
                 ctx.fillRect(0, -20, 50, 15); 
                 ctx.fillRect(10, -30, 30, 10); 
                 
@@ -668,6 +691,11 @@ function drawFlyingObjects() {
                 ctx.fillStyle = '#111';
                 ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(40, -5, 6, 0, Math.PI * 2); ctx.fill();
+                
+                if (obj.type === 'taxi') {
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(20, -35, 10, 5); 
+                }
             } 
             else if (obj.type === 'snowcat') {
                 ctx.fillStyle = '#A9A9A9';
@@ -751,7 +779,7 @@ function drawFlyingObjects() {
                     ctx.font = 'bold 12px Arial';
                     ctx.fillText('!#@*%', 14, -47);
                 }
-            } else if (obj.type === 'car' || obj.type === 'jeep' || obj.type === 'snowcat') {
+            } else if (obj.type !== 'uber' && obj.type !== 'borer' && obj.type !== 'rover') {
                 ctx.fillStyle = '#FFD700';
                 let lightX = (obj.type === 'snowcat') ? 55 : (obj.type === 'jeep' ? 50 : 45);
                 ctx.fillRect(lightX, -15, 5, 5);
@@ -766,6 +794,57 @@ function drawFlyingObjects() {
                 ctx.lineTo(lightX + 55, 5);
                 ctx.closePath();
                 ctx.fill();
+            }
+        }
+        else if (obj.type === 'cyclist') {
+            ctx.fillStyle = '#333';
+            ctx.beginPath(); ctx.arc(-15, -5, 8, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(15, -5, 8, 0, Math.PI*2); ctx.fill();
+            
+            ctx.strokeStyle = '#B22222'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(0, -5); ctx.lineTo(5, -20); ctx.lineTo(-10, -20); ctx.closePath(); ctx.stroke();
+            
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-5, -35, 5, 0, Math.PI*2); ctx.fill(); 
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-5, -30); ctx.lineTo(-10, -20); ctx.stroke(); 
+            ctx.beginPath(); ctx.moveTo(-10, -25); ctx.lineTo(0, -25); ctx.stroke(); 
+            
+            if (obj.crashed && obj.speechTimer > 0) {
+                ctx.fillStyle = '#FFF';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.rect(-20, -70, 40, 18); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -52); ctx.lineTo(5, -45); ctx.lineTo(10, -52); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText('!#@*%', -16, -57);
+            }
+        }
+        else if (obj.type === 'escooter') {
+            ctx.fillStyle = '#111';
+            ctx.beginPath(); ctx.arc(-10, -3, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(10, -3, 4, 0, Math.PI*2); ctx.fill();
+            
+            ctx.strokeStyle = '#444'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(-12, -7); ctx.lineTo(12, -7); ctx.lineTo(10, -30); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(5, -30); ctx.lineTo(15, -30); ctx.stroke();
+            
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(-2, -45, 5, 0, Math.PI*2); ctx.fill(); 
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(-2, -40); ctx.lineTo(-2, -15); ctx.stroke(); 
+            ctx.beginPath(); ctx.moveTo(-2, -30); ctx.lineTo(8, -30); ctx.stroke(); 
+            
+            if (obj.crashed && obj.speechTimer > 0) {
+                ctx.fillStyle = '#FFF';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.rect(-20, -80, 40, 18); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -62); ctx.lineTo(5, -55); ctx.lineTo(10, -62); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText('!#@*%', -16, -67);
             }
         }
         ctx.restore();

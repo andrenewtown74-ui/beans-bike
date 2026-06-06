@@ -1,0 +1,17 @@
+{
+    "theme": {
+        "skyColor": "#B0C4DE",
+        "groundColor": "#333333",
+        "surfaceColor": "#555555",
+        "music": "Gargoyle_Flight.mp3",
+        "sun": { "active": false }
+    },
+    "physics": {
+        "terrainType": "flat",
+        "levelDistance": 7000
+    },
+    "objects": [
+        { "type": "building", "count": 15, "minWidth": 60, "maxWidth": 120, "minHeight": 80, "maxHeight": 150, "speedModifier": 0.3, "color1": "#D3D3D3", "color2": "#A9A9A9" },
+        { "type": "eiffel", "count": 1, "minWidth": 150, "maxWidth": 150, "minHeight": 250, "maxHeight": 250, "speedModifier": 0.1, "color1": "#555", "color2": "#444" }
+    ]
+}

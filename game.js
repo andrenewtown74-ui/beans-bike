@@ -46,8 +46,6 @@ loadLevelData(currentLevel);
 
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     if (touchControls) touchControls.classList.remove('hidden');
-    
-    // Versteckt die Tastatur-Tipps, wenn ein Touchscreen aktiv ist
     let kbInst = document.getElementById('keyboard-instructions');
     if (kbInst) kbInst.classList.add('hidden');
 }
@@ -138,20 +136,10 @@ function initBackground() {
 async function startNewGame() {
     if (isLoadingData) return;
     isLoadingData = true;
-    lives = STARTING_LIVES;
+    lives = typeof STARTING_LIVES !== 'undefined' ? STARTING_LIVES : 5;
     score = 0;
     levelStartScore = 0;
     currentLevel = 1;
-    await loadLevelData(currentLevel);
-    restartLevel();
-    isLoadingData = false;
-}
-
-async function handleGameOverRestart() {
-    if (isLoadingData) return;
-    isLoadingData = true;
-    lives = STARTING_LIVES;
-    score = levelStartScore;
     await loadLevelData(currentLevel);
     restartLevel();
     isLoadingData = false;
@@ -162,6 +150,16 @@ async function advanceLevel() {
     isLoadingData = true;
     currentLevel++;
     levelStartScore = score;
+    await loadLevelData(currentLevel);
+    restartLevel();
+    isLoadingData = false;
+}
+
+async function handleGameOverRestart() {
+    if (isLoadingData) return;
+    isLoadingData = true;
+    lives = typeof STARTING_LIVES !== 'undefined' ? STARTING_LIVES : 5;
+    score = levelStartScore;
     await loadLevelData(currentLevel);
     restartLevel();
     isLoadingData = false;
@@ -301,7 +299,7 @@ function handleInputEvent() {
         return true;
     }
     if (isLevelComplete && bikeStopped) {
-        if (currentLevel >= 5) {
+        if (currentLevel >= 6) { // Angepasst auf Level 6
             startNewGame();
         } else {
             advanceLevel();
@@ -474,8 +472,8 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     if (nextObstacleIndex < levelData.length) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
-            const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer'];
-            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock'].concat(vehicleTypes).includes(nextObs.type)) {
+            const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
+            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter'].concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
@@ -485,6 +483,10 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 if (vehicleTypes.includes(nextObs.type)) {
                     spawnX = -150; 
                     vxVal = gameSpeed + speedVal; 
+                    startY = getTerrainY(worldDistance + spawnX);
+                } else if (['cyclist', 'escooter'].includes(nextObs.type)) {
+                    spawnX = canvas.width + 50; 
+                    vxVal = -(gameSpeed + speedVal); 
                     startY = getTerrainY(worldDistance + spawnX);
                 } else if (nextObs.type === 'meteorite') {
                     startY = -20;
@@ -507,6 +509,9 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     startY = canvas.height + 20; 
                     vxVal = -gameSpeed; 
                     vyVal = -8; 
+                } else if (nextObs.type === 'pigeon') {
+                    startY = nextObs.spawnY !== undefined ? nextObs.spawnY : 50;
+                    vxVal = -speedVal;
                 } else {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
@@ -584,14 +589,22 @@ function gameLoop(timestamp) {
             let isBraking = keys.down || touchBrake;
 
             let onMud = false;
+            let onPoop = false;
             for (let obs of obstacles) {
                 if (obs.type === 'mud' && player.rearWheel.defaultX >= obs.x && player.rearWheel.defaultX <= obs.x + obs.width) {
                     onMud = true;
+                }
+                if (obs.type === 'poop_splat' && player.rearWheel.defaultX >= obs.x && player.rearWheel.defaultX <= obs.x + obs.width) {
+                    onPoop = true;
                 }
             }
 
             if (player.rearWheel.onUphillLiana && !isAccelerating) {
                 player.targetBikeX -= 3.5 * timeScale;
+            } else if (onPoop) {
+                // Extremes Rutschen durch Tauben-Dreck
+                player.targetBikeX -= 4.5 * timeScale;
+                if (Math.random() < 0.1 && typeof playSqueal === 'function') playSqueal();
             } else if (onMud) {
                 if (isAccelerating) {
                     player.targetBikeX -= 0.5 * timeScale;
@@ -618,7 +631,7 @@ function gameLoop(timestamp) {
                     if (typeof playFanfare === 'function') playFanfare();
                     hasPlayedFanfare = true;
                     
-                    if (currentLevel >= 5) {
+                    if (currentLevel >= 6) { // Sieg-Bedingung auf Level 6 erhoeht
                         titleEl.innerText = "Herzlichen Glückwunsch!";
                         if (!window.scoreSubmitted && score > 0) {
                             showNamePopup();
@@ -687,7 +700,7 @@ function gameLoop(timestamp) {
         let obs = obstacles[i];
         obs.x -= gameSpeed * moveScale;
 
-        if (obs.type !== 'chasm' && obs.type !== 'lava' && obs.type !== 'liana_bridge' && obs.type !== 'mud') {
+        if (obs.type !== 'chasm' && obs.type !== 'lava' && obs.type !== 'liana_bridge' && obs.type !== 'mud' && obs.type !== 'poop_splat') {
             ctx.fillStyle = obs.color;
             ctx.strokeStyle = '#000';
             ctx.beginPath();
@@ -716,6 +729,15 @@ function gameLoop(timestamp) {
                 ctx.quadraticCurveTo(obs.x + obs.width / 2, getTerrainY(worldDistance + obs.x + obs.width/2) + 5 + obs.height * 2, obs.x + obs.width, getTerrainY(worldDistance + obs.x + obs.width) + 5);
             }
             ctx.fill(); ctx.stroke();
+        } else if (obs.type === 'poop_splat') {
+            ctx.fillStyle = obs.color || '#E8E8E8';
+            ctx.beginPath();
+            ctx.ellipse(obs.x + obs.width / 2, obs.y - 2, obs.width / 2, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#556B2F';
+            ctx.beginPath();
+            ctx.ellipse(obs.x + obs.width / 2 + 3, obs.y - 2, obs.width / 4, 2, 0, 0, Math.PI * 2);
+            ctx.fill();
         } else if (obs.type === 'mud') {
             ctx.fillStyle = obs.color || '#1c140d';
             ctx.beginPath();

@@ -64,7 +64,7 @@ function getObstacleSurface(x, obs) {
     if (obs.type === 'chasm' || obs.type === 'lava') {
         return 1000; 
     }
-    if (obs.type === 'mud') {
+    if (obs.type === 'mud' || obs.type === 'poop_splat') {
         return getTerrainY(worldDistance + x); 
     }
     return null;
@@ -86,7 +86,7 @@ function updateWheel(wheel, timeScale) {
             if (obs.type === 'chasm' || obs.type === 'lava') {
                 overChasm = true;
                 currentSurface = surface;
-            } else if (obs.type === 'crater' || obs.type === 'mud') {
+            } else if (obs.type === 'crater' || obs.type === 'mud' || obs.type === 'poop_splat') {
                 currentSurface = surface;
             } else if (obs.type === 'liana_bridge') {
                 overChasm = true; 
@@ -157,7 +157,7 @@ function handleFrameCollision(timeScale) {
         }
 
         for (let obs of obstacles) {
-            if (obs.type === 'ramp' || obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'mud') continue;
+            if (obs.type === 'ramp' || obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'mud' || obs.type === 'poop_splat') continue;
             if (px >= obs.x && px <= obs.x + obs.width) {
                 let surfaceY = getObstacleSurface(px, obs);
                 if (surfaceY !== null && py > surfaceY && surfaceY !== 1000) {
@@ -276,7 +276,7 @@ function updateFlyingObjects(timeScale, moveScale) {
     let cy = (player.rearWheel.y + player.frontWheel.y) / 2;
     let beanX = cx;
     let beanY = cy - 25;
-    const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer'];
+    const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
 
     for (let i = flyingObjects.length - 1; i >= 0; i--) {
         let obj = flyingObjects[i];
@@ -389,7 +389,57 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue; 
         }
 
-        if (obj.type === 'monkey' && !obj.deflected) {
+        if (['cyclist', 'escooter'].includes(obj.type)) {
+            if (obj.crashed) {
+                obj.x -= gameSpeed * moveScale;
+                if (obj.speechTimer > 0) obj.speechTimer -= timeScale;
+            } else {
+                obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+                obj.y = getTerrainY(worldDistance + obj.x);
+
+                if (!isCrashing && Math.abs(cx - obj.x) < 25 && Math.abs(cy - obj.y) < 30) {
+                    startCrash('flip');
+                    obj.crashed = true;
+                    obj.speechTimer = 100;
+                    if (typeof playYell === 'function') setTimeout(playYell, 100);
+                }
+            }
+            if (obj.x < -200 || obj.x > canvas.width + 200) {
+                flyingObjects.splice(i, 1);
+            }
+            continue;
+        }
+
+        if (obj.type === 'pigeon' && !obj.deflected) {
+            obj.time = (obj.time || 0) + timeScale * 0.1;
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y = obj.spawnY + Math.sin(obj.time) * 15;
+
+            obj.poopTimer = (obj.poopTimer || (Math.random() * 100 + 50)) - timeScale;
+            if (obj.poopTimer <= 0) {
+                obj.poopTimer = 150 + Math.random() * 100;
+                flyingObjects.push({
+                    id: 90000 + Math.floor(Math.random() * 1000),
+                    x: obj.x, y: obj.y + 10, vx: obj.vx, vy: 0,
+                    type: 'pigeon_poop', passed: true 
+                });
+            }
+        } else if (obj.type === 'pigeon_poop') {
+            obj.vy += player.gravity * timeScale;
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y += obj.vy * timeScale;
+
+            let tY = getTerrainY(worldDistance + obj.x);
+            if (obj.y >= tY) {
+                obstacles.push({
+                    id: 30000 + Math.floor(Math.random() * 1000),
+                    x: obj.x - 10, y: tY + 5, baseY: tY + 5, width: 20, height: 5,
+                    type: 'poop_splat', color: '#E8E8E8', passed: true
+                });
+                flyingObjects.splice(i, 1);
+                continue;
+            }
+        } else if (obj.type === 'monkey' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.04;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y = obj.spawnY + Math.abs(Math.sin(obj.time)) * 100;
@@ -410,7 +460,7 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.y += obj.vy * timeScale;
         }
 
-        let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock'].includes(obj.type);
+        let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock', 'pigeon'].includes(obj.type);
 
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);
@@ -471,7 +521,7 @@ function updateFlyingObjects(timeScale, moveScale) {
 
         if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 10) {
             obj.passed = true;
-            if (obj.id > highestScoredObstacle) {
+            if (obj.id > highestScoredObstacle && obj.type !== 'pigeon_poop') {
                 score += 1;
                 highestScoredObstacle = obj.id;
                 if (typeof playScore === 'function') playScore();
