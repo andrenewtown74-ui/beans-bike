@@ -692,7 +692,7 @@ function drawFlyingObjects() {
             ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.moveTo(10, 5); ctx.lineTo(20, 5); ctx.lineTo(15, 0); ctx.fill();
         }
         else if (obj.type === 'motorboat') {
-            let scale = Math.max(0.1, 1000 / (obj.z + 100));
+            let scale = Math.max(0.2, 800 / (obj.z + 600)); 
             ctx.scale(scale, scale);
             
             ctx.fillStyle = '#FFFFFF';

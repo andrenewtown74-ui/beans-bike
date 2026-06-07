@@ -58,7 +58,8 @@ function getObstacleSurface(x, obs) {
     if (obs.type === 'water') {
         let progress = (x - obs.x) / obs.width;
         let tY = getTerrainY(worldDistance + x);
-        let dip = Math.sin(progress * Math.PI) * 70;
+        // Tiefe auf 40 Pixel reduziert (statt 70), damit man nicht zu tief sinkt
+        let dip = Math.sin(progress * Math.PI) * 40; 
         return tY + dip; 
     }
     if (obs.type === 'liana_bridge') {
@@ -145,22 +146,21 @@ function updateWheel(wheel, timeScale) {
         wheel.onSurface = false; 
     }
 
+// Wasser-Auftrieb angepasst
     if (wheel.inWater && wheel.y > waterSurfaceY) {
         let depth = wheel.y - waterSurfaceY;
-        wheel.vy -= depth * 0.02 * timeScale; 
-        wheel.vy *= 0.90; 
+        // Auftrieb sanfter eingestellt, damit man nicht "katapultiert" wird
+        wheel.vy -= depth * 0.01 * timeScale; 
+        wheel.vy *= 0.95; 
         
         let isRear = (wheel === player.rearWheel);
         let isFront = (wheel === player.frontWheel);
         
-        if (isRear && (keys.rearJump || (typeof touchRearJump !== 'undefined' && touchRearJump))) {
-            wheel.vy -= 0.8 * timeScale;
-        }
-        if (isFront && (keys.frontJump || (typeof touchFrontJump !== 'undefined' && touchFrontJump))) {
-            wheel.vy -= 0.8 * timeScale;
-        }
+        // Auftrieb per Tastendruck jetzt kontrollierter
+        if (isRear && (keys.rearJump || touchRearJump)) wheel.vy -= 0.4 * timeScale;
+        if (isFront && (keys.frontJump || touchFrontJump)) wheel.vy -= 0.4 * timeScale;
         
-        wheel.isJumping = false; 
+        wheel.isJumping = false;
     }
 }
 
@@ -444,17 +444,19 @@ function updateFlyingObjects(timeScale, moveScale) {
 
         if (obj.type === 'motorboat') {
             if (!obj.crashed) {
-                obj.z -= 10 * obj.speed * timeScale; 
-                obj.x -= (gameSpeed * moveScale * 0.2); 
+                // Boot bewegt sich langsamer auf die Z-Achse zu
+                obj.z -= 6 * obj.speed * timeScale; 
+                obj.x -= (gameSpeed * moveScale * 0.1); 
                 
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
                 let horizonY = getHorizonY();
                 let progress = 1 - Math.max(0, Math.min(1, obj.z / 1000));
                 obj.y = horizonY + (targetY - horizonY) * progress;
 
-                if (obj.z < 50 && obj.z > -50 && !isCrashing && !window.isInvincible) {
-                    let scale = Math.max(0.1, 1000 / (obj.z + 100));
-                    let boatW = 60 * scale;
+                // Kollision erst bei Z < 30 (deutlich naeher dran)
+                if (obj.z < 30 && obj.z > -10 && !isCrashing && !window.isInvincible) {
+                    let scale = Math.max(0.1, 1000 / (obj.z + 200)); // Skalierung angepasst
+                    let boatW = 40 * scale; // Kleinere Hitbox
                     if (Math.abs(player.rearWheel.x - obj.x) < boatW / 2 || Math.abs(player.frontWheel.x - obj.x) < boatW / 2) {
                         startCrash('flip');
                         obj.crashed = true;
