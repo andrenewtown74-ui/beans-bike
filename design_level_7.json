@@ -1,0 +1,17 @@
+{
+    "theme": {
+        "skyColor": "#4FC3F7",
+        "groundColor": "#F4A460",
+        "surfaceColor": "#FFDEAD",
+        "music": "Snapping_at_the_Blue.mp3",
+        "sun": { "active": true, "color": "#FFD700", "size": 35, "xOffset": 150, "y": 40 }
+    },
+    "physics": {
+        "terrainType": "flat",
+        "baseGroundY": 185,
+        "levelDistance": 8000
+    },
+    "objects": [
+        { "type": "palm_tree", "count": 12, "minWidth": 30, "maxWidth": 50, "minHeight": 80, "maxHeight": 130, "speedModifier": 0.4, "color1": "#8B4513", "color2": "#228B22" }
+    ]
+}

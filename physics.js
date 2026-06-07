@@ -61,7 +61,7 @@ function getObstacleSurface(x, obs) {
         let tY = getTerrainY(worldDistance + x);
         return tY + Math.sin(progress * Math.PI) * obs.height;
     }
-    if (obs.type === 'chasm' || obs.type === 'lava') {
+    if (obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water') {
         return 1000; 
     }
     if (obs.type === 'mud' || obs.type === 'poop_splat') {
@@ -83,7 +83,7 @@ function updateWheel(wheel, timeScale) {
     for (let obs of obstacles) {
         let surface = getObstacleSurface(wheel.x, obs);
         if (surface !== null) {
-            if (obs.type === 'chasm' || obs.type === 'lava') {
+            if (obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water') {
                 overChasm = true;
                 currentSurface = surface;
             } else if (obs.type === 'crater' || obs.type === 'mud' || obs.type === 'poop_splat') {
@@ -145,7 +145,7 @@ function handleFrameCollision(timeScale) {
         let ty = getTerrainY(worldDistance + px);
         let overChasm = false;
         for (let obs of obstacles) {
-            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water' || obs.type === 'liana_bridge') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
             if (obs.type === 'crater' && px >= obs.x && px <= obs.x + obs.width) {
                 let craterSur = getObstacleSurface(px, obs);
                 if (craterSur !== null) ty = craterSur;
@@ -157,7 +157,7 @@ function handleFrameCollision(timeScale) {
         }
 
         for (let obs of obstacles) {
-            if (obs.type === 'ramp' || obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'mud' || obs.type === 'poop_splat') continue;
+            if (obs.type === 'ramp' || obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water' || obs.type === 'mud' || obs.type === 'poop_splat') continue;
             if (px >= obs.x && px <= obs.x + obs.width) {
                 let surfaceY = getObstacleSurface(px, obs);
                 if (surfaceY !== null && py > surfaceY && surfaceY !== 1000) {
@@ -184,6 +184,8 @@ function handleFrameCollision(timeScale) {
 }
 
 function startCrash(type) {
+    if (window.isInvincible && type !== 'fall') return; 
+
     if (isCrashing) return;
     isCrashing = true;
     crashType = type;
@@ -359,7 +361,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                         if (typeof playScore === 'function') playScore();
                     }
                     if (typeof playJump === 'function') playJump();
-                } else if (!isCrashing) {
+                } else if (!isCrashing && !window.isInvincible) {
                     if ((rx > obj.x && rx < obj.x + carW && ry > roofY + 5) || 
                         (fx > obj.x && fx < obj.x + carW && fy > roofY + 5) ||
                         (beanX > obj.x && beanX < obj.x + carW && beanY > roofY + 5)) {
@@ -397,7 +399,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 obj.y = getTerrainY(worldDistance + obj.x);
 
-                if (!isCrashing && Math.abs(cx - obj.x) < 25 && Math.abs(cy - obj.y) < 30) {
+                if (!isCrashing && !window.isInvincible && Math.abs(cx - obj.x) < 25 && Math.abs(cy - obj.y) < 30) {
                     startCrash('flip');
                     obj.crashed = true;
                     obj.speechTimer = 100;
@@ -405,6 +407,36 @@ function updateFlyingObjects(timeScale, moveScale) {
                 }
             }
             if (obj.x < -200 || obj.x > canvas.width + 200) {
+                flyingObjects.splice(i, 1);
+            }
+            continue;
+        }
+
+        if (obj.type === 'motorboat') {
+            if (!obj.crashed) {
+                obj.z -= 10 * obj.speed * timeScale; 
+                obj.x -= (gameSpeed * moveScale * 0.2); 
+                
+                let targetY = getTerrainY(worldDistance + obj.x) + 5;
+                let horizonY = getHorizonY();
+                let progress = 1 - Math.max(0, Math.min(1, obj.z / 1000));
+                obj.y = horizonY + (targetY - horizonY) * progress;
+
+                if (obj.z < 50 && obj.z > -50 && !isCrashing && !window.isInvincible) {
+                    let scale = Math.max(0.1, 1000 / (obj.z + 100));
+                    let boatW = 60 * scale;
+                    if (Math.abs(player.rearWheel.x - obj.x) < boatW / 2 || Math.abs(player.frontWheel.x - obj.x) < boatW / 2) {
+                        startCrash('flip');
+                        obj.crashed = true;
+                        obj.speechTimer = 100;
+                        if (typeof playHit === 'function') playHit();
+                    }
+                }
+            } else {
+                obj.x -= gameSpeed * moveScale;
+                if (obj.speechTimer > 0) obj.speechTimer -= timeScale;
+            }
+            if (obj.z < -200 || obj.x < -200) {
                 flyingObjects.splice(i, 1);
             }
             continue;
@@ -447,6 +479,14 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.time = (obj.time || 0) + timeScale * 0.1;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y = obj.spawnY + Math.sin(obj.time) * 20;
+        } else if (obj.type === 'pelican' && !obj.deflected) {
+            obj.time = (obj.time || 0) + timeScale * 0.08;
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y = obj.spawnY + Math.sin(obj.time) * 15;
+        } else if (obj.type === 'shark' && !obj.deflected) {
+            obj.vy += player.gravity * timeScale;
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y += obj.vy * timeScale;
         } else if (obj.type === 'fireball' && !obj.deflected) {
             obj.vy += 0.15 * timeScale; 
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
@@ -460,7 +500,7 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.y += obj.vy * timeScale;
         }
 
-        let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock', 'pigeon'].includes(obj.type);
+        let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock', 'pigeon', 'pelican', 'shark'].includes(obj.type);
 
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);

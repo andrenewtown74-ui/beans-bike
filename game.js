@@ -375,6 +375,17 @@ function respawnPlayer() {
 function handleInputEvent() {
     if (isPopupOpen) return false; 
 
+    if (!window.hasInteracted && !isGameRunning) {
+        window.hasInteracted = true;
+        if (typeof playMenuMusic === 'function') {
+            playMenuMusic();
+        }
+        if (instructionEl) {
+            instructionEl.innerText = "Musik laeuft! Klick / Touch fuer Spielstart";
+        }
+        return true; 
+    }
+
     if (typeof initAudio === 'function') initAudio();
     
     if (isGameOver) {
@@ -384,15 +395,13 @@ function handleInputEvent() {
     }
     if (isLevelComplete && bikeStopped) {
         instructionEl.classList.add('hidden');
-        if (currentLevel >= 6) { 
+        if (currentLevel >= 7) {  // <-- HIER AUF LEVEL 7 ERHÖHT
             startNewGame();
         } else {
             advanceLevel();
         }
         return true;
     }
-    
-    // Globale Klicks auf der Startseite starten das Spiel nicht mehr
     return false;
 }
 
@@ -418,13 +427,20 @@ window.addEventListener('keydown', function(e) {
     if (isPopupOpen) return; 
 
     // --- CHEAT / DEV-MODUS ---
-    if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].includes(e.code)) {
+    if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7'].includes(e.code)) {
         currentLevel = parseInt(e.key);
         levelStartScore = score; 
         document.getElementById('start-menu-buttons').classList.add('hidden');
         loadLevelData(currentLevel).then(function() {
             restartLevel();
         });
+        e.preventDefault();
+        return;
+    }
+    
+    if (e.code === 'KeyI') {
+        window.isInvincible = !window.isInvincible;
+        console.log("God-Mode: " + (window.isInvincible ? "AN" : "AUS"));
         e.preventDefault();
         return;
     }
@@ -572,12 +588,13 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
             const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
-            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter'].concat(vehicleTypes).includes(nextObs.type)) {
+            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'shark', 'pelican', 'motorboat'].concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
                 let vyVal = 0;
                 let spawnX = canvas.width + 50;
+                let zVal = 0; // Standard Z-Wert
 
                 if (vehicleTypes.includes(nextObs.type)) {
                     spawnX = -150; 
@@ -608,9 +625,20 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     startY = canvas.height + 20; 
                     vxVal = -gameSpeed; 
                     vyVal = -8; 
-                } else if (nextObs.type === 'pigeon') {
+                } else if (nextObs.type === 'pigeon' || nextObs.type === 'pelican') {
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : 50;
-                    vxVal = -speedVal;
+                    vxVal = -speedVal * 1.5;
+                } else if (nextObs.type === 'shark') {
+                    startY = canvas.height + 20;
+                    vxVal = -gameSpeed * 0.5;
+                    vyVal = -(7 + speedVal); // Hai springt nach oben
+                    spawnX = canvas.width + 50;
+                } else if (nextObs.type === 'motorboat') {
+                    startY = getHorizonY();
+                    spawnX = player.targetBikeX + 100 + Math.random() * 80; // Zielt grob auf den Spieler
+                    vxVal = 0;
+                    vyVal = 0;
+                    zVal = 1000; // Startet tief in der Z-Achse am Horizont
                 } else {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
@@ -623,6 +651,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     spawnY: startY,
                     vx: vxVal,
                     vy: vyVal,
+                    z: zVal,
                     type: nextObs.type,
                     speed: speedVal,
                     color: nextObs.color,

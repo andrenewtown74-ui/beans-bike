@@ -8,7 +8,7 @@ function drawEnvironment(moveScale) {
         ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
     }
 
-    const drawOrder = ['star', 'planet', 'eiffel', 'mountain', 'tree', 'building'];
+    const drawOrder = ['star', 'planet', 'eiffel', 'mountain', 'tree', 'palm_tree', 'building'];
     let horizon = getHorizonY();
 
     drawOrder.forEach(function(type) {
@@ -47,6 +47,23 @@ function drawEnvironment(moveScale) {
                 ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
                 ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
+            } else if (bg.type === 'palm_tree') {
+                ctx.fillStyle = bg.color1 || '#8B4513';
+                ctx.beginPath();
+                ctx.moveTo(bg.x + bg.width/2 - 4, horizon + 5);
+                ctx.quadraticCurveTo(bg.x + bg.width/2 + 8, horizon - bg.height/2, bg.x + bg.width/2, horizon - bg.height);
+                ctx.lineTo(bg.x + bg.width/2 + 6, horizon - bg.height);
+                ctx.quadraticCurveTo(bg.x + bg.width/2 + 15, horizon - bg.height/2, bg.x + bg.width/2 + 4, horizon + 5);
+                ctx.fill();
+
+                ctx.fillStyle = bg.color2 || '#228B22';
+                ctx.beginPath();
+                ctx.ellipse(bg.x + bg.width/2 + 2, horizon - bg.height + 4, bg.width/1.3, bg.height/3.5, 0, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#5C4033';
+                ctx.beginPath(); ctx.arc(bg.x + bg.width/2 - 4, horizon - bg.height + 12, 5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(bg.x + bg.width/2 + 6, horizon - bg.height + 12, 5, 0, Math.PI*2); ctx.fill();
             } else if (bg.type === 'building') {
                 ctx.fillStyle = bg.color1;
                 ctx.fillRect(bg.x, horizon + 5 - bg.height, bg.width, bg.height);
@@ -71,7 +88,6 @@ function drawEnvironment(moveScale) {
 
                 ctx.fillStyle = bg.color1 || '#4a3c31';
                 
-                // Linker Pfeiler
                 ctx.beginPath();
                 ctx.moveTo(tx, ty);
                 ctx.lineTo(tx + tw * 0.2, ty - th * 0.3);
@@ -79,7 +95,6 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(tx + tw * 0.25, ty);
                 ctx.fill();
 
-                // Rechter Pfeiler
                 ctx.beginPath();
                 ctx.moveTo(tx + tw, ty);
                 ctx.lineTo(tx + tw * 0.8, ty - th * 0.3);
@@ -87,7 +102,6 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(tx + tw * 0.75, ty);
                 ctx.fill();
 
-                // Mittlerer Teil nach oben
                 ctx.beginPath();
                 ctx.moveTo(tx + tw * 0.25, ty - th * 0.3);
                 ctx.lineTo(tx + tw * 0.4, ty - th * 0.8);
@@ -95,7 +109,6 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(tx + tw * 0.75, ty - th * 0.3);
                 ctx.fill();
                 
-                // Obere Spitze (angeschnitten)
                 ctx.beginPath();
                 ctx.moveTo(tx + tw * 0.42, ty - th * 0.8);
                 ctx.lineTo(tx + tw * 0.47, ty - th);
@@ -103,20 +116,15 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(tx + tw * 0.58, ty - th * 0.8);
                 ctx.fill();
 
-                // Plattform 1 (unten)
                 ctx.fillStyle = bg.color2 || '#2a221c';
                 ctx.fillRect(tx + tw * 0.15, ty - th * 0.3, tw * 0.7, th * 0.05);
-                
-                // Plattform 2 (Mitte)
                 ctx.fillRect(tx + tw * 0.35, ty - th * 0.6, tw * 0.3, th * 0.04);
 
-                // Bogen unten (Himmel-Farbe ausstanzen)
                 ctx.fillStyle = designData.theme.skyColor || '#87CEEB';
                 ctx.beginPath();
                 ctx.arc(tx + tw * 0.5, ty, tw * 0.25, Math.PI, 0);
                 ctx.fill();
 
-                // Stahlverstrebungen (Kreuzmuster)
                 ctx.strokeStyle = bg.color2 || '#2a221c';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -147,7 +155,7 @@ function drawEnvironment(moveScale) {
     for (let x = 0; x <= canvas.width; x += 5) {
         let isChasm = false;
         for (let obs of obstacles) {
-            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
         }
         let ty = isChasm ? canvas.height + 10 : getTerrainY(worldDistance + x) + 5;
         ctx.lineTo(x, ty);
@@ -164,7 +172,7 @@ function drawEnvironment(moveScale) {
     for (let x = 0; x <= canvas.width; x += 5) {
         let isChasm = false;
         for (let obs of obstacles) {
-            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
         }
         if (!isChasm) {
             let ty = getTerrainY(worldDistance + x) + 5;
@@ -464,13 +472,11 @@ function drawPlayer() {
         let beanAngle = 0;
 
         if (!isGameRunning && window.hasInteracted) {
-            // Die Bohne tanzt zur Musik!
             let time = performance.now();
-            beanOffsetY = Math.abs(Math.sin(time * 0.006)) * -12; // Bouncen auf dem Sattel
-            beanAngle = Math.sin(time * 0.003) * 0.15; // Leichtes Wippen nach vorne und hinten
-            pedalAngle -= 0.05; // Rückwärts treten aus Langeweile
-        }
-        else if (player.rearWheel.isJumping && !player.frontWheel.isJumping) {
+            beanOffsetY = Math.abs(Math.sin(time * 0.006)) * -12; 
+            beanAngle = Math.sin(time * 0.003) * 0.15; 
+            pedalAngle -= 0.05; 
+        } else if (player.rearWheel.isJumping && !player.frontWheel.isJumping) {
             beanOffsetY = -8; beanAngle = 0.2;
         } else if (player.frontWheel.isJumping && !player.rearWheel.isJumping) {
             beanOffsetY = 0; beanAngle = -0.5;
@@ -618,6 +624,53 @@ function drawFlyingObjects() {
             ctx.lineTo(2, 0);
             ctx.stroke();
         } 
+        else if (obj.type === 'pelican') {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath(); ctx.ellipse(0, 0, 14, 10, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            
+            ctx.fillStyle = '#FFA500';
+            ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(30, 2); ctx.lineTo(10, 8); ctx.closePath(); ctx.fill();
+            
+            let wingY = Math.sin(performance.now() * 0.04) * 12;
+            ctx.fillStyle = '#F0F0F0';
+            ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(0, -wingY - 4); ctx.lineTo(6, 0); ctx.fill(); ctx.stroke();
+        }
+        else if (obj.type === 'shark') {
+            let angle = Math.atan2(obj.vy, obj.vx);
+            ctx.rotate(angle);
+            
+            ctx.fillStyle = '#778899';
+            ctx.beginPath(); ctx.ellipse(0, 0, 20, 9, 0, 0, Math.PI*2); ctx.fill();
+            
+            ctx.beginPath(); ctx.moveTo(-5, -6); ctx.lineTo(-12, -18); ctx.lineTo(2, -6); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(-28, -10); ctx.lineTo(-24, 0); ctx.lineTo(-28, 10); ctx.fill();
+            
+            ctx.fillStyle = '#000'; ctx.fillRect(8, -4, 2, 2);
+            ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.moveTo(10, 5); ctx.lineTo(20, 5); ctx.lineTo(15, 0); ctx.fill();
+        }
+        else if (obj.type === 'motorboat') {
+            let scale = Math.max(0.1, 1000 / (obj.z + 100));
+            ctx.scale(scale, scale);
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath(); ctx.moveTo(-30, -5); ctx.lineTo(30, -5); ctx.lineTo(20, 5); ctx.lineTo(-20, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+            
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(-10, -15, 20, 10); ctx.strokeRect(-10, -15, 20, 10);
+            
+            ctx.fillStyle = '#FF4500';
+            ctx.fillRect(-25, -2, 50, 2);
+            
+            if (obj.crashed && obj.speechTimer > 0) {
+                ctx.fillStyle = '#FFF'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.rect(-20, -40, 40, 18); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(5, -15); ctx.lineTo(10, -22); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#000'; ctx.font = 'bold 12px Arial'; ctx.fillText('!#@*%', -16, -27);
+            } else if (!obj.crashed) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.beginPath(); ctx.arc(-30, 5, Math.random()*5+2, 0, Math.PI*2); ctx.fill();
+            }
+        }
         else if (obj.type === 'pigeon_poop') {
             ctx.fillStyle = '#E8E8E8';
             ctx.beginPath();
@@ -730,39 +783,32 @@ function drawFlyingObjects() {
             ctx.fill();
         }
         else if (['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'].includes(obj.type)) {
-           if (obj.type === 'car' || obj.type === 'taxi' || obj.type === 'uber') {
-                // Karosserie
+            if (obj.type === 'car' || obj.type === 'taxi' || obj.type === 'uber') {
                 ctx.fillStyle = obj.type === 'taxi' ? '#FFFFFF' : (obj.type === 'uber' ? '#111111' : (obj.color || '#B22222'));
                 ctx.fillRect(0, -20, 50, 15); 
-                // Dach
                 ctx.fillRect(10, -30, 30, 10); 
                 
-                // Fenster
                 ctx.fillStyle = '#ADD8E6';
                 ctx.fillRect(12, -28, 10, 8);
                 ctx.fillRect(28, -28, 10, 8);
 
-                // Räder
                 ctx.fillStyle = '#111';
                 ctx.beginPath(); ctx.arc(10, -5, 6, 0, Math.PI * 2); ctx.fill();
                 ctx.beginPath(); ctx.arc(40, -5, 6, 0, Math.PI * 2); ctx.fill();
                 
-                // Pariser Taxi Spezifikationen
                 if (obj.type === 'taxi') {
-                    // Leuchtschild
                     ctx.fillStyle = '#FFD700';
                     ctx.fillRect(20, -38, 10, 8);
                     ctx.fillStyle = '#000';
                     ctx.font = 'bold 8px Arial';
                     ctx.fillText('TAXI', 21, -31);
                     
-                    // Seitenstreifen (typisch schwarz/weiß Schachbrettmuster-Andeutung)
                     ctx.fillStyle = '#000';
                     ctx.fillRect(5, -18, 5, 3);
                     ctx.fillRect(15, -18, 5, 3);
                     ctx.fillRect(40, -18, 5, 3);
                 }
-            }
+            } 
             else if (obj.type === 'snowcat') {
                 ctx.fillStyle = '#A9A9A9';
                 ctx.beginPath();
