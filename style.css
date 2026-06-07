@@ -45,50 +45,6 @@ canvas {
     box-sizing: border-box;
     z-index: 30;
 }
-
-/* Touch Controls Layout komplett ueberarbeitet */
-#touch-controls {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 60px; /* Feste, kleine Hoehe am unteren Rand */
-    pointer-events: none; /* Container fängt keine Klicks */
-    display: flex;
-    z-index: 40; /* Ueber dem UI-Layer */
-    justify-content: space-between;
-    padding: 0 5px 5px 5px;
-    box-sizing: border-box;
-}
-
-.touch-zone {
-    flex: 1;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 5px;
-    pointer-events: none;
-}
-
-#zone-left {
-    margin-right: 20px; /* Platz in der Mitte */
-}
-
-.control-box {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: bold;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none; /* Visuelles Element, Touch Logik ist global */
-    text-transform: uppercase;
-}
-
 #fullscreen-btn {
     position: absolute;
     top: 15px;
@@ -176,13 +132,6 @@ p {
         right: 90px;
         padding: 4px 8px;
         font-size: 0.8rem;
-    }
-    .control-box {
-        font-size: 0.7rem;
-        padding: 5px;
-    }
-    #touch-controls {
-        height: 45px;
     }
     #credits {
         font-size: 0.7rem;

@@ -3,7 +3,6 @@ ctx = canvas.getContext('2d');
 uiLayer = document.getElementById('ui-layer');
 titleEl = document.getElementById('title');
 instructionEl = document.getElementById('instruction');
-touchControls = document.getElementById('touch-controls');
 fullscreenBtn = document.getElementById('fullscreen-btn');
 headlightBtn = document.getElementById('headlight-btn');
 
@@ -46,10 +45,11 @@ designData = fallbackDesignData;
 loadLevelData(currentLevel);
 
 if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    if (touchControls) touchControls.classList.remove('hidden');
     let kbInst = document.getElementById('keyboard-instructions');
     if (kbInst) kbInst.classList.add('hidden');
 }
+
+let activeTouches = {};
 resizeCanvas();
 
 function checkHeadlight() {
@@ -393,50 +393,60 @@ function handleTouch(e) {
     }
     if (isLevelComplete) return;
 
-    touchBrake = false;
-    touchGas = false;
-    let touchingRear = false;
-    let touchingFront = false;
-
-    const w = window.innerWidth;
-    const q1 = w * 0.25;
-    const q2 = w * 0.50;
-    const q3 = w * 0.75;
-
-    for (let i = 0; i < e.touches.length; i++) {
-        const t = e.touches[i];
-        if (t.clientX < q1) {
-            touchBrake = true;
-        } else if (t.clientX >= q1 && t.clientX < q2) {
-            touchGas = true;
-        } else if (t.clientX >= q2 && t.clientX < q3) {
-            touchingRear = true;
-        } else if (t.clientX >= q3) {
-            touchingFront = true;
-        }
-    }
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
 
     if (e.type === 'touchstart') {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const t = e.changedTouches[i];
-            if (t.clientX >= q2 && t.clientX < q3) {
-                jump('rear');
-            } else if (t.clientX >= q3) {
-                jump('front');
+            const tx = (t.clientX - rect.left) * scaleX;
+            const ty = (t.clientY - rect.top) * scaleY;
+
+            const distFront = Math.hypot(tx - player.frontWheel.x, ty - player.frontWheel.y);
+            const distRear = Math.hypot(tx - player.rearWheel.x, ty - player.rearWheel.y);
+
+            // Radius von 50 Pixeln stellt die Hitbox um das Rad dar
+            if (distFront < 50) {
+                activeTouches[t.identifier] = { startX: tx, wheel: 'front', isDrag: false };
+            } else if (distRear < 50) {
+                activeTouches[t.identifier] = { startX: tx, wheel: 'rear', isDrag: false };
             }
         }
     }
 
-    const zoneBrake = document.getElementById('zone-brake');
-    const zoneGas = document.getElementById('zone-gas');
-    const zoneRear = document.getElementById('zone-rear');
-    const zoneFront = document.getElementById('zone-front');
+    touchGas = false;
+    touchBrake = false;
 
-    if (zoneBrake) {
-        zoneBrake.classList.toggle('active', touchBrake);
-        zoneGas.classList.toggle('active', touchGas);
-        zoneRear.classList.toggle('active', touchingRear);
-        zoneFront.classList.toggle('active', touchingFront);
+    // Pruefen der aktiven Wisch-Gesten
+    for (let i = 0; i < e.touches.length; i++) {
+        const t = e.touches[i];
+        const data = activeTouches[t.identifier];
+        if (data) {
+            const tx = (t.clientX - rect.left) * scaleX;
+            const dx = tx - data.startX;
+
+            // Toleranz-Wert zur Unterscheidung von Tippen und Ziehen
+            if (Math.abs(dx) > 10) {
+                data.isDrag = true;
+            }
+
+            if (data.wheel === 'front' && dx > 10) touchGas = true;
+            if (data.wheel === 'rear' && dx < -10) touchBrake = true;
+        }
+    }
+
+    if (e.type === 'touchend' || e.type === 'touchcancel') {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            const data = activeTouches[t.identifier];
+            if (data) {
+                if (!data.isDrag && !isCrashing) {
+                    jump(data.wheel);
+                }
+                delete activeTouches[t.identifier];
+            }
+        }
     }
 
     if (e.cancelable) e.preventDefault();
