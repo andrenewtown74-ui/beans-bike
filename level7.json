@@ -1,5 +1,5 @@
 [
-    { "id": 0, "spawnDistance": 225, "type": "motorboat", "speed": 2.0 }, 
+    { "id": 0, "spawnDistance": 350, "type": "motorboat", "speed": 2.0 }, 
     { "id": 1, "spawnDistance": 300, "type": "water", "width": 250 },
     { "id": 2, "spawnDistance": 380, "type": "shark", "speed": 1.5 },
     { "id": 3, "spawnDistance": 800, "type": "pelican", "spawnY": 40, "speed": 1.5 },
