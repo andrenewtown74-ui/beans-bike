@@ -58,58 +58,6 @@ function getObstacleSurface(x, obs) {
     if (obs.type === 'water') {
         let progress = (x - obs.x) / obs.width;
         let tY = getTerrainY(worldDistance + x);
-        // Tiefe auf 40 Pixel reduziert (statt 70), damit man nicht zu tief sinkt
-        let dip = Math.sin(progress * Math.PI) * 40; 
-        return tY + dip; 
-    }
-    if (obs.type === 'liana_bridge') {
-        let progress = (x - obs.x) / obs.width;
-        if (progress < 0.05 || progress > 0.95) return 1000;
-        let tY = getTerrainY(worldDistance + x);
-        return tY + Math.sin(progress * Math.PI) * obs.height;
-    }
-    if (obs.type === 'chasm' || obs.type === 'lava') {
-        return 1000; 
-    }
-    if (obs.type === 'mud' || obs.type === 'poop_splat') {
-        return getTerrainY(worldDistance + x); 
-    }
-    return null;
-}
-
-function getObstacleSurface(x, obs) {
-    if (x < obs.x || x > obs.x + obs.width) return null;
-    
-    if (obs.type === 'block' || obs.type === 'ice_block') return obs.baseY; 
-    
-    if (obs.type === 'ramp') {
-        let progress = (x - obs.x) / obs.width;
-        let tY = getTerrainY(worldDistance + x);
-        return tY - (progress * obs.height);
-    }
-    if (obs.type === 'round') {
-        let radius = obs.width / 2;
-        let cx = obs.x + radius;
-        let dx = x - cx;
-        let dy = obs.height * Math.sqrt(Math.max(0, 1 - (dx * dx) / (radius * radius)));
-        let tY = getTerrainY(worldDistance + x);
-        return tY - dy;
-    }
-    if (obs.type === 'hill') {
-        let progress = (x - obs.x) / obs.width;
-        let dy = Math.sin(progress * Math.PI) * obs.height;
-        let tY = getTerrainY(worldDistance + x);
-        return tY - dy;
-    }
-    if (obs.type === 'crater') {
-        let progress = (x - obs.x) / obs.width;
-        let dy = Math.sin(progress * Math.PI) * obs.height;
-        let tY = getTerrainY(worldDistance + x);
-        return tY + dy; 
-    }
-    if (obs.type === 'water') {
-        let progress = (x - obs.x) / obs.width;
-        let tY = getTerrainY(worldDistance + x);
         let dip = Math.sin(progress * Math.PI) * 60; 
         return tY + dip; 
     }
