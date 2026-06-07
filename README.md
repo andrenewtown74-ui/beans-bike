@@ -33,7 +33,6 @@ Das Spiel erkennt automatisch, ob es auf einem Touch-Gerät oder am PC gespielt 
 ## Entwickler-Cheats (Nur Tastatur)
 Zum einfachen Testen der Level gibt es versteckte Cheats:
 * **Tasten 1 bis 6:** Sofortiger Sprung in das jeweilige Level (1 = Wald, 6 = Paris).
-* **Taste I:** God-Mode (Unverwundbarkeit) an/ausschalten. Fahrzeuge und Hindernisse können durchfahren werden (ausgenommen tiefe Abgründe).
 
 ## Installation / Ausführung
 Das Spiel benötigt keinen dedizierten lokalen Webserver für die Grundfunktionen. Die Datei `index.html` kann direkt in einem modernen Webbrowser (Desktop oder Mobile) geöffnet werden. Für die Speicherung und den Abruf des Highscores ist eine aktive Internetverbindung zur Firebase-Datenbank erforderlich.
