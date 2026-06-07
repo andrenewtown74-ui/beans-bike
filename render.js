@@ -47,13 +47,13 @@ function drawEnvironment(moveScale) {
                 ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
                 ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
-            } else if (bg.type === 'palm_tree') {
+           } else if (bg.type === 'palm_tree') {
                 ctx.fillStyle = bg.color1 || '#8B4513';
                 ctx.beginPath();
-                ctx.moveTo(bg.x + bg.width/2 - 4, horizon + 5);
+                ctx.moveTo(bg.x + bg.width/2 - 4, canvas.height); 
                 ctx.quadraticCurveTo(bg.x + bg.width/2 + 8, horizon - bg.height/2, bg.x + bg.width/2, horizon - bg.height);
                 ctx.lineTo(bg.x + bg.width/2 + 6, horizon - bg.height);
-                ctx.quadraticCurveTo(bg.x + bg.width/2 + 15, horizon - bg.height/2, bg.x + bg.width/2 + 4, horizon + 5);
+                ctx.quadraticCurveTo(bg.x + bg.width/2 + 15, horizon - bg.height/2, bg.x + bg.width/2 + 4, canvas.height); 
                 ctx.fill();
 
                 ctx.fillStyle = bg.color2 || '#228B22';

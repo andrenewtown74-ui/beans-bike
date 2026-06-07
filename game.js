@@ -659,7 +659,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     spawnX = canvas.width + 50;
                 } else if (nextObs.type === 'motorboat') {
                     startY = getHorizonY();
-                    spawnX = player.targetBikeX + 100 + Math.random() * 80;
+                    spawnX = canvas.width; 
                     vxVal = 0;
                     vyVal = 0;
                     zVal = 1000;

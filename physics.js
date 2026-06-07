@@ -161,6 +161,7 @@ function updateWheel(wheel, timeScale) {
         wheel.isJumping = false; 
     }
 }
+
 function handleFrameCollision(timeScale) {
     let isScraping = false;
     let maxPenetration = 0;
@@ -172,7 +173,8 @@ function handleFrameCollision(timeScale) {
         let ty = getTerrainY(worldDistance + px);
         let overChasm = false;
         for (let obs of obstacles) {
-            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
+            // Wasser ist hier hinzugefuegt worden, damit der Rahmen im Wasser nicht kollidiert
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge' || obs.type === 'water') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
             if (obs.type === 'crater' && px >= obs.x && px <= obs.x + obs.width) {
                 let craterSur = getObstacleSurface(px, obs);
                 if (craterSur !== null) ty = craterSur;
@@ -442,7 +444,7 @@ function updateFlyingObjects(timeScale, moveScale) {
         if (obj.type === 'motorboat') {
             if (!obj.crashed) {
                 obj.z -= 6 * obj.speed * timeScale; 
-                obj.x -= (gameSpeed * moveScale * 0.1); 
+                obj.x -= gameSpeed * moveScale; 
                 
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
                 let horizonY = getHorizonY();
