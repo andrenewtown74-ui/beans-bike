@@ -13,15 +13,19 @@
         <div id="msg-box" class="hidden"></div>
         <div id="ui-layer">
             <h1 id="title">Bohnen-Bike</h1>
-            <p id="instruction">Klick / Touch um Musikplayer zu aktivieren</p>            
+            
+            <p id="instruction" class="hidden"></p>            
+            
+            <div id="start-menu-buttons">
+                <button id="btn-start-game" class="menu-btn">Spiel Starten</button>
+                <button id="btn-toggle-music" class="menu-btn">Musik: AUS</button>
+                <button id="btn-show-highscores" class="menu-btn">Top 20 Highscore</button>
+            </div>
+            
             <div id="keyboard-instructions">
                 <p><b>Steuerung:</b></p>
                 <p><b>A / D</b> oder <b>Pfeiltasten</b>: Bremsen / Beschleunigen</p>
                 <p><b>N</b>: Hinterrad springen | <b>M</b>: Vorderrad springen</p>
-            </div>
-            <div id="highscore-board">
-                <h3>Top 5 Fahrer</h3>
-                <ul id="highscore-list">Wird geladen...</ul>
             </div>
 
             <div id="credits">
@@ -33,13 +37,20 @@
             </div>
         </div>
 
-        <div id="name-popup" class="hidden">
+        <div id="highscore-popup" class="hidden popup-container">
+            <h2>Top 20 Fahrer</h2>
+            <ul id="full-highscore-list">Wird geladen...</ul>
+            <button id="close-highscore-btn" class="menu-btn" style="margin-top: 15px;">Schließen</button>
+        </div>
+
+        <div id="name-popup" class="hidden popup-container">
             <h2>Neuer Highscore!</h2>
             <p>Du hast <span id="popup-score">0</span> Punkte erreicht.</p>
             <input type="text" id="player-name-input" placeholder="Dein Name" maxlength="15">
             <br>
-            <button id="save-score-btn">Speichern & Neustart</button>
+            <button id="save-score-btn" class="menu-btn">Speichern & Hauptmenü</button>
         </div>
+        
         <button id="headlight-btn">Licht: AUS</button>
         <button id="fullscreen-btn">Vollbild</button>
     </div>

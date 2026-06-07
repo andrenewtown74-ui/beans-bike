@@ -11,6 +11,16 @@ popupScore = document.getElementById('popup-score');
 playerNameInput = document.getElementById('player-name-input');
 saveScoreBtn = document.getElementById('save-score-btn');
 
+// Neue UI Elemente fuer das Menue
+const btnStartGame = document.getElementById('btn-start-game');
+const btnToggleMusic = document.getElementById('btn-toggle-music');
+const btnShowHighscores = document.getElementById('btn-show-highscores');
+const highscorePopup = document.getElementById('highscore-popup');
+const closeHighscoreBtn = document.getElementById('close-highscore-btn');
+const fullHighscoreList = document.getElementById('full-highscore-list');
+
+let isMenuMusicPlaying = false;
+
 window.weatherParticles = window.weatherParticles || [];
 window.rainParticles = window.rainParticles || [];
 
@@ -39,7 +49,7 @@ const fallbackDesignData = {
 };
 
 let isLoadingData = false;
-window.hasInteracted = false; // NEU: Merkt sich, ob der Spieler schon geklickt hat
+window.hasInteracted = false; 
 
 designData = fallbackDesignData;
 loadLevelData(currentLevel);
@@ -67,6 +77,59 @@ if (headlightBtn) {
         e.stopPropagation();
         isHeadlightOn = !isHeadlightOn;
         headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
+    });
+}
+
+// Event-Listener fuer Hauptmenue-Buttons
+if (btnStartGame) {
+    btnStartGame.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof initAudio === 'function') initAudio();
+        if (typeof stopMenuMusic === 'function') stopMenuMusic();
+        isMenuMusicPlaying = false;
+        btnToggleMusic.innerText = "Musik: AUS";
+        window.hasInteracted = false;
+        document.getElementById('start-menu-buttons').classList.add('hidden');
+        startNewGame();
+    });
+}
+
+if (btnToggleMusic) {
+    btnToggleMusic.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isMenuMusicPlaying) {
+            if (typeof initAudio === 'function') initAudio();
+            if (typeof playMenuMusic === 'function') playMenuMusic();
+            isMenuMusicPlaying = true;
+            btnToggleMusic.innerText = "Musik: AN";
+            window.hasInteracted = true;
+        } else {
+            if (typeof stopMenuMusic === 'function') stopMenuMusic();
+            isMenuMusicPlaying = false;
+            btnToggleMusic.innerText = "Musik: AUS";
+            window.hasInteracted = false; 
+        }
+    });
+}
+
+if (btnShowHighscores) {
+    btnShowHighscores.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        isPopupOpen = true; 
+        highscorePopup.classList.remove('hidden');
+        fetchTop20Highscores();
+    });
+}
+
+if (closeHighscoreBtn) {
+    closeHighscoreBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        highscorePopup.classList.add('hidden');
+        isPopupOpen = false;
     });
 }
 
@@ -132,6 +195,24 @@ function initBackground() {
             });
         }
     });
+}
+
+function showMainMenu() {
+    isGameRunning = false;
+    window.hasInteracted = false;
+    isMenuMusicPlaying = false;
+    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+    if (btnToggleMusic) btnToggleMusic.innerText = "Musik: AUS";
+    
+    titleEl.innerText = "Bohnen-Bike";
+    instructionEl.classList.add('hidden');
+    document.getElementById('start-menu-buttons').classList.remove('hidden');
+    uiLayer.classList.remove('hidden');
+    
+    player.rearWheel.y = getTerrainY(30);
+    player.frontWheel.y = getTerrainY(90);
+    cancelAnimationFrame(animationFrameId);
+    requestAnimationFrame(idleLoop);
 }
 
 async function startNewGame() {
@@ -294,29 +375,15 @@ function respawnPlayer() {
 function handleInputEvent() {
     if (isPopupOpen) return false; 
 
-    // 1. Klick: Musik aktivieren, Spiel noch NICHT starten
-    if (!window.hasInteracted && !isGameRunning) {
-        window.hasInteracted = true;
-        
-        // NEU: Aufruf der sequenziellen Playlist-Funktion
-        if (typeof playMenuMusic === 'function') {
-            playMenuMusic();
-        }
-        
-        // Text anpassen, um zu zeigen, dass das Spiel jetzt startklar ist
-        if (instructionEl) {
-            instructionEl.innerText = "Musik laeuft! Klick / Touch fuer Spielstart";
-        }
-        return true; 
-    }
-
-    // 2. Klick: Spiel starten
     if (typeof initAudio === 'function') initAudio();
+    
     if (isGameOver) {
+        instructionEl.classList.add('hidden');
         handleGameOverRestart();
         return true;
     }
     if (isLevelComplete && bikeStopped) {
+        instructionEl.classList.add('hidden');
         if (currentLevel >= 6) { 
             startNewGame();
         } else {
@@ -324,11 +391,8 @@ function handleInputEvent() {
         }
         return true;
     }
-    if (!isGameRunning) {
-        if (typeof stopMenuMusic === 'function') stopMenuMusic();
-        startNewGame();
-        return true;
-    }
+    
+    // Globale Klicks auf der Startseite starten das Spiel nicht mehr
     return false;
 }
 
@@ -352,19 +416,19 @@ function jump(wheel) {
 
 window.addEventListener('keydown', function(e) {
     if (isPopupOpen) return; 
-// --- CHEAT / DEV-MODUS ---
-    // Mit den Tasten 1 bis 6 direkt in das jeweilige Level springen
+
+    // --- CHEAT / DEV-MODUS ---
     if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].includes(e.code)) {
         currentLevel = parseInt(e.key);
         levelStartScore = score; 
-        
-        // Lade die neuen Level-Daten und starte direkt neu
+        document.getElementById('start-menu-buttons').classList.add('hidden');
         loadLevelData(currentLevel).then(function() {
             restartLevel();
         });
         e.preventDefault();
         return;
     }
+    
     if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
         if (handleInputEvent()) { e.preventDefault(); return; }
     }
@@ -387,11 +451,12 @@ function handleTouch(e) {
     if (isPopupOpen) return; 
 
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
+    
     if (handleInputEvent()) {
         if (e.cancelable) e.preventDefault();
         return;
     }
-    if (isLevelComplete) return;
+    if (isLevelComplete || !isGameRunning) return;
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -406,7 +471,6 @@ function handleTouch(e) {
             const distFront = Math.hypot(tx - player.frontWheel.x, ty - player.frontWheel.y);
             const distRear = Math.hypot(tx - player.rearWheel.x, ty - player.rearWheel.y);
 
-            // Radius von 50 Pixeln stellt die Hitbox um das Rad dar
             if (distFront < 50) {
                 activeTouches[t.identifier] = { startX: tx, wheel: 'front', isDrag: false };
             } else if (distRear < 50) {
@@ -418,7 +482,6 @@ function handleTouch(e) {
     touchGas = false;
     touchBrake = false;
 
-    // Pruefen der aktiven Wisch-Gesten
     for (let i = 0; i < e.touches.length; i++) {
         const t = e.touches[i];
         const data = activeTouches[t.identifier];
@@ -426,7 +489,6 @@ function handleTouch(e) {
             const tx = (t.clientX - rect.left) * scaleX;
             const dx = tx - data.startX;
 
-            // Toleranz-Wert zur Unterscheidung von Tippen und Ziehen
             if (Math.abs(dx) > 10) {
                 data.isDrag = true;
             }
@@ -463,7 +525,7 @@ window.addEventListener('mousedown', function(e) {
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
 
     if (handleInputEvent()) return;
-    if (isLevelComplete) return;
+    if (isLevelComplete || !isGameRunning) return;
 
     const w = window.innerWidth;
     const q2 = w * 0.50;
@@ -471,12 +533,8 @@ window.addEventListener('mousedown', function(e) {
 
     if (e.clientX >= q2 && e.clientX < q3) {
         jump('rear');
-        const z = document.getElementById('zone-rear');
-        if(z) { z.classList.add('active'); setTimeout(() => z.classList.remove('active'), 150); }
     } else if (e.clientX >= q3) {
         jump('front');
-        const z = document.getElementById('zone-front');
-        if(z) { z.classList.add('active'); setTimeout(() => z.classList.remove('active'), 150); }
     }
 });
 
@@ -610,6 +668,7 @@ function gameLoop(timestamp) {
             showNamePopup();
         } else if (!isPopupOpen) {
             instructionEl.innerText = "Punkte: " + score + " | KLICK fuer Neustart";
+            instructionEl.classList.remove('hidden');
             uiLayer.classList.remove('hidden');
         }
         return;
@@ -643,7 +702,6 @@ function gameLoop(timestamp) {
             if (player.rearWheel.onUphillLiana && !isAccelerating) {
                 player.targetBikeX -= 3.5 * timeScale;
             } else if (onPoop) {
-                // Extremes Rutschen durch Tauben-Dreck
                 player.targetBikeX -= 4.5 * timeScale;
                 if (Math.random() < 0.1 && typeof playSqueal === 'function') playSqueal();
             } else if (onMud) {
@@ -672,17 +730,19 @@ function gameLoop(timestamp) {
                     if (typeof playFanfare === 'function') playFanfare();
                     hasPlayedFanfare = true;
                     
-                    if (currentLevel >= 6) { // Sieg-Bedingung auf Level 6 erhoeht
+                    if (currentLevel >= 6) { 
                         titleEl.innerText = "Herzlichen Glückwunsch!";
                         if (!window.scoreSubmitted && score > 0) {
                             showNamePopup();
                         } else if (!isPopupOpen) {
-                            instructionEl.innerText = "Spiel durchgespielt! Klick fuer einen Neustart.";
+                            instructionEl.innerText = "Spiel durchgespielt! Klick fuer Neustart.";
+                            instructionEl.classList.remove('hidden');
                             uiLayer.classList.remove('hidden');
                         }
                     } else {
                         titleEl.innerText = `Level ${currentLevel} Geschafft!`;
                         instructionEl.innerText = "Klick / Touch fuer naechstes Level";
+                        instructionEl.classList.remove('hidden');
                         uiLayer.classList.remove('hidden');
                     }
                 }
@@ -939,33 +999,39 @@ function playYell() {
     } catch(e) {}
 }
 
-function fetchHighscores() {
-    const listEl = document.getElementById('highscore-list');
-    if (!listEl || !db) return;
+function fetchTop20Highscores() {
+    if (!fullHighscoreList || !db) return;
+    
+    fullHighscoreList.innerHTML = '<li>Lade Highscores...</li>';
 
     db.collection("highscores")
       .orderBy("score", "desc")
-      .limit(5)
+      .limit(20)
       .get()
       .then(function(querySnapshot) {
-          listEl.innerHTML = '';
+          fullHighscoreList.innerHTML = '';
+          let rank = 1;
           querySnapshot.forEach(function(doc) {
               let data = doc.data();
               let li = document.createElement('li');
               
               let nameSpan = document.createElement('span');
-              nameSpan.innerText = data.name;
+              nameSpan.innerText = rank + ". " + data.name;
               
               let scoreSpan = document.createElement('span');
               scoreSpan.innerText = data.score;
               
               li.appendChild(nameSpan);
               li.appendChild(scoreSpan);
-              listEl.appendChild(li);
+              fullHighscoreList.appendChild(li);
+              rank++;
           });
+          if (fullHighscoreList.innerHTML === '') {
+              fullHighscoreList.innerHTML = '<li>Noch keine Eintraege.</li>';
+          }
       })
       .catch(function(error) {
-          listEl.innerHTML = '<li>Fehler beim Laden</li>';
+          fullHighscoreList.innerHTML = '<li>Fehler beim Laden</li>';
       });
 }
 
@@ -986,7 +1052,7 @@ async function saveHighscore(playerName, finalScore) {
         ip: playerIP,
         date: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
-        fetchHighscores();
+        // Erfolgreich gespeichert, Liste wird beim oeffnen neu geladen
     }).catch(function(error) {
         console.error("Fehler beim Speichern in Firebase:", error);
     });
@@ -1015,19 +1081,15 @@ if (saveScoreBtn) {
         saveHighscore(pName.substring(0, 15), score);
         
         namePopup.classList.add('hidden');
-        instructionEl.classList.remove('hidden');
         playerNameInput.value = '';
         isPopupOpen = false;
         
-        startNewGame(); 
+        showMainMenu(); 
     });
 }
 
-fetchHighscores();
-
-// NEUER CODE - Idle-Loop für die Startseite
 function idleLoop(timestamp) {
-    if (isGameRunning) return; // Stoppt die Schleife, sobald das Spiel startet
+    if (isGameRunning) return; 
     
     if (typeof drawEnvironment === 'function') drawEnvironment(0);
     if (typeof drawPlayer === 'function') drawPlayer();
@@ -1035,9 +1097,7 @@ function idleLoop(timestamp) {
     requestAnimationFrame(idleLoop);
 }
 
-// Initiale Position für die Startseite setzen, damit das Fahrrad nicht in der Luft hängt
 player.rearWheel.y = getTerrainY(30);
 player.frontWheel.y = getTerrainY(90);
 
-// Startbildschirm-Animation starten
 requestAnimationFrame(idleLoop);
