@@ -12,7 +12,7 @@
         "frequency1": 0.002,
         "amplitude2": 15,
         "frequency2": 0.005,
-        "baseGroundY": 175,
+        "baseGroundY": 130,
         "levelDistance": 8000
     },
     "objects": [

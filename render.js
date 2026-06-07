@@ -165,7 +165,7 @@ function drawEnvironment(moveScale) {
             ty = canvas.height + 10;
         } else if (isWater) {
             let progress = (x - waterObs.x) / waterObs.width;
-            ty = getTerrainY(worldDistance + x) + 5 + Math.sin(progress * Math.PI) * 70;
+            ty = getTerrainY(worldDistance + x) + 5 + Math.sin(progress * Math.PI) * 60;
         } else {
             ty = getTerrainY(worldDistance + x) + 5;
         }
@@ -192,7 +192,7 @@ function drawEnvironment(moveScale) {
             let ty;
             if (isWater) {
                 let progress = (x - waterObs.x) / waterObs.width;
-                ty = getTerrainY(worldDistance + x) + 5 + Math.sin(progress * Math.PI) * 70;
+                ty = getTerrainY(worldDistance + x) + 5 + Math.sin(progress * Math.PI) * 60;
             } else {
                 ty = getTerrainY(worldDistance + x) + 5;
             }
@@ -219,7 +219,7 @@ function drawEnvironment(moveScale) {
             for(let j=obs.width; j>=0; j-=5) {
                 let wX = obs.x + j;
                 let progress = j / obs.width;
-                let floor = getTerrainY(worldDistance + wX) + 5 + Math.sin(progress * Math.PI) * 70;
+                let floor = getTerrainY(worldDistance + wX) + 5 + Math.sin(progress * Math.PI) * 60;
                 ctx.lineTo(wX, floor);
             }
             ctx.fill();
@@ -235,7 +235,6 @@ function drawEnvironment(moveScale) {
         }
     }
 }
-// ... restliche Funktionen (drawWeather, drawCrashBean, etc.) bleiben unverändert.
 
 function drawWeather(timeScale) {
     if (!designData || !designData.theme || !designData.theme.weather) return;

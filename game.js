@@ -768,11 +768,11 @@ function gameLoop(timestamp) {
                 }
             } else if (inWater) {
                 if (isAccelerating) {
-                    player.targetBikeX += 0.8 * timeScale; 
+                    player.targetBikeX += 1.5 * timeScale; 
                 } else if (isBraking) {
-                    player.targetBikeX -= 3.0 * timeScale;
+                    player.targetBikeX -= 1.5 * timeScale; 
                 } else {
-                    player.targetBikeX -= 1.0 * timeScale; 
+                    player.targetBikeX -= 0.5 * timeScale; 
                 }
             } else {
                 if (isAccelerating) {
