@@ -154,10 +154,21 @@ function drawEnvironment(moveScale) {
     
     for (let x = 0; x <= canvas.width; x += 5) {
         let isChasm = false;
+        let isWater = false;
+        let waterObs = null;
         for (let obs of obstacles) {
-            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if (obs.type === 'water' && x >= obs.x && x <= obs.x + obs.width) { isWater = true; waterObs = obs; }
         }
-        let ty = isChasm ? canvas.height + 10 : getTerrainY(worldDistance + x) + 5;
+        let ty;
+        if (isChasm) {
+            ty = canvas.height + 10;
+        } else if (isWater) {
+            let progress = (x - waterObs.x) / waterObs.width;
+            ty = getTerrainY(worldDistance + x) + 5 + Math.sin(progress * Math.PI) * 70;
+        } else {
+            ty = getTerrainY(worldDistance + x) + 5;
+        }
         ctx.lineTo(x, ty);
     }
     
@@ -171,11 +182,20 @@ function drawEnvironment(moveScale) {
     
     for (let x = 0; x <= canvas.width; x += 5) {
         let isChasm = false;
+        let isWater = false;
+        let waterObs = null;
         for (let obs of obstacles) {
-            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && x >= obs.x && x <= obs.x + obs.width) isChasm = true;
+            if (obs.type === 'water' && x >= obs.x && x <= obs.x + obs.width) { isWater = true; waterObs = obs; }
         }
         if (!isChasm) {
-            let ty = getTerrainY(worldDistance + x) + 5;
+            let ty;
+            if (isWater) {
+                let progress = (x - waterObs.x) / waterObs.width;
+                ty = getTerrainY(worldDistance + x) + 5 + Math.sin(progress * Math.PI) * 70;
+            } else {
+                ty = getTerrainY(worldDistance + x) + 5;
+            }
             if (!isDrawing) { ctx.moveTo(x, ty); isDrawing = true; }
             else { ctx.lineTo(x, ty); }
         } else {
@@ -183,6 +203,28 @@ function drawEnvironment(moveScale) {
         }
     }
     ctx.stroke();
+
+    ctx.fillStyle = 'rgba(0, 150, 255, 0.6)';
+    for (let obs of obstacles) {
+        if (obs.type === 'water') {
+            ctx.beginPath();
+            let startY = getTerrainY(worldDistance + obs.x) + 5;
+            ctx.moveTo(obs.x, startY);
+            for(let j=0; j<=obs.width; j+=5) {
+                let wX = obs.x + j;
+                let wave = Math.sin(performance.now()*0.005 + j*0.05)*3;
+                let baseLevel = getTerrainY(worldDistance + wX) + 5;
+                ctx.lineTo(wX, baseLevel + wave);
+            }
+            for(let j=obs.width; j>=0; j-=5) {
+                let wX = obs.x + j;
+                let progress = j / obs.width;
+                let floor = getTerrainY(worldDistance + wX) + 5 + Math.sin(progress * Math.PI) * 70;
+                ctx.lineTo(wX, floor);
+            }
+            ctx.fill();
+        }
+    }
 
     if (finishLineActive) {
         if (moveScale) finishLineX -= gameSpeed * moveScale;
@@ -193,6 +235,7 @@ function drawEnvironment(moveScale) {
         }
     }
 }
+// ... restliche Funktionen (drawWeather, drawCrashBean, etc.) bleiben unverändert.
 
 function drawWeather(timeScale) {
     if (!designData || !designData.theme || !designData.theme.weather) return;

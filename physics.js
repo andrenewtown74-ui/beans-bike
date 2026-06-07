@@ -55,13 +55,19 @@ function getObstacleSurface(x, obs) {
         let tY = getTerrainY(worldDistance + x);
         return tY + dy; 
     }
+    if (obs.type === 'water') {
+        let progress = (x - obs.x) / obs.width;
+        let tY = getTerrainY(worldDistance + x);
+        let dip = Math.sin(progress * Math.PI) * 70;
+        return tY + dip; 
+    }
     if (obs.type === 'liana_bridge') {
         let progress = (x - obs.x) / obs.width;
         if (progress < 0.05 || progress > 0.95) return 1000;
         let tY = getTerrainY(worldDistance + x);
         return tY + Math.sin(progress * Math.PI) * obs.height;
     }
-    if (obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water') {
+    if (obs.type === 'chasm' || obs.type === 'lava') {
         return 1000; 
     }
     if (obs.type === 'mud' || obs.type === 'poop_splat') {
@@ -77,14 +83,20 @@ function updateWheel(wheel, timeScale) {
     let currentSurface = getTerrainY(worldDistance + wheel.x);
     wheel.isHittingWall = false;
     wheel.onUphillLiana = false;
+    wheel.inWater = false;
+    let waterSurfaceY = currentSurface;
     let onRamp = false;
     let overChasm = false;
 
     for (let obs of obstacles) {
         let surface = getObstacleSurface(wheel.x, obs);
         if (surface !== null) {
-            if (obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water') {
+            if (obs.type === 'chasm' || obs.type === 'lava') {
                 overChasm = true;
+                currentSurface = surface;
+            } else if (obs.type === 'water') {
+                wheel.inWater = true;
+                waterSurfaceY = getTerrainY(worldDistance + wheel.x); 
                 currentSurface = surface;
             } else if (obs.type === 'crater' || obs.type === 'mud' || obs.type === 'poop_splat') {
                 currentSurface = surface;
@@ -132,6 +144,24 @@ function updateWheel(wheel, timeScale) {
     } else {
         wheel.onSurface = false; 
     }
+
+    if (wheel.inWater && wheel.y > waterSurfaceY) {
+        let depth = wheel.y - waterSurfaceY;
+        wheel.vy -= depth * 0.02 * timeScale; 
+        wheel.vy *= 0.90; 
+        
+        let isRear = (wheel === player.rearWheel);
+        let isFront = (wheel === player.frontWheel);
+        
+        if (isRear && (keys.rearJump || (typeof touchRearJump !== 'undefined' && touchRearJump))) {
+            wheel.vy -= 0.8 * timeScale;
+        }
+        if (isFront && (keys.frontJump || (typeof touchFrontJump !== 'undefined' && touchFrontJump))) {
+            wheel.vy -= 0.8 * timeScale;
+        }
+        
+        wheel.isJumping = false; 
+    }
 }
 
 function handleFrameCollision(timeScale) {
@@ -145,7 +175,7 @@ function handleFrameCollision(timeScale) {
         let ty = getTerrainY(worldDistance + px);
         let overChasm = false;
         for (let obs of obstacles) {
-            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'water' || obs.type === 'liana_bridge') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
+            if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
             if (obs.type === 'crater' && px >= obs.x && px <= obs.x + obs.width) {
                 let craterSur = getObstacleSurface(px, obs);
                 if (craterSur !== null) ty = craterSur;
@@ -265,7 +295,7 @@ function updateCrashAnimation(timeScale) {
         gameOverTimer += timeScale * 16.66;
         if (gameOverTimer > 1200) {
             if (lives > 0) {
-                respawnPlayer();
+                if (typeof respawnPlayer === 'function') respawnPlayer();
             } else {
                 isGameOver = true;
             }

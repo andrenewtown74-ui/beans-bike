@@ -11,7 +11,6 @@ popupScore = document.getElementById('popup-score');
 playerNameInput = document.getElementById('player-name-input');
 saveScoreBtn = document.getElementById('save-score-btn');
 
-// Neue UI Elemente fuer das Menue
 const btnStartGame = document.getElementById('btn-start-game');
 const btnToggleMusic = document.getElementById('btn-toggle-music');
 const btnShowHighscores = document.getElementById('btn-show-highscores');
@@ -51,6 +50,11 @@ const fallbackDesignData = {
 let isLoadingData = false;
 window.hasInteracted = false; 
 
+keys.rearJump = false;
+keys.frontJump = false;
+let touchRearJump = false;
+let touchFrontJump = false;
+
 designData = fallbackDesignData;
 loadLevelData(currentLevel);
 
@@ -80,7 +84,6 @@ if (headlightBtn) {
     });
 }
 
-// Event-Listener fuer Hauptmenue-Buttons
 if (btnStartGame) {
     btnStartGame.addEventListener('click', function(e) {
         e.preventDefault();
@@ -260,8 +263,12 @@ function restartLevel() {
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
+    keys.rearJump = false;
+    keys.frontJump = false;
     touchGas = false;
     touchBrake = false;
+    touchRearJump = false;
+    touchFrontJump = false;
 
     worldDistance = 0;
     highestScoredObstacle = -1;
@@ -347,8 +354,12 @@ function respawnPlayer() {
 
     keys.up = false;
     keys.down = false;
+    keys.rearJump = false;
+    keys.frontJump = false;
     touchGas = false;
     touchBrake = false;
+    touchRearJump = false;
+    touchFrontJump = false;
 
     obstacles.length = 0;
     nextObstacleIndex = 0;
@@ -395,13 +406,14 @@ function handleInputEvent() {
     }
     if (isLevelComplete && bikeStopped) {
         instructionEl.classList.add('hidden');
-        if (currentLevel >= 7) {  // <-- HIER AUF LEVEL 7 ERHÖHT
+        if (currentLevel >= 7) { 
             startNewGame();
         } else {
             advanceLevel();
         }
         return true;
     }
+    
     return false;
 }
 
@@ -410,23 +422,28 @@ function jump(wheel) {
     if (handleInputEvent()) return;
     if (isLevelComplete || isCrashing) return;
     
-    if (wheel === 'rear' && player.rearWheel.onSurface) {
-        player.rearWheel.vy = player.jumpStrength;
-        player.rearWheel.isJumping = true;
-        player.rearWheel.onSurface = false;
-        if (typeof playJump === 'function') playJump();
-    } else if (wheel === 'front' && player.frontWheel.onSurface) {
-        player.frontWheel.vy = player.jumpStrength;
-        player.frontWheel.isJumping = true;
-        player.frontWheel.onSurface = false;
-        if (typeof playJump === 'function') playJump();
+    if (wheel === 'rear') {
+        if (player.rearWheel.inWater && player.rearWheel.y > getTerrainY(worldDistance + player.rearWheel.x) - 5) return;
+        if (player.rearWheel.onSurface) {
+            player.rearWheel.vy = player.jumpStrength;
+            player.rearWheel.isJumping = true;
+            player.rearWheel.onSurface = false;
+            if (typeof playJump === 'function') playJump();
+        }
+    } else if (wheel === 'front') {
+        if (player.frontWheel.inWater && player.frontWheel.y > getTerrainY(worldDistance + player.frontWheel.x) - 5) return;
+        if (player.frontWheel.onSurface) {
+            player.frontWheel.vy = player.jumpStrength;
+            player.frontWheel.isJumping = true;
+            player.frontWheel.onSurface = false;
+            if (typeof playJump === 'function') playJump();
+        }
     }
 }
 
 window.addEventListener('keydown', function(e) {
     if (isPopupOpen) return; 
 
-    // --- CHEAT / DEV-MODUS ---
     if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7'].includes(e.code)) {
         currentLevel = parseInt(e.key);
         levelStartScore = score; 
@@ -450,22 +467,22 @@ window.addEventListener('keydown', function(e) {
     }
     if (isLevelComplete) return;
 
-    if (e.code === 'KeyN') { jump('rear'); e.preventDefault(); }
-    if (e.code === 'KeyM') { jump('front'); e.preventDefault(); }
+    if (e.code === 'KeyN') { keys.rearJump = true; jump('rear'); e.preventDefault(); }
+    if (e.code === 'KeyM') { keys.frontJump = true; jump('front'); e.preventDefault(); }
     if (e.code === 'KeyD' || e.code === 'ArrowRight') { keys.up = true; e.preventDefault(); }
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.down = true; e.preventDefault(); }
 });
 
 window.addEventListener('keyup', function(e) {
     if (isPopupOpen) return;
-
     if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.up = false;
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.down = false;
+    if (e.code === 'KeyN') keys.rearJump = false;
+    if (e.code === 'KeyM') keys.frontJump = false;
 });
 
 function handleTouch(e) {
     if (isPopupOpen) return; 
-
     if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
     
     if (handleInputEvent()) {
@@ -497,6 +514,8 @@ function handleTouch(e) {
 
     touchGas = false;
     touchBrake = false;
+    touchRearJump = false;
+    touchFrontJump = false;
 
     for (let i = 0; i < e.touches.length; i++) {
         const t = e.touches[i];
@@ -509,8 +528,13 @@ function handleTouch(e) {
                 data.isDrag = true;
             }
 
-            if (data.wheel === 'front' && dx > 10) touchGas = true;
-            if (data.wheel === 'rear' && dx < -10) touchBrake = true;
+            if (data.isDrag) {
+                if (data.wheel === 'front' && dx > 10) touchGas = true;
+                if (data.wheel === 'rear' && dx < -10) touchBrake = true;
+            } else {
+                if (data.wheel === 'front') touchFrontJump = true;
+                if (data.wheel === 'rear') touchRearJump = true;
+            }
         }
     }
 
@@ -594,7 +618,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 let vxVal = -speedVal; 
                 let vyVal = 0;
                 let spawnX = canvas.width + 50;
-                let zVal = 0; // Standard Z-Wert
+                let zVal = 0;
 
                 if (vehicleTypes.includes(nextObs.type)) {
                     spawnX = -150; 
@@ -631,14 +655,14 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 } else if (nextObs.type === 'shark') {
                     startY = canvas.height + 20;
                     vxVal = -gameSpeed * 0.5;
-                    vyVal = -(7 + speedVal); // Hai springt nach oben
+                    vyVal = -(7 + speedVal);
                     spawnX = canvas.width + 50;
                 } else if (nextObs.type === 'motorboat') {
                     startY = getHorizonY();
-                    spawnX = player.targetBikeX + 100 + Math.random() * 80; // Zielt grob auf den Spieler
+                    spawnX = player.targetBikeX + 100 + Math.random() * 80;
                     vxVal = 0;
                     vyVal = 0;
-                    zVal = 1000; // Startet tief in der Z-Achse am Horizont
+                    zVal = 1000;
                 } else {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
@@ -717,6 +741,7 @@ function gameLoop(timestamp) {
             let isAccelerating = keys.up || touchGas;
             let isBraking = keys.down || touchBrake;
 
+            let inWater = player.rearWheel.inWater || player.frontWheel.inWater;
             let onMud = false;
             let onPoop = false;
             for (let obs of obstacles) {
@@ -741,6 +766,14 @@ function gameLoop(timestamp) {
                 } else {
                     player.targetBikeX -= 2.0 * timeScale;
                 }
+            } else if (inWater) {
+                if (isAccelerating) {
+                    player.targetBikeX += 0.8 * timeScale; 
+                } else if (isBraking) {
+                    player.targetBikeX -= 3.0 * timeScale;
+                } else {
+                    player.targetBikeX -= 1.0 * timeScale; 
+                }
             } else {
                 if (isAccelerating) {
                     player.targetBikeX += 2.5 * timeScale;
@@ -759,7 +792,7 @@ function gameLoop(timestamp) {
                     if (typeof playFanfare === 'function') playFanfare();
                     hasPlayedFanfare = true;
                     
-                    if (currentLevel >= 6) { 
+                    if (currentLevel >= 7) { 
                         titleEl.innerText = "Herzlichen Glückwunsch!";
                         if (!window.scoreSubmitted && score > 0) {
                             showNamePopup();
@@ -830,7 +863,7 @@ function gameLoop(timestamp) {
         let obs = obstacles[i];
         obs.x -= gameSpeed * moveScale;
 
-        if (obs.type !== 'chasm' && obs.type !== 'lava' && obs.type !== 'liana_bridge' && obs.type !== 'mud' && obs.type !== 'poop_splat') {
+        if (obs.type !== 'chasm' && obs.type !== 'lava' && obs.type !== 'liana_bridge' && obs.type !== 'mud' && obs.type !== 'poop_splat' && obs.type !== 'water') {
             ctx.fillStyle = obs.color;
             ctx.strokeStyle = '#000';
             ctx.beginPath();
@@ -921,7 +954,7 @@ function gameLoop(timestamp) {
 
         if (!isCrashing && !obs.passed && obs.x + obs.width < player.rearWheel.defaultX) {
             obs.passed = true;
-            if (obs.id > highestScoredObstacle) {
+            if (obs.id > highestScoredObstacle && obs.type !== 'pigeon_poop' && obs.type !== 'water') {
                 score += 1;
                 highestScoredObstacle = obs.id;
                 if (typeof playScore === 'function') playScore();
@@ -1081,7 +1114,6 @@ async function saveHighscore(playerName, finalScore) {
         ip: playerIP,
         date: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
-        // Erfolgreich gespeichert, Liste wird beim oeffnen neu geladen
     }).catch(function(error) {
         console.error("Fehler beim Speichern in Firebase:", error);
     });

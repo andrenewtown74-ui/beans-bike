@@ -7,8 +7,12 @@
         "sun": { "active": true, "color": "#FFD700", "size": 35, "xOffset": 150, "y": 40 }
     },
     "physics": {
-        "terrainType": "flat",
-        "baseGroundY": 185,
+        "terrainType": "wavy",
+        "amplitude1": 25,
+        "frequency1": 0.002,
+        "amplitude2": 15,
+        "frequency2": 0.005,
+        "baseGroundY": 175,
         "levelDistance": 8000
     },
     "objects": [
