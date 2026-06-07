@@ -13,7 +13,7 @@
     { "id": 11, "spawnDistance": 4400, "type": "mud", "width": 200, "height": 5, "color": "#1c140d" },
     { "id": 12, "spawnDistance": 4800, "type": "falling_rock", "speed": 3.5 },
     { "id": 13, "spawnDistance": 5200, "type": "borer", "speed": 1.8 },
-    { "id": 14, "spawnDistance": 5600, "type": "chasm", "width": 150, "height": 0 },
+    { "id": 14, "spawnDistance": 5600, "type": "chasm", "width": 80, "height": 0 },
     { "id": 15, "spawnDistance": 6000, "type": "bat", "speed": 2.5 },
     { "id": 16, "spawnDistance": 6400, "type": "falling_rock", "speed": 4.0 },
     { "id": 17, "spawnDistance": 6800, "type": "borer", "speed": 2.5 },
