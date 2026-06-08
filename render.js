@@ -214,7 +214,7 @@ function drawEnvironment(moveScale) {
                 let swX = obs.x + sw;
                 let progress = sw / obs.width; 
                 let floor = getTerrainY(worldDistance + swX) + 5 + Math.sin(progress * Math.PI) * 60; 
-                let wave = Math.sin(performance.now() * 0.003 + swX) * 8; 
+                let wave = Math.sin(performance.now() * 0.008 + swX) * 8; // Seegras-Bewegung etwas schneller
                 ctx.beginPath();
                 ctx.moveTo(swX, floor);
                 ctx.quadraticCurveTo(swX + wave, floor - 20, swX - wave, floor - 40);
@@ -224,19 +224,16 @@ function drawEnvironment(moveScale) {
             ctx.fillStyle = 'rgba(0, 150, 255, 0.6)';
             ctx.beginPath();
             
-            // Startpunkt der Wasserflaeche INKLUSIVE Wellen-Offset
             let startY = getTerrainY(worldDistance + obs.x) + 5;
-            let waveStart = Math.sin(performance.now()*0.005 + obs.x*0.05)*3;
+            let waveStart = Math.sin(performance.now() * 0.015 + obs.x * 0.05) * 4; // Wasserfaktor auf 0.015 erhoeht
             ctx.moveTo(obs.x, startY + waveStart);
             
-            // Obere Wasserlinie zeichnen (absolutes wX fuer den Sinus)
             for(let j=0; j<=obs.width; j+=5) {
                 let wX = obs.x + j;
-                let wave = Math.sin(performance.now()*0.005 + wX*0.05)*3;
+                let wave = Math.sin(performance.now() * 0.015 + wX * 0.05) * 4; // Wasserfaktor auf 0.015 erhoeht
                 let baseLevel = getTerrainY(worldDistance + wX) + 5;
                 ctx.lineTo(wX, baseLevel + wave);
             }
-            // Bodenverlauf umrunden
             for(let j=obs.width; j>=0; j-=5) {
                 let wX = obs.x + j;
                 let progress = j / obs.width;
@@ -712,8 +709,10 @@ function drawFlyingObjects() {
             ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.moveTo(10, 5); ctx.lineTo(20, 5); ctx.lineTo(15, 0); ctx.fill();
         }
         else if (obj.type === 'motorboat') {
-            let scale = Math.max(0.1, 1000 / (Math.max(0, obj.z) + 200)); 
-            ctx.scale(scale, scale);
+            // Skalierung entfernt, Rotation anhand des Wellengangs eingefuegt
+            if (obj.rotation) {
+                ctx.rotate(obj.rotation);
+            }
             
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath(); ctx.moveTo(-30, -5); ctx.lineTo(30, -5); ctx.lineTo(20, 5); ctx.lineTo(-20, 5); ctx.closePath(); ctx.fill(); ctx.stroke();

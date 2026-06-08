@@ -689,12 +689,9 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     passed: false
                 });
 
+                // --- NEU: WASSER-SYNCHRONISATION ---
                 if (nextObs.type === 'water') {
                     let spawnX = canvas.width + nextObs.width / 2; 
-                    let distToPlayer = spawnX - player.targetBikeX;
-                    
-                    let timeToReach = distToPlayer / gameSpeed; 
-                    let boatVz = 1000 / timeToReach; 
 
                     flyingObjects.push({
                         id: nextObs.id + 10000,
@@ -702,7 +699,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                         y: canvas.height + 50, 
                         vx: 0, 
                         vy: 0,
-                        z: 0,
                         type: 'shark',
                         jumpTriggered: false, 
                         deflected: false, passed: false, crashed: false
@@ -710,12 +706,10 @@ function spawnObstaclesFromData(timeScale, moveScale) {
 
                     flyingObjects.push({
                         id: nextObs.id + 20000,
-                        x: spawnX,
+                        x: spawnX, // Mitte des Wassers
                         y: getHorizonY(),
-                        vx: 0, 
+                        vx: 0, // Fährt mit dem Wasser mit (als Insel)
                         vy: 0,
-                        z: 1000,
-                        vz: boatVz, 
                         type: 'motorboat',
                         crashed: false,
                         speechTimer: 0

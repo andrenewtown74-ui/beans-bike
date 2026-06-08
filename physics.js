@@ -444,24 +444,21 @@ function updateFlyingObjects(timeScale, moveScale) {
 
         if (obj.type === 'motorboat') {
             if (!obj.crashed) {
-                obj.x -= gameSpeed * moveScale; 
-                
-                let currentDist = obj.x - player.targetBikeX;
-                if (obj.startDist > 0) {
-                    obj.z = Math.max(-200, (currentDist / obj.startDist) * 1000);
-                }
+                obj.x -= gameSpeed * moveScale; // Bleibt exakt mittig im Wasser
                 
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
                 
-                // EXAKTE WELLE wie im Wasser-Renderer! Das Boot schwimmt nun perfekt mit.
-                let wave = Math.sin(performance.now() * 0.005 + obj.x * 0.05) * 3; 
+                // Schnellere Welle (Faktor 0.015 statt 0.005)
+                let wave = Math.sin(performance.now() * 0.015 + obj.x * 0.05) * 4; 
                 obj.y = targetY + wave;
+                
+                // Boot schaukeln lassen (Ableitung der Sinuswelle liefert den perfekten Neigungswinkel)
+                obj.rotation = Math.cos(performance.now() * 0.015 + obj.x * 0.05) * 0.15;
 
-                if (obj.z < 25 && obj.z > -15 && !isCrashing && !window.isInvincible) {
-                    let scale = Math.max(0.1, 1000 / (Math.max(0, obj.z) + 200)); 
-                    let boatW = 60 * scale; 
-                    let boatTop = obj.y - (15 * scale); 
-                    let boatBottom = obj.y + (5 * scale); 
+                if (!isCrashing && !window.isInvincible) {
+                    let boatW = 60; // Feste 2D Breite
+                    let boatTop = obj.y - 15; 
+                    let boatBottom = obj.y + 5; 
                     
                     let rx = player.rearWheel.x, ry = player.rearWheel.y;
                     let fx = player.frontWheel.x, fy = player.frontWheel.y;
@@ -469,13 +466,16 @@ function updateFlyingObjects(timeScale, moveScale) {
 
                     let inBoatX = function(x) { return x > obj.x - boatW/2 && x < obj.x + boatW/2; };
 
+                    // 1. DACH-KOLLISION (Plattform-Sprung)
                     if (inBoatX(rx) && ry >= boatTop - 20 && ry <= boatBottom && player.rearWheel.vy >= 0) {
+                        player.rearWheel.y = boatTop;
                         player.rearWheel.vy = player.jumpStrength * 1.5; 
                         player.rearWheel.isJumping = true;
                         player.rearWheel.onSurface = false;
                         onRoof = true;
                     }
                     if (inBoatX(fx) && fy >= boatTop - 20 && fy <= boatBottom && player.frontWheel.vy >= 0) {
+                        player.frontWheel.y = boatTop;
                         player.frontWheel.vy = player.jumpStrength * 1.5;
                         player.frontWheel.isJumping = true;
                         player.frontWheel.onSurface = false;
@@ -490,6 +490,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                         }
                         if (typeof playJump === 'function') playJump();
                     } else {
+                        // 2. FRONTALE KOLLISION (Crash)
                         let hitRear = inBoatX(rx) && ry > boatTop - 5 && ry < boatBottom + 10;
                         let hitFront = inBoatX(fx) && fy > boatTop - 5 && fy < boatBottom + 10;
                         
@@ -505,7 +506,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                 obj.x -= gameSpeed * moveScale;
                 if (obj.speechTimer > 0) obj.speechTimer -= timeScale;
             }
-            if (obj.z < -200 || obj.x < -200) {
+            if (obj.x < -200) {
                 flyingObjects.splice(i, 1);
             }
             continue;
