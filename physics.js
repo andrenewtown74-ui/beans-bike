@@ -446,7 +446,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             if (!obj.crashed) {
                 obj.x -= gameSpeed * moveScale; 
                 
-                // Z-Achse an die Distanz zum Spieler koppeln
                 let currentDist = obj.x - player.targetBikeX;
                 if (obj.startDist > 0) {
                     obj.z = Math.max(-200, (currentDist / obj.startDist) * 1000);
@@ -455,45 +454,56 @@ function updateFlyingObjects(timeScale, moveScale) {
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
                 let horizonY = getHorizonY();
                 let progress = 1 - Math.max(0, Math.min(1, obj.z / 1000));
-                obj.y = horizonY + (targetY - horizonY) * progress;
+                
+                // NEU: Wellen-Physik für das Boot
+                // Wir nehmen den gleichen Welleneffekt, den wir im render.js für das Wasser nutzen
+                let wave = Math.sin(performance.now() * 0.005 + obj.x * 0.05) * 5; 
+                
+                // Boot sitzt nun fest auf dem Wasser-Niveau (targetY), plus Welle
+                obj.y = horizonY + (targetY - horizonY) * progress + wave;
 
-                // Vergroessertes Z-Fenster: Das Boot ist laenger "vorne" und interagierbar (-60 bis 80)
-                if (obj.z < 80 && obj.z > -60 && !isCrashing && !window.isInvincible) {
+                if (obj.z < 25 && obj.z > -15 && !isCrashing && !window.isInvincible) {
                     let scale = Math.max(0.1, 1000 / (Math.max(0, obj.z) + 200)); 
-                    // Schmalere Hitbox (40 statt 80), damit es dich nicht von hinten erwischt!
-                    let boatW = 40 * scale; 
-                    let boatTop = obj.y - (20 * scale); // Dach
-                    let boatBottom = obj.y + (10 * scale); // Rumpf
+                    let boatW = 60 * scale; 
+                    let boatTop = obj.y - (20 * scale); 
+                    let boatBottom = obj.y + (10 * scale); 
                     
                     let rx = player.rearWheel.x, ry = player.rearWheel.y;
                     let fx = player.frontWheel.x, fy = player.frontWheel.y;
+                    let onRoof = false;
 
                     let inBoatX = function(x) { return x > obj.x - boatW/2 && x < obj.x + boatW/2; };
 
-                    // Das KOMPLETTE Boot ist jetzt ein Trampolin! Keine seitlichen Crashes mehr.
-                    let hitRear = inBoatX(rx) && ry > boatTop && ry < boatBottom;
-                    let hitFront = inBoatX(fx) && fy > boatTop && fy < boatBottom;
+                    if (inBoatX(rx) && ry >= boatTop - 20 && ry <= boatBottom && player.rearWheel.vy >= 0) {
+                        player.rearWheel.vy = player.jumpStrength * 1.5; 
+                        player.rearWheel.isJumping = true;
+                        player.rearWheel.onSurface = false;
+                        onRoof = true;
+                    }
+                    if (inBoatX(fx) && fy >= boatTop - 20 && fy <= boatBottom && player.frontWheel.vy >= 0) {
+                        player.frontWheel.vy = player.jumpStrength * 1.5;
+                        player.frontWheel.isJumping = true;
+                        player.frontWheel.onSurface = false;
+                        onRoof = true;
+                    }
 
-                    if (hitRear || hitFront) {
-                        if (hitRear) {
-                            player.rearWheel.y = boatTop;
-                            player.rearWheel.vy = player.jumpStrength * 1.5; // Trampolin-Effekt
-                            player.rearWheel.isJumping = true;
-                            player.rearWheel.onSurface = false;
-                        }
-                        if (hitFront) {
-                            player.frontWheel.y = boatTop;
-                            player.frontWheel.vy = player.jumpStrength * 1.5; // Trampolin-Effekt
-                            player.frontWheel.isJumping = true;
-                            player.frontWheel.onSurface = false;
-                        }
-                        
+                    if (onRoof) {
                         if (!obj.stomped) {
                             obj.stomped = true;
                             score += 5;
                             if (typeof playScore === 'function') playScore();
                         }
                         if (typeof playJump === 'function') playJump();
+                    } else {
+                        let hitRear = inBoatX(rx) && ry > boatTop - 5 && ry < boatBottom + 10;
+                        let hitFront = inBoatX(fx) && fy > boatTop - 5 && fy < boatBottom + 10;
+                        
+                        if (hitRear || hitFront) {
+                            startCrash('flip');
+                            obj.crashed = true;
+                            obj.speechTimer = 100;
+                            if (typeof playHit === 'function') playHit();
+                        }
                     }
                 }
             } else {
