@@ -163,6 +163,11 @@ function updateWheel(wheel, timeScale) {
 }
 
 function handleFrameCollision(timeScale) {
+    // FIX: Sobald ein Rad im Wasser ist, wird die starre Rahmenkollision 
+    // ignoriert. Das verhindert, dass das Fahrrad an der Wasserkante 
+    // haengen bleibt und in den Himmel geschossen wird!
+    if (player.rearWheel.inWater || player.frontWheel.inWater) return;
+
     let isScraping = false;
     let maxPenetration = 0;
 
@@ -173,7 +178,6 @@ function handleFrameCollision(timeScale) {
         let ty = getTerrainY(worldDistance + px);
         let overChasm = false;
         for (let obs of obstacles) {
-            // Wasser ist hier hinzugefuegt worden, damit der Rahmen im Wasser nicht kollidiert
             if ((obs.type === 'chasm' || obs.type === 'lava' || obs.type === 'liana_bridge' || obs.type === 'water') && px >= obs.x && px <= obs.x + obs.width) overChasm = true;
             if (obs.type === 'crater' && px >= obs.x && px <= obs.x + obs.width) {
                 let craterSur = getObstacleSurface(px, obs);
@@ -443,8 +447,14 @@ function updateFlyingObjects(timeScale, moveScale) {
 
         if (obj.type === 'motorboat') {
             if (!obj.crashed) {
-                obj.z -= 6 * obj.speed * timeScale; 
-                obj.x -= gameSpeed * moveScale; 
+                obj.x -= gameSpeed * moveScale; // Hält das Boot auf der X-Achse mittig im Wasser!
+                
+                // Z-Achse ist prozentual an die X-Distanz zum Spieler gekoppelt. 
+                // So trifft das Boot immer im perfekten Moment ein!
+                let currentDist = obj.x - player.targetBikeX;
+                if (obj.startDist > 0) {
+                    obj.z = Math.max(-200, (currentDist / obj.startDist) * 1000);
+                }
                 
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
                 let horizonY = getHorizonY();
@@ -475,8 +485,22 @@ function updateFlyingObjects(timeScale, moveScale) {
             }
             continue;
         }
-
-        if (obj.type === 'pigeon' && !obj.deflected) {
+        
+        if (obj.type === 'shark' && !obj.deflected) {
+            obj.x -= gameSpeed * moveScale; // Bleibt mittig im Wasser
+            
+            if (!obj.jumpTriggered) {
+                obj.y = canvas.height + 50; // Unsichtbar unterm Wasser
+                if (obj.x - player.targetBikeX < 180 && obj.x - player.targetBikeX > 0) { 
+                    obj.jumpTriggered = true;
+                    obj.vy = -(7.0 + Math.random() * 1.5); // Hai springt!
+                }
+            } else {
+                obj.vy += player.gravity * timeScale;
+                obj.y += obj.vy * timeScale;
+            }
+        } 
+        else if (obj.type === 'pigeon' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.1;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y = obj.spawnY + Math.sin(obj.time) * 15;
@@ -517,10 +541,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.time = (obj.time || 0) + timeScale * 0.08;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y = obj.spawnY + Math.sin(obj.time) * 15;
-        } else if (obj.type === 'shark' && !obj.deflected) {
-            obj.vy += player.gravity * timeScale;
-            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-            obj.y += obj.vy * timeScale;
         } else if (obj.type === 'fireball' && !obj.deflected) {
             obj.vy += 0.15 * timeScale; 
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
@@ -529,7 +549,7 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.vy += 0.2 * timeScale; 
             obj.x -= (gameSpeed * moveScale); 
             obj.y += obj.vy * timeScale;
-        } else {
+        } else if (obj.type !== 'shark') {
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
         }
@@ -595,7 +615,7 @@ function updateFlyingObjects(timeScale, moveScale) {
 
         if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 10) {
             obj.passed = true;
-            if (obj.id > highestScoredObstacle && obj.type !== 'pigeon_poop') {
+            if (obj.id > highestScoredObstacle && obj.type !== 'pigeon_poop' && obj.type !== 'water') {
                 score += 1;
                 highestScoredObstacle = obj.id;
                 if (typeof playScore === 'function') playScore();

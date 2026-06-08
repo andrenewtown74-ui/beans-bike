@@ -612,7 +612,9 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
             const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
-            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'shark', 'pelican', 'motorboat'].concat(vehicleTypes).includes(nextObs.type)) {
+            
+            // Hai und Boot wurden hier entfernt, da sie nun automatisch mit dem Wasser spawnen
+            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'pelican'].concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
@@ -652,17 +654,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 } else if (nextObs.type === 'pigeon' || nextObs.type === 'pelican') {
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : 50;
                     vxVal = -speedVal * 1.5;
-                } else if (nextObs.type === 'shark') {
-                    startY = canvas.height + 20;
-                    vxVal = -gameSpeed * 0.5;
-                    vyVal = -(7 + speedVal);
-                    spawnX = canvas.width + 50;
-                } else if (nextObs.type === 'motorboat') {
-                    startY = getHorizonY();
-                    spawnX = canvas.width; 
-                    vxVal = 0;
-                    vyVal = 0;
-                    zVal = 1000;
                 } else {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
@@ -691,20 +682,51 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 obstacles.push({
                     id: nextObs.id,
                     x: canvas.width,
-                    y: tY + 5 - nextObs.height, 
-                    baseY: tY + 5 - nextObs.height,
+                    y: tY + 5 - (nextObs.height || 0), 
+                    baseY: tY + 5 - (nextObs.height || 0),
                     width: nextObs.width,
-                    height: nextObs.height,
+                    height: nextObs.height || 0,
                     type: nextObs.type,
                     color: nextObs.color,
                     passed: false
                 });
+
+                // --- NEU: WASSER-SYNCHRONISATION ---
+                // Wenn Wasser gespawnt wird, spawne direkt Hai und Boot dazu!
+                if (nextObs.type === 'water') {
+                    let spawnX = canvas.width + nextObs.width / 2; // Mitte des Wassers
+                    let distToPlayer = spawnX - player.targetBikeX;
+
+                    flyingObjects.push({
+                        id: nextObs.id + 10000,
+                        x: spawnX,
+                        y: canvas.height + 50, // Versteckt unterm Wasser
+                        vx: 0, // Bewegt sich exakt mit dem Wasser
+                        vy: 0,
+                        z: 0,
+                        type: 'shark',
+                        jumpTriggered: false, // Springt erst, wenn der Spieler nah ist
+                        deflected: false, passed: false, crashed: false
+                    });
+
+                    flyingObjects.push({
+                        id: nextObs.id + 20000,
+                        x: spawnX,
+                        y: getHorizonY(),
+                        vx: 0, // Bewegt sich exakt mit dem Wasser
+                        vy: 0,
+                        z: 1000,
+                        startDist: distToPlayer, // Bindet die Boot-Grosse an die X-Distanz!
+                        type: 'motorboat',
+                        crashed: false,
+                        speechTimer: 0
+                    });
+                }
             }
             nextObstacleIndex++;
         }
     }
 }
-
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
     if (!lastTime) lastTime = timestamp;
