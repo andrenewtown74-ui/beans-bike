@@ -163,9 +163,6 @@ function updateWheel(wheel, timeScale) {
 }
 
 function handleFrameCollision(timeScale) {
-    // FIX: Sobald ein Rad im Wasser ist, wird die starre Rahmenkollision 
-    // ignoriert. Das verhindert, dass das Fahrrad an der Wasserkante 
-    // haengen bleibt und in den Himmel geschossen wird!
     if (player.rearWheel.inWater || player.frontWheel.inWater) return;
 
     let isScraping = false;
@@ -448,32 +445,32 @@ function updateFlyingObjects(timeScale, moveScale) {
         if (obj.type === 'motorboat') {
             if (!obj.crashed) {
                 obj.x -= gameSpeed * moveScale; 
-                obj.z -= obj.vz * timeScale; // Konstante Bewegung (kein "Warten" mehr)
+                obj.z -= obj.vz * timeScale; 
                 
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
                 let horizonY = getHorizonY();
                 let progress = 1 - Math.max(0, Math.min(1, obj.z / 1000));
                 obj.y = horizonY + (targetY - horizonY) * progress;
 
-                // Breiteres Zeitfenster (z < 40 bis -40), um das Dach besser zu treffen
-                if (obj.z < 40 && obj.z > -40 && !isCrashing && !window.isInvincible) {
+                if (obj.z < 25 && obj.z > -15 && !isCrashing && !window.isInvincible) {
                     let scale = Math.max(0.1, 1000 / (Math.max(0, obj.z) + 200)); 
-                    let boatW = 80 * scale; // Boot hitbox etwas breiter für den Sprung
-                    let roofY = obj.y - (15 * scale); // Dach des Bootes
-                    let boatBottom = obj.y + (10 * scale); // Rumpf des Bootes
+                    let boatW = 60 * scale; 
+                    let boatTop = obj.y - (15 * scale); 
+                    let boatBottom = obj.y + (5 * scale); 
                     
                     let rx = player.rearWheel.x, ry = player.rearWheel.y;
                     let fx = player.frontWheel.x, fy = player.frontWheel.y;
                     let onRoof = false;
 
-                    // 1. DACH-KOLLISION (Plattform-Sprung!)
-                    if (rx > obj.x - boatW/2 && rx < obj.x + boatW/2 && ry >= roofY - 20 && ry <= roofY + 10 && player.rearWheel.vy >= 0) {
+                    let inBoatX = function(x) { return x > obj.x - boatW/2 && x < obj.x + boatW/2; };
+
+                    if (inBoatX(rx) && ry >= boatTop - 20 && ry <= boatBottom && player.rearWheel.vy >= 0) {
                         player.rearWheel.vy = player.jumpStrength * 1.5; 
                         player.rearWheel.isJumping = true;
                         player.rearWheel.onSurface = false;
                         onRoof = true;
                     }
-                    if (fx > obj.x - boatW/2 && fx < obj.x + boatW/2 && fy >= roofY - 20 && fy <= roofY + 10 && player.frontWheel.vy >= 0) {
+                    if (inBoatX(fx) && fy >= boatTop - 20 && fy <= boatBottom && player.frontWheel.vy >= 0) {
                         player.frontWheel.vy = player.jumpStrength * 1.5;
                         player.frontWheel.isJumping = true;
                         player.frontWheel.onSurface = false;
@@ -488,9 +485,8 @@ function updateFlyingObjects(timeScale, moveScale) {
                         }
                         if (typeof playJump === 'function') playJump();
                     } else {
-                        // 2. FRONTALE KOLLISION (Crash, wenn man das Dach verfehlt)
-                        let hitRear = Math.abs(rx - obj.x) < boatW / 2 && ry > roofY + 5 && ry < boatBottom;
-                        let hitFront = Math.abs(fx - obj.x) < boatW / 2 && fy > roofY + 5 && fy < boatBottom;
+                        let hitRear = inBoatX(rx) && ry > boatTop - 5 && ry < boatBottom + 10;
+                        let hitFront = inBoatX(fx) && fy > boatTop - 5 && fy < boatBottom + 10;
                         
                         if (hitRear || hitFront) {
                             startCrash('flip');
@@ -511,13 +507,13 @@ function updateFlyingObjects(timeScale, moveScale) {
         }
         
         if (obj.type === 'shark' && !obj.deflected) {
-            obj.x -= gameSpeed * moveScale; // Bleibt mittig im Wasser
+            obj.x -= gameSpeed * moveScale;
             
             if (!obj.jumpTriggered) {
-                obj.y = canvas.height + 50; // Unsichtbar unterm Wasser
+                obj.y = canvas.height + 50; 
                 if (obj.x - player.targetBikeX < 180 && obj.x - player.targetBikeX > 0) { 
                     obj.jumpTriggered = true;
-                    obj.vy = -(7.0 + Math.random() * 1.5); // Hai springt!
+                    obj.vy = -(7.0 + Math.random() * 1.5); 
                 }
             } else {
                 obj.vy += player.gravity * timeScale;

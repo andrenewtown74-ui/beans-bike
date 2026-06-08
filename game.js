@@ -457,7 +457,6 @@ window.addEventListener('keydown', function(e) {
     
     if (e.code === 'KeyI') {
         window.isInvincible = !window.isInvincible;
-        console.log("God-Mode: " + (window.isInvincible ? "AN" : "AUS"));
         e.preventDefault();
         return;
     }
@@ -613,7 +612,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         if (worldDistance >= nextObs.spawnDistance) {
             const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
             
-            // Hai und Boot wurden hier entfernt, da sie nun automatisch mit dem Wasser spawnen
             if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'pelican'].concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
@@ -691,13 +689,10 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     passed: false
                 });
 
-                // --- NEU: WASSER-SYNCHRONISATION ---
                 if (nextObs.type === 'water') {
                     let spawnX = canvas.width + nextObs.width / 2; 
                     let distToPlayer = spawnX - player.targetBikeX;
                     
-                    // Berechne konstante Geschwindigkeit, sodass das Boot genau kreuzt, 
-                    // wenn du mit Normalspeed weiterfährst. Bremst du, verpasst du es!
                     let timeToReach = distToPlayer / gameSpeed; 
                     let boatVz = 1000 / timeToReach; 
 
@@ -720,7 +715,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                         vx: 0, 
                         vy: 0,
                         z: 1000,
-                        vz: boatVz, // Festes Tempo, kein Warten mehr!
+                        vz: boatVz, 
                         type: 'motorboat',
                         crashed: false,
                         speechTimer: 0
@@ -731,6 +726,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         }
     }
 }
+
 function gameLoop(timestamp) {
     if (!isGameRunning) return;
     if (!lastTime) lastTime = timestamp;
