@@ -447,33 +447,57 @@ function updateFlyingObjects(timeScale, moveScale) {
 
         if (obj.type === 'motorboat') {
             if (!obj.crashed) {
-                obj.x -= gameSpeed * moveScale; // Hält das Boot auf der X-Achse mittig im Wasser!
-                
-                // Z-Achse ist prozentual an die X-Distanz zum Spieler gekoppelt. 
-                // So trifft das Boot immer im perfekten Moment ein!
-                let currentDist = obj.x - player.targetBikeX;
-                if (obj.startDist > 0) {
-                    obj.z = Math.max(-200, (currentDist / obj.startDist) * 1000);
-                }
+                obj.x -= gameSpeed * moveScale; 
+                obj.z -= obj.vz * timeScale; // Konstante Bewegung (kein "Warten" mehr)
                 
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
                 let horizonY = getHorizonY();
                 let progress = 1 - Math.max(0, Math.min(1, obj.z / 1000));
                 obj.y = horizonY + (targetY - horizonY) * progress;
 
-                if (obj.z < 30 && obj.z > -10 && !isCrashing && !window.isInvincible) {
-                    let scale = Math.max(0.1, 1000 / (obj.z + 200)); 
-                    let boatW = 40 * scale; 
-                    let boatBottom = obj.y + (10 * scale);
+                // Breiteres Zeitfenster (z < 40 bis -40), um das Dach besser zu treffen
+                if (obj.z < 40 && obj.z > -40 && !isCrashing && !window.isInvincible) {
+                    let scale = Math.max(0.1, 1000 / (Math.max(0, obj.z) + 200)); 
+                    let boatW = 80 * scale; // Boot hitbox etwas breiter für den Sprung
+                    let roofY = obj.y - (15 * scale); // Dach des Bootes
+                    let boatBottom = obj.y + (10 * scale); // Rumpf des Bootes
                     
-                    let hitRear = Math.abs(player.rearWheel.x - obj.x) < boatW / 2 && player.rearWheel.y < boatBottom;
-                    let hitFront = Math.abs(player.frontWheel.x - obj.x) < boatW / 2 && player.frontWheel.y < boatBottom;
-                    
-                    if (hitRear || hitFront) {
-                        startCrash('flip');
-                        obj.crashed = true;
-                        obj.speechTimer = 100;
-                        if (typeof playHit === 'function') playHit();
+                    let rx = player.rearWheel.x, ry = player.rearWheel.y;
+                    let fx = player.frontWheel.x, fy = player.frontWheel.y;
+                    let onRoof = false;
+
+                    // 1. DACH-KOLLISION (Plattform-Sprung!)
+                    if (rx > obj.x - boatW/2 && rx < obj.x + boatW/2 && ry >= roofY - 20 && ry <= roofY + 10 && player.rearWheel.vy >= 0) {
+                        player.rearWheel.vy = player.jumpStrength * 1.5; 
+                        player.rearWheel.isJumping = true;
+                        player.rearWheel.onSurface = false;
+                        onRoof = true;
+                    }
+                    if (fx > obj.x - boatW/2 && fx < obj.x + boatW/2 && fy >= roofY - 20 && fy <= roofY + 10 && player.frontWheel.vy >= 0) {
+                        player.frontWheel.vy = player.jumpStrength * 1.5;
+                        player.frontWheel.isJumping = true;
+                        player.frontWheel.onSurface = false;
+                        onRoof = true;
+                    }
+
+                    if (onRoof) {
+                        if (!obj.stomped) {
+                            obj.stomped = true;
+                            score += 5;
+                            if (typeof playScore === 'function') playScore();
+                        }
+                        if (typeof playJump === 'function') playJump();
+                    } else {
+                        // 2. FRONTALE KOLLISION (Crash, wenn man das Dach verfehlt)
+                        let hitRear = Math.abs(rx - obj.x) < boatW / 2 && ry > roofY + 5 && ry < boatBottom;
+                        let hitFront = Math.abs(fx - obj.x) < boatW / 2 && fy > roofY + 5 && fy < boatBottom;
+                        
+                        if (hitRear || hitFront) {
+                            startCrash('flip');
+                            obj.crashed = true;
+                            obj.speechTimer = 100;
+                            if (typeof playHit === 'function') playHit();
+                        }
                     }
                 }
             } else {

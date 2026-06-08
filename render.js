@@ -48,22 +48,27 @@ function drawEnvironment(moveScale) {
                 ctx.fillStyle = bg.color2;
                 ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
            } else if (bg.type === 'palm_tree') {
-                ctx.fillStyle = bg.color1 || '#8B4513';
-                ctx.beginPath();
-                ctx.moveTo(bg.x + bg.width/2 - 4, canvas.height); 
-                ctx.quadraticCurveTo(bg.x + bg.width/2 + 8, horizon - bg.height/2, bg.x + bg.width/2, horizon - bg.height);
-                ctx.lineTo(bg.x + bg.width/2 + 6, horizon - bg.height);
-                ctx.quadraticCurveTo(bg.x + bg.width/2 + 15, horizon - bg.height/2, bg.x + bg.width/2 + 4, canvas.height); 
-                ctx.fill();
+                 let ty = getTerrainY(worldDistance + bg.x);
+                // Palme wird NUR gezeichnet, wenn das Terrain hoch genug ist (Land)
+                    if (ty < 140) { 
+                    let drawY = ty + 5;
+                    ctx.fillStyle = bg.color1 || '#8B4513';
+                    ctx.beginPath();
+                    ctx.moveTo(bg.x + bg.width/2 - 4, drawY);
+                    ctx.quadraticCurveTo(bg.x + bg.width/2 + 8, horizon - bg.height/2, bg.x + bg.width/2, horizon - bg.height);
+                    ctx.lineTo(bg.x + bg.width/2 + 6, horizon - bg.height);
+                    ctx.quadraticCurveTo(bg.x + bg.width/2 + 15, horizon - bg.height/2, bg.x + bg.width/2 + 4, drawY);
+                    ctx.fill();
 
-                ctx.fillStyle = bg.color2 || '#228B22';
-                ctx.beginPath();
-                ctx.ellipse(bg.x + bg.width/2 + 2, horizon - bg.height + 4, bg.width/1.3, bg.height/3.5, 0, 0, Math.PI*2);
-                ctx.fill();
-                
-                ctx.fillStyle = '#5C4033';
-                ctx.beginPath(); ctx.arc(bg.x + bg.width/2 - 4, horizon - bg.height + 12, 5, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(bg.x + bg.width/2 + 6, horizon - bg.height + 12, 5, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = bg.color2 || '#228B22';
+                    ctx.beginPath();
+                    ctx.ellipse(bg.x + bg.width/2 + 2, horizon - bg.height + 4, bg.width/1.3, bg.height/3.5, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#5C4033';
+                    ctx.beginPath(); ctx.arc(bg.x + bg.width/2 - 4, horizon - bg.height + 12, 5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(bg.x + bg.width/2 + 6, horizon - bg.height + 12, 5, 0, Math.PI*2); ctx.fill();
+                    }
             } else if (bg.type === 'building') {
                 ctx.fillStyle = bg.color1;
                 ctx.fillRect(bg.x, horizon + 5 - bg.height, bg.width, bg.height);
@@ -207,6 +212,22 @@ function drawEnvironment(moveScale) {
     ctx.fillStyle = 'rgba(0, 150, 255, 0.6)';
     for (let obs of obstacles) {
         if (obs.type === 'water') {
+            // 1. NEU: Animiertes Seegras im Wasser zeichnen
+            ctx.strokeStyle = '#2E8B57'; // Seegras Grün
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            for (let sw = 20; sw < obs.width; sw += 40) {
+                let swX = obs.x + sw;
+                let floor = getTerrainY(worldDistance + swX) + 5 + 60; // Meeresboden
+                let wave = Math.sin(performance.now() * 0.003 + swX) * 8; // Bewegung
+                ctx.beginPath();
+                ctx.moveTo(swX, floor);
+                ctx.quadraticCurveTo(swX + wave, floor - 20, swX - wave, floor - 40);
+                ctx.stroke();
+            }
+
+            // 2. Das reguläre Wasser drüberzeichnen
+            ctx.fillStyle = 'rgba(0, 150, 255, 0.6)';
             ctx.beginPath();
             let startY = getTerrainY(worldDistance + obs.x) + 5;
             ctx.moveTo(obs.x, startY);

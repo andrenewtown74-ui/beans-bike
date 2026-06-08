@@ -692,20 +692,24 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 });
 
                 // --- NEU: WASSER-SYNCHRONISATION ---
-                // Wenn Wasser gespawnt wird, spawne direkt Hai und Boot dazu!
                 if (nextObs.type === 'water') {
-                    let spawnX = canvas.width + nextObs.width / 2; // Mitte des Wassers
+                    let spawnX = canvas.width + nextObs.width / 2; 
                     let distToPlayer = spawnX - player.targetBikeX;
+                    
+                    // Berechne konstante Geschwindigkeit, sodass das Boot genau kreuzt, 
+                    // wenn du mit Normalspeed weiterfährst. Bremst du, verpasst du es!
+                    let timeToReach = distToPlayer / gameSpeed; 
+                    let boatVz = 1000 / timeToReach; 
 
                     flyingObjects.push({
                         id: nextObs.id + 10000,
                         x: spawnX,
-                        y: canvas.height + 50, // Versteckt unterm Wasser
-                        vx: 0, // Bewegt sich exakt mit dem Wasser
+                        y: canvas.height + 50, 
+                        vx: 0, 
                         vy: 0,
                         z: 0,
                         type: 'shark',
-                        jumpTriggered: false, // Springt erst, wenn der Spieler nah ist
+                        jumpTriggered: false, 
                         deflected: false, passed: false, crashed: false
                     });
 
@@ -713,10 +717,10 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                         id: nextObs.id + 20000,
                         x: spawnX,
                         y: getHorizonY(),
-                        vx: 0, // Bewegt sich exakt mit dem Wasser
+                        vx: 0, 
                         vy: 0,
                         z: 1000,
-                        startDist: distToPlayer, // Bindet die Boot-Grosse an die X-Distanz!
+                        vz: boatVz, // Festes Tempo, kein Warten mehr!
                         type: 'motorboat',
                         crashed: false,
                         speechTimer: 0
