@@ -223,14 +223,20 @@ function drawEnvironment(moveScale) {
 
             ctx.fillStyle = 'rgba(0, 150, 255, 0.6)';
             ctx.beginPath();
+            
+            // Startpunkt der Wasserflaeche INKLUSIVE Wellen-Offset
             let startY = getTerrainY(worldDistance + obs.x) + 5;
-            ctx.moveTo(obs.x, startY);
+            let waveStart = Math.sin(performance.now()*0.005 + obs.x*0.05)*3;
+            ctx.moveTo(obs.x, startY + waveStart);
+            
+            // Obere Wasserlinie zeichnen (absolutes wX fuer den Sinus)
             for(let j=0; j<=obs.width; j+=5) {
                 let wX = obs.x + j;
-                let wave = Math.sin(performance.now()*0.005 + j*0.05)*3;
+                let wave = Math.sin(performance.now()*0.005 + wX*0.05)*3;
                 let baseLevel = getTerrainY(worldDistance + wX) + 5;
                 ctx.lineTo(wX, baseLevel + wave);
             }
+            // Bodenverlauf umrunden
             for(let j=obs.width; j>=0; j-=5) {
                 let wX = obs.x + j;
                 let progress = j / obs.width;

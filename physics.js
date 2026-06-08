@@ -452,21 +452,16 @@ function updateFlyingObjects(timeScale, moveScale) {
                 }
                 
                 let targetY = getTerrainY(worldDistance + obj.x) + 5;
-                let horizonY = getHorizonY();
-                let progress = 1 - Math.max(0, Math.min(1, obj.z / 1000));
                 
-                // NEU: Wellen-Physik für das Boot
-                // Wir nehmen den gleichen Welleneffekt, den wir im render.js für das Wasser nutzen
-                let wave = Math.sin(performance.now() * 0.005 + obj.x * 0.05) * 5; 
-                
-                // Boot sitzt nun fest auf dem Wasser-Niveau (targetY), plus Welle
-                obj.y = horizonY + (targetY - horizonY) * progress + wave;
+                // EXAKTE WELLE wie im Wasser-Renderer! Das Boot schwimmt nun perfekt mit.
+                let wave = Math.sin(performance.now() * 0.005 + obj.x * 0.05) * 3; 
+                obj.y = targetY + wave;
 
                 if (obj.z < 25 && obj.z > -15 && !isCrashing && !window.isInvincible) {
                     let scale = Math.max(0.1, 1000 / (Math.max(0, obj.z) + 200)); 
                     let boatW = 60 * scale; 
-                    let boatTop = obj.y - (20 * scale); 
-                    let boatBottom = obj.y + (10 * scale); 
+                    let boatTop = obj.y - (15 * scale); 
+                    let boatBottom = obj.y + (5 * scale); 
                     
                     let rx = player.rearWheel.x, ry = player.rearWheel.y;
                     let fx = player.frontWheel.x, fy = player.frontWheel.y;
