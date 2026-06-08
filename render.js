@@ -695,9 +695,18 @@ function drawFlyingObjects() {
             ctx.fillStyle = '#F0F0F0';
             ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(0, -wingY - 4); ctx.lineTo(6, 0); ctx.fill(); ctx.stroke();
         }
-        else if (obj.type === 'shark') {
-            let angle = Math.atan2(obj.vy, obj.vx);
-            ctx.rotate(angle);
+    else if (obj.type === 'shark') {
+            // Spiegeln und Rotieren basierend auf Richtung und Status
+            if (obj.vx < 0) {
+                ctx.scale(-1, 1);
+                if (obj.state === 'attack') {
+                    ctx.rotate(-Math.atan2(obj.vy, -obj.vx));
+                }
+            } else {
+                if (obj.state === 'attack') {
+                    ctx.rotate(Math.atan2(obj.vy, obj.vx));
+                }
+            }
             
             ctx.fillStyle = '#778899';
             ctx.beginPath(); ctx.ellipse(0, 0, 20, 9, 0, 0, Math.PI*2); ctx.fill();

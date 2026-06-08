@@ -497,19 +497,72 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
         
-        if (obj.type === 'shark' && !obj.deflected) {
-            obj.x -= gameSpeed * moveScale;
+            if (obj.type === 'shark') {
+            obj.minX -= gameSpeed * moveScale;
+            obj.maxX -= gameSpeed * moveScale;
             
-            if (!obj.jumpTriggered) {
-                obj.y = canvas.height + 50; 
-                if (obj.x - player.targetBikeX < 180 && obj.x - player.targetBikeX > 0) { 
-                    obj.jumpTriggered = true;
-                    obj.vy = -(7.0 + Math.random() * 1.5); 
+            if (obj.state === 'patrol') {
+                obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+                
+                // Hai schwimmt im Becken hin und her
+                if (obj.x < obj.minX) { obj.x = obj.minX; obj.vx = 2.0; }
+                if (obj.x > obj.maxX) { obj.x = obj.maxX; obj.vx = -2.0; }
+                
+                let tY = getTerrainY(worldDistance + obj.x);
+                obj.y = tY + 40 + Math.sin(performance.now() * 0.005 + obj.id) * 10; // Taucht
+                
+                // Erkennt die Bohne (wenn er in ihre Richtung schaut und sie im Wasser ist)
+                let distToPlayer = obj.x - player.targetBikeX;
+                let playerInWater = player.rearWheel.y > tY; 
+                let seesPlayerLeft = (obj.vx < 0 && distToPlayer > 0 && distToPlayer < 220 && playerInWater);
+                let seesPlayerRight = (obj.vx > 0 && distToPlayer < 0 && distToPlayer > -220 && playerInWater);
+                
+                if (seesPlayerLeft || seesPlayerRight) {
+                    obj.state = 'attack';
+                    obj.vy = -6; // Angriffssprung!
+                    obj.vx = (seesPlayerLeft) ? -4 : 4;
                 }
-            } else {
+            } else if (obj.state === 'attack') {
                 obj.vy += player.gravity * timeScale;
+                obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 obj.y += obj.vy * timeScale;
+                
+                let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);
+                let fDist = Math.hypot(player.frontWheel.x - obj.x, player.frontWheel.y - obj.y);
+                let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
+
+                if (!isCrashing && !window.isInvincible && (rDist < 30 || fDist < 30 || bDist < 30)) {
+                    // Check ob die Bohne den Hai von hinten erwischt hat
+                    let hitFromBehind = (obj.vx < 0 && cx > obj.x + 15) || (obj.vx > 0 && cx < obj.x - 15);
+                    
+                    if (hitFromBehind) {
+                        obj.deflected = true;
+                        obj.type = 'bubble';
+                        obj.vx = -gameSpeed * 0.5;
+                        obj.vy = -1.0;
+                        score += 15; // Belohnung für cleveren Angriff!
+                        if (typeof playScore === 'function') playScore();
+                    } else {
+                        startCrash('tear');
+                        obj.crashed = true;
+                    }
+                }
             }
+            
+            // Punkt für das Überleben
+            if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 20) {
+                obj.passed = true;
+                if (obj.id > highestScoredObstacle) {
+                    score += 1;
+                    highestScoredObstacle = obj.id;
+                    if (typeof playScore === 'function') playScore();
+                }
+            }
+
+            if (obj.x < -200 || obj.y > canvas.height + 100) {
+                flyingObjects.splice(i, 1);
+            }
+            continue; // Ueberspringt die normale Objektabfrage am Ende der Schleife
         } 
         else if (obj.type === 'pigeon' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.1;

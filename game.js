@@ -261,6 +261,8 @@ function restartLevel() {
     window.scoreSubmitted = false; 
     
     player.targetBikeX = 30;
+    player.underwaterTimer = 0;
+    player.underwaterTick = 0;
     keys.up = false;
     keys.down = false;
     keys.rearJump = false;
@@ -693,22 +695,28 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 if (nextObs.type === 'water') {
                     let spawnX = canvas.width + nextObs.width / 2; 
 
+// --- NEU: WASSER-SYNCHRONISATION ---
+                if (nextObs.type === 'water') {
+                    let spawnX = canvas.width + nextObs.width / 2; 
+
                     flyingObjects.push({
                         id: nextObs.id + 10000,
                         x: spawnX,
                         y: canvas.height + 50, 
-                        vx: 0, 
+                        vx: -1.5, // Hai patrouilliert
                         vy: 0,
                         type: 'shark',
-                        jumpTriggered: false, 
+                        state: 'patrol',
+                        minX: canvas.width + 30, // Linke Grenze des Wassers
+                        maxX: canvas.width + nextObs.width - 30, // Rechte Grenze des Wassers
                         deflected: false, passed: false, crashed: false
                     });
 
                     flyingObjects.push({
                         id: nextObs.id + 20000,
-                        x: spawnX, // Mitte des Wassers
+                        x: spawnX,
                         y: getHorizonY(),
-                        vx: 0, // Fährt mit dem Wasser mit (als Insel)
+                        vx: 0, 
                         vy: 0,
                         type: 'motorboat',
                         crashed: false,
@@ -782,7 +790,18 @@ function gameLoop(timestamp) {
                 } else {
                     player.targetBikeX -= 2.0 * timeScale;
                 }
-            } else if (inWater) {
+           } else if (inWater) {
+                // Wasser-Schaden: Punkte abziehen
+                player.underwaterTimer = (player.underwaterTimer || 0) + timeScale;
+                // Je länger unter Wasser, desto kleiner der Intervall (desto schneller der Abzug)
+                let penaltyThreshold = Math.max(5, 60 - Math.floor(player.underwaterTimer / 10)); 
+                player.underwaterTick = (player.underwaterTick || 0) + timeScale;
+                
+                if (player.underwaterTick > penaltyThreshold) {
+                    player.underwaterTick = 0;
+                    if (score > 0) score -= 1;
+                }
+
                 if (isAccelerating) {
                     player.targetBikeX += 1.5 * timeScale; 
                 } else if (isBraking) {
@@ -791,6 +810,9 @@ function gameLoop(timestamp) {
                     player.targetBikeX -= 0.5 * timeScale; 
                 }
             } else {
+                player.underwaterTimer = 0; // Timer reset auf Land
+                player.underwaterTick = 0;
+                
                 if (isAccelerating) {
                     player.targetBikeX += 2.5 * timeScale;
                 } else if (isBraking) {
