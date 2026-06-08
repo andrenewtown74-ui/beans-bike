@@ -692,9 +692,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 });
 
                 // --- NEU: WASSER-SYNCHRONISATION ---
-                if (nextObs.type === 'water') {
-                    let spawnX = canvas.width + nextObs.width / 2; 
-
 // --- NEU: WASSER-SYNCHRONISATION ---
                 if (nextObs.type === 'water') {
                     let spawnX = canvas.width + nextObs.width / 2; 
@@ -790,7 +787,7 @@ function gameLoop(timestamp) {
                 } else {
                     player.targetBikeX -= 2.0 * timeScale;
                 }
-           } else if (inWater) {
+            } else if (inWater) {
                 // Wasser-Schaden: Punkte abziehen
                 player.underwaterTimer = (player.underwaterTimer || 0) + timeScale;
                 // Je länger unter Wasser, desto kleiner der Intervall (desto schneller der Abzug)
