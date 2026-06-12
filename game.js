@@ -617,6 +617,8 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
             const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
+            
+            // FIX: Array beinhaltet jetzt alle Fussball-Elemente
             const flyingObjTypes = ['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'pelican', 'soccer_ball', 'striker', 'goalkeeper', 'soccer_goal'];
             
             if (flyingObjTypes.concat(vehicleTypes).includes(nextObs.type)) {
@@ -659,6 +661,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 } else if (nextObs.type === 'pigeon' || nextObs.type === 'pelican') {
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : 50;
                     vxVal = -speedVal * 1.5;
+                // FIX: Die Fussball-Elemente bekommen ihre physikalischen Startwerte
                 } else if (nextObs.type === 'soccer_goal') {
                     vxVal = 0; 
                     startY = getTerrainY(worldDistance + spawnX);
@@ -668,7 +671,7 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 } else if (nextObs.type === 'striker') {
                     vxVal = -speedVal; 
                     startY = getTerrainY(worldDistance + spawnX);
-               } else if (nextObs.type === 'soccer_ball') {
+                } else if (nextObs.type === 'soccer_ball') {
                     if (Math.random() > 0.5) {
                         spawnX = -100 - (Math.random() * 150); 
                         vxVal = gameSpeed + (speedVal * 0.6); 
