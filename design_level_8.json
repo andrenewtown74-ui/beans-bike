@@ -3,7 +3,7 @@
         "skyColor": "#002868",
         "groundColor": "#32CD32",
         "surfaceColor": "#FFFFFF",
-        "music": "Overtime_Rush.mp3",
+        "music": "Glory_in_the_Net.mp3",
         "sun": { "active": true, "color": "#FFFFFe", "size": 35, "xOffset": 150, "y": 40 }
     },
     "physics": {
