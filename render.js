@@ -8,7 +8,7 @@ function drawEnvironment(moveScale) {
         ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
     }
 
-    const drawOrder = ['star', 'planet', 'eiffel', 'mountain', 'tree', 'palm_tree', 'building'];
+    const drawOrder = ['star', 'planet', 'eiffel', 'mountain', 'tree', 'palm_tree', 'building', 'stadium_stand'];
     let horizon = getHorizonY();
 
     drawOrder.forEach(function(type) {
@@ -47,6 +47,22 @@ function drawEnvironment(moveScale) {
                 ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
                 ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
+            } else if (bg.type === 'stadium_stand') {
+                let ty = getTerrainY(worldDistance + bg.x);
+                ctx.fillStyle = bg.color1;
+                ctx.beginPath();
+                ctx.moveTo(bg.x, ty);
+                ctx.lineTo(bg.x - 20, ty - bg.height);
+                ctx.lineTo(bg.x + bg.width + 20, ty - bg.height);
+                ctx.lineTo(bg.x + bg.width, ty);
+                ctx.fill();
+                
+                ctx.fillStyle = bg.color2;
+                for(let p = 0; p < 25; p++) {
+                    let px = bg.x + Math.random() * bg.width;
+                    let py = ty - 10 - Math.random() * (bg.height - 20);
+                    ctx.fillRect(px, py, 2, 2);
+                }
             } else if (bg.type === 'palm_tree') {
                 ctx.fillStyle = bg.color1 || '#8B4513';
                 ctx.beginPath();
@@ -214,7 +230,7 @@ function drawEnvironment(moveScale) {
                 let swX = obs.x + sw;
                 let progress = sw / obs.width; 
                 let floor = getTerrainY(worldDistance + swX) + 5 + Math.sin(progress * Math.PI) * 60; 
-                let wave = Math.sin(performance.now() * 0.008 + swX) * 8; // Seegras-Bewegung etwas schneller
+                let wave = Math.sin(performance.now() * 0.003 + swX) * 8; 
                 ctx.beginPath();
                 ctx.moveTo(swX, floor);
                 ctx.quadraticCurveTo(swX + wave, floor - 20, swX - wave, floor - 40);
@@ -225,12 +241,12 @@ function drawEnvironment(moveScale) {
             ctx.beginPath();
             
             let startY = getTerrainY(worldDistance + obs.x) + 5;
-            let waveStart = Math.sin(performance.now() * 0.015 + obs.x * 0.05) * 4; // Wasserfaktor auf 0.015 erhoeht
+            let waveStart = Math.sin(performance.now()*0.005 + obs.x*0.05)*3;
             ctx.moveTo(obs.x, startY + waveStart);
             
             for(let j=0; j<=obs.width; j+=5) {
                 let wX = obs.x + j;
-                let wave = Math.sin(performance.now() * 0.015 + wX * 0.05) * 4; // Wasserfaktor auf 0.015 erhoeht
+                let wave = Math.sin(performance.now()*0.005 + wX*0.05)*3;
                 let baseLevel = getTerrainY(worldDistance + wX) + 5;
                 ctx.lineTo(wX, baseLevel + wave);
             }
@@ -695,17 +711,12 @@ function drawFlyingObjects() {
             ctx.fillStyle = '#F0F0F0';
             ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(0, -wingY - 4); ctx.lineTo(6, 0); ctx.fill(); ctx.stroke();
         }
-    else if (obj.type === 'shark') {
-            // Spiegeln und Rotieren basierend auf Richtung und Status
+        else if (obj.type === 'shark') {
             if (obj.vx < 0) {
                 ctx.scale(-1, 1);
-                if (obj.state === 'attack') {
-                    ctx.rotate(-Math.atan2(obj.vy, -obj.vx));
-                }
+                if (obj.state === 'attack') ctx.rotate(-Math.atan2(obj.vy, -obj.vx));
             } else {
-                if (obj.state === 'attack') {
-                    ctx.rotate(Math.atan2(obj.vy, obj.vx));
-                }
+                if (obj.state === 'attack') ctx.rotate(Math.atan2(obj.vy, obj.vx));
             }
             
             ctx.fillStyle = '#778899';
@@ -718,7 +729,6 @@ function drawFlyingObjects() {
             ctx.fillStyle = '#FFF'; ctx.beginPath(); ctx.moveTo(10, 5); ctx.lineTo(20, 5); ctx.lineTo(15, 0); ctx.fill();
         }
         else if (obj.type === 'motorboat') {
-            // Skalierung entfernt, Rotation anhand des Wellengangs eingefuegt
             if (obj.rotation) {
                 ctx.rotate(obj.rotation);
             }
@@ -741,6 +751,52 @@ function drawFlyingObjects() {
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                 ctx.beginPath(); ctx.arc(-30, 5, Math.random()*5+2, 0, Math.PI*2); ctx.fill();
             }
+        }
+        else if (obj.type === 'soccer_goal') {
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 0); ctx.lineTo(0, -45);
+            ctx.lineTo(60, -45); ctx.lineTo(60, 0);
+            ctx.stroke();
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let i=0; i<=60; i+=10) { ctx.moveTo(i, 0); ctx.lineTo(i, -45); }
+            for(let j=-45; j<=0; j+=10) { ctx.moveTo(0, j); ctx.lineTo(60, j); }
+            ctx.stroke();
+        } 
+        else if (obj.type === 'soccer_ball') {
+            let rot = obj.x * 0.1;
+            ctx.rotate(rot);
+            
+            ctx.fillStyle = '#FFF';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-4, -3, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(4, 3, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-3, 4, 1.5, 0, Math.PI*2); ctx.fill();
+        } 
+        else if (obj.type === 'striker' || obj.type === 'goalkeeper') {
+            ctx.fillStyle = (obj.type === 'goalkeeper') ? '#FFFF00' : '#BF0A30'; 
+            ctx.fillRect(-8, -25, 16, 15);
+            
+            ctx.fillStyle = '#FFDAB9';
+            ctx.beginPath(); ctx.arc(0, -30, 6, 0, Math.PI*2); ctx.fill();
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(-8, -10, 16, 5);
+            
+            ctx.strokeStyle = '#FFDAB9'; 
+            ctx.lineWidth = 3;
+            let runOffset = (!obj.crashed && obj.type === 'striker') ? Math.sin(performance.now() * 0.015 + obj.id) * 6 : 0;
+            ctx.beginPath(); ctx.moveTo(-4, -5); ctx.lineTo(-4 + runOffset, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(4 - runOffset, 0); ctx.stroke();
         }
         else if (obj.type === 'pigeon_poop') {
             ctx.fillStyle = '#E8E8E8';

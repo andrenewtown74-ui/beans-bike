@@ -1,0 +1,18 @@
+{
+    "theme": {
+        "skyColor": "#002868",
+        "groundColor": "#32CD32",
+        "surfaceColor": "#FFFFFF",
+        "music": "Soccer_Anthem.mp3",
+        "sun": { "active": true, "color": "#FFFFFF", "size": 35, "xOffset": 150, "y": 40 }
+    },
+    "physics": {
+        "terrainType": "flat",
+        "baseGroundY": 160,
+        "horizonY": 160,
+        "levelDistance": 8000
+    },
+    "objects": [
+        { "type": "stadium_stand", "count": 15, "minWidth": 120, "maxWidth": 200, "minHeight": 80, "maxHeight": 110, "speedModifier": 0.2, "color1": "#BF0A30", "color2": "#FFFFFF" }
+    ]
+}

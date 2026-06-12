@@ -261,8 +261,6 @@ function restartLevel() {
     window.scoreSubmitted = false; 
     
     player.targetBikeX = 30;
-    player.underwaterTimer = 0;
-    player.underwaterTick = 0;
     keys.up = false;
     keys.down = false;
     keys.rearJump = false;
@@ -312,6 +310,9 @@ function restartLevel() {
     beanCrash.isSplat = false;
     hasPlayedSplatSound = false;
     
+    player.underwaterTimer = 0;
+    player.underwaterTick = 0;
+
     lastTime = performance.now();
     initBackground();
     checkHeadlight();
@@ -381,6 +382,9 @@ function respawnPlayer() {
     beanCrash.isSplat = false;
     hasPlayedSplatSound = false;
     
+    player.underwaterTimer = 0;
+    player.underwaterTick = 0;
+
     lastTime = performance.now();
     if (typeof startMusic === 'function') startMusic();
 }
@@ -408,7 +412,7 @@ function handleInputEvent() {
     }
     if (isLevelComplete && bikeStopped) {
         instructionEl.classList.add('hidden');
-        if (currentLevel >= 7) { 
+        if (currentLevel >= 8) { 
             startNewGame();
         } else {
             advanceLevel();
@@ -446,8 +450,8 @@ function jump(wheel) {
 window.addEventListener('keydown', function(e) {
     if (isPopupOpen) return; 
 
-    if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7'].includes(e.code)) {
-        currentLevel = parseInt(e.key);
+    if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8'].includes(e.code)) {
+        currentLevel = parseInt(e.key.replace('Digit', ''));
         levelStartScore = score; 
         document.getElementById('start-menu-buttons').classList.add('hidden');
         loadLevelData(currentLevel).then(function() {
@@ -613,8 +617,9 @@ function spawnObstaclesFromData(timeScale, moveScale) {
         let nextObs = levelData[nextObstacleIndex];
         if (worldDistance >= nextObs.spawnDistance) {
             const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
+            const flyingObjTypes = ['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'pelican', 'soccer_ball', 'striker', 'goalkeeper', 'soccer_goal'];
             
-            if (['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'pelican'].concat(vehicleTypes).includes(nextObs.type)) {
+            if (flyingObjTypes.concat(vehicleTypes).includes(nextObs.type)) {
                 let startY = 100;
                 let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
                 let vxVal = -speedVal; 
@@ -654,6 +659,25 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 } else if (nextObs.type === 'pigeon' || nextObs.type === 'pelican') {
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : 50;
                     vxVal = -speedVal * 1.5;
+                } else if (nextObs.type === 'soccer_goal') {
+                    vxVal = 0; 
+                    startY = getTerrainY(worldDistance + spawnX);
+                } else if (nextObs.type === 'goalkeeper') {
+                    vxVal = 0; 
+                    startY = getTerrainY(worldDistance + spawnX);
+                } else if (nextObs.type === 'striker') {
+                    vxVal = -speedVal; 
+                    startY = getTerrainY(worldDistance + spawnX);
+                } else if (nextObs.type === 'soccer_ball') {
+                    if (Math.random() > 0.5) {
+                        spawnX = -100; 
+                        vxVal = gameSpeed + speedVal * 1.5;
+                    } else {
+                        spawnX = canvas.width + 100; 
+                        vxVal = -speedVal * 1.5;
+                    }
+                    startY = getTerrainY(worldDistance + spawnX) - 20 - Math.random() * 60; 
+                    vyVal = -2 + Math.random() * 4;
                 } else {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
@@ -691,8 +715,6 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                     passed: false
                 });
 
-                // --- NEU: WASSER-SYNCHRONISATION ---
-// --- NEU: WASSER-SYNCHRONISATION ---
                 if (nextObs.type === 'water') {
                     let spawnX = canvas.width + nextObs.width / 2; 
 
@@ -700,12 +722,12 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                         id: nextObs.id + 10000,
                         x: spawnX,
                         y: canvas.height + 50, 
-                        vx: -1.5, // Hai patrouilliert
+                        vx: -1.5, 
                         vy: 0,
                         type: 'shark',
                         state: 'patrol',
-                        minX: canvas.width + 30, // Linke Grenze des Wassers
-                        maxX: canvas.width + nextObs.width - 30, // Rechte Grenze des Wassers
+                        minX: canvas.width + 30, 
+                        maxX: canvas.width + nextObs.width - 30, 
                         deflected: false, passed: false, crashed: false
                     });
 
@@ -788,9 +810,7 @@ function gameLoop(timestamp) {
                     player.targetBikeX -= 2.0 * timeScale;
                 }
             } else if (inWater) {
-                // Wasser-Schaden: Punkte abziehen
                 player.underwaterTimer = (player.underwaterTimer || 0) + timeScale;
-                // Je länger unter Wasser, desto kleiner der Intervall (desto schneller der Abzug)
                 let penaltyThreshold = Math.max(5, 60 - Math.floor(player.underwaterTimer / 10)); 
                 player.underwaterTick = (player.underwaterTick || 0) + timeScale;
                 
@@ -807,7 +827,7 @@ function gameLoop(timestamp) {
                     player.targetBikeX -= 0.5 * timeScale; 
                 }
             } else {
-                player.underwaterTimer = 0; // Timer reset auf Land
+                player.underwaterTimer = 0; 
                 player.underwaterTick = 0;
                 
                 if (isAccelerating) {
@@ -827,7 +847,7 @@ function gameLoop(timestamp) {
                     if (typeof playFanfare === 'function') playFanfare();
                     hasPlayedFanfare = true;
                     
-                    if (currentLevel >= 7) { 
+                    if (currentLevel >= 8) { 
                         titleEl.innerText = "Herzlichen Glückwunsch!";
                         if (!window.scoreSubmitted && score > 0) {
                             showNamePopup();

@@ -324,6 +324,120 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
 
+        if (obj.type === 'soccer_goal') {
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y = getTerrainY(worldDistance + obj.x);
+            
+            let goalW = 60;
+            let goalTop = obj.y - 45;
+            let goalBottom = obj.y;
+
+            let rx = player.rearWheel.x, ry = player.rearWheel.y;
+            let fx = player.frontWheel.x, fy = player.frontWheel.y;
+            let onRoof = false;
+
+            let inGoalX = function(x) { return x > obj.x && x < obj.x + goalW; };
+
+            if (inGoalX(rx) && ry >= goalTop - 15 && ry <= goalTop + 10 && player.rearWheel.vy >= 0) {
+                player.rearWheel.y = goalTop;
+                player.rearWheel.vy = player.jumpStrength * 1.8; 
+                player.rearWheel.isJumping = true;
+                player.rearWheel.onSurface = false;
+                onRoof = true;
+            }
+            if (inGoalX(fx) && fy >= goalTop - 15 && fy <= goalTop + 10 && player.frontWheel.vy >= 0) {
+                player.frontWheel.y = goalTop;
+                player.frontWheel.vy = player.jumpStrength * 1.8;
+                player.frontWheel.isJumping = true;
+                player.frontWheel.onSurface = false;
+                onRoof = true;
+            }
+
+            if (onRoof) {
+                if (!obj.stomped) {
+                    obj.stomped = true;
+                    score += 10; 
+                    if (typeof playScore === 'function') playScore();
+                }
+                if (typeof playJump === 'function') playJump();
+            } else if (!isCrashing && !window.isInvincible) {
+                let hitRear = rx > obj.x && rx < obj.x + 10 && ry > goalTop + 5 && ry <= goalBottom;
+                let hitFront = fx > obj.x && fx < obj.x + 10 && fy > goalTop + 5 && fy <= goalBottom;
+                
+                if (hitRear || hitFront) {
+                    startCrash('flip');
+                    obj.crashed = true;
+                    if (typeof playHit === 'function') playHit();
+                }
+            }
+            
+            if (!isCrashing && !obj.passed && obj.x + goalW < player.rearWheel.defaultX) {
+                obj.passed = true;
+                score += 5; 
+                if (typeof playScore === 'function') playScore();
+            }
+            
+            if (obj.x < -200) flyingObjects.splice(i, 1);
+            continue;
+        }
+
+        if (obj.type === 'soccer_ball') {
+            obj.vy += player.gravity * 0.5 * timeScale; 
+            obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+            obj.y += obj.vy * timeScale;
+            
+            let tY = getTerrainY(worldDistance + obj.x);
+            if (obj.y > tY - 7) {
+                obj.y = tY - 7;
+                obj.vy = -Math.abs(obj.vy) * 0.8; 
+            }
+
+            let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);
+            let fDist = Math.hypot(player.frontWheel.x - obj.x, player.frontWheel.y - obj.y);
+            let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
+
+            if (!obj.deflected && !isCrashing) {
+                if (bDist < 25 || rDist < 25 || fDist < 25) {
+                    obj.deflected = true;
+                    obj.type = 'bubble'; 
+                    obj.vx = -gameSpeed * 0.5;
+                    obj.vy = -2.0;
+                    score += 5; 
+                    if (typeof playScore === 'function') playScore();
+                }
+            }
+            if (obj.x < -200 || obj.x > canvas.width + 200) flyingObjects.splice(i, 1);
+            continue;
+        }
+        
+        if (obj.type === 'striker' || obj.type === 'goalkeeper') {
+            if (!obj.crashed) {
+                obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+                obj.y = getTerrainY(worldDistance + obj.x);
+                
+                if (obj.type === 'goalkeeper') {
+                    obj.y -= Math.abs(Math.sin(performance.now() * 0.005 + obj.id)) * 15;
+                }
+                
+                if (!isCrashing && !window.isInvincible && Math.abs(cx - obj.x) < 20 && Math.abs(cy - obj.y) < 30) {
+                    startCrash('flip');
+                    obj.crashed = true;
+                    if (typeof playHit === 'function') playHit();
+                }
+            } else {
+                obj.x -= gameSpeed * moveScale;
+            }
+
+            if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 20) {
+                obj.passed = true;
+                score += 2; 
+                if (typeof playScore === 'function') playScore();
+            }
+
+            if (obj.x < -200) flyingObjects.splice(i, 1);
+            continue;
+        }
+
         if (vehicleTypes.includes(obj.type)) {
             if (!obj.engineStarted && typeof startEngineSound === 'function') {
                 startEngineSound(obj);
@@ -461,7 +575,6 @@ function updateFlyingObjects(timeScale, moveScale) {
 
                     let inBoatX = function(x) { return x > obj.x - boatW/2 && x < obj.x + boatW/2; };
 
-                    // Reine Sprungplattform ohne Crash-Abfrage
                     let hitRear = inBoatX(rx) && ry > boatTop && ry < boatBottom;
                     let hitFront = inBoatX(fx) && fy > boatTop && fy < boatBottom;
 
@@ -497,21 +610,19 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
         
-            if (obj.type === 'shark') {
+        if (obj.type === 'shark') {
             obj.minX -= gameSpeed * moveScale;
             obj.maxX -= gameSpeed * moveScale;
             
             if (obj.state === 'patrol') {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 
-                // Hai schwimmt im Becken hin und her
                 if (obj.x < obj.minX) { obj.x = obj.minX; obj.vx = 2.0; }
                 if (obj.x > obj.maxX) { obj.x = obj.maxX; obj.vx = -2.0; }
                 
                 let tY = getTerrainY(worldDistance + obj.x);
-                obj.y = tY + 40 + Math.sin(performance.now() * 0.005 + obj.id) * 10; // Taucht
+                obj.y = tY + 40 + Math.sin(performance.now() * 0.005 + obj.id) * 10; 
                 
-                // Erkennt die Bohne (wenn er in ihre Richtung schaut und sie im Wasser ist)
                 let distToPlayer = obj.x - player.targetBikeX;
                 let playerInWater = player.rearWheel.y > tY; 
                 let seesPlayerLeft = (obj.vx < 0 && distToPlayer > 0 && distToPlayer < 220 && playerInWater);
@@ -519,7 +630,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                 
                 if (seesPlayerLeft || seesPlayerRight) {
                     obj.state = 'attack';
-                    obj.vy = -6; // Angriffssprung!
+                    obj.vy = -6; 
                     obj.vx = (seesPlayerLeft) ? -4 : 4;
                 }
             } else if (obj.state === 'attack') {
@@ -532,7 +643,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                 let bDist = Math.hypot(beanX - obj.x, beanY - obj.y);
 
                 if (!isCrashing && !window.isInvincible && (rDist < 30 || fDist < 30 || bDist < 30)) {
-                    // Check ob die Bohne den Hai von hinten erwischt hat
                     let hitFromBehind = (obj.vx < 0 && cx > obj.x + 15) || (obj.vx > 0 && cx < obj.x - 15);
                     
                     if (hitFromBehind) {
@@ -540,7 +650,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                         obj.type = 'bubble';
                         obj.vx = -gameSpeed * 0.5;
                         obj.vy = -1.0;
-                        score += 15; // Belohnung für cleveren Angriff!
+                        score += 15; 
                         if (typeof playScore === 'function') playScore();
                     } else {
                         startCrash('tear');
@@ -549,7 +659,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                 }
             }
             
-            // Punkt für das Überleben
             if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 20) {
                 obj.passed = true;
                 if (obj.id > highestScoredObstacle) {
@@ -562,8 +671,8 @@ function updateFlyingObjects(timeScale, moveScale) {
             if (obj.x < -200 || obj.y > canvas.height + 100) {
                 flyingObjects.splice(i, 1);
             }
-            continue; // Ueberspringt die normale Objektabfrage am Ende der Schleife
-        } 
+            continue; 
+        }
         else if (obj.type === 'pigeon' && !obj.deflected) {
             obj.time = (obj.time || 0) + timeScale * 0.1;
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
@@ -613,12 +722,12 @@ function updateFlyingObjects(timeScale, moveScale) {
             obj.vy += 0.2 * timeScale; 
             obj.x -= (gameSpeed * moveScale); 
             obj.y += obj.vy * timeScale;
-        } else if (obj.type !== 'shark') {
+        } else if (obj.type !== 'shark' && obj.type !== 'soccer_ball' && obj.type !== 'soccer_goal' && obj.type !== 'striker' && obj.type !== 'goalkeeper') {
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
         }
 
-        let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock', 'pigeon', 'pelican', 'shark'].includes(obj.type);
+        let isCatchable = ['wasp', 'bird', 'bat', 'monkey', 'meteorite', 'fireball', 'falling_rock', 'pigeon', 'pelican', 'soccer_ball'].includes(obj.type);
 
         if (obj.type === 'meteorite' && !obj.deflected) {
             let tY = getTerrainY(worldDistance + obj.x);

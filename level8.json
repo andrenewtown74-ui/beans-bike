@@ -1,0 +1,20 @@
+[
+    { "id": 0, "spawnDistance": 300, "type": "striker", "speed": 1.5 },
+    { "id": 1, "spawnDistance": 600, "type": "soccer_ball", "speed": 3.0 },
+    { "id": 2, "spawnDistance": 900, "type": "soccer_goal" },
+    { "id": 3, "spawnDistance": 1000, "type": "goalkeeper", "speed": 0.0 },
+    { "id": 4, "spawnDistance": 1300, "type": "soccer_ball", "speed": 2.5 },
+    { "id": 5, "spawnDistance": 1800, "type": "striker", "speed": 2.0 },
+    { "id": 6, "spawnDistance": 2200, "type": "soccer_ball", "speed": 3.5 },
+    { "id": 7, "spawnDistance": 2500, "type": "soccer_goal" },
+    { "id": 8, "spawnDistance": 2900, "type": "soccer_ball", "speed": 2.0 },
+    { "id": 9, "spawnDistance": 3400, "type": "striker", "speed": 1.8 },
+    { "id": 10, "spawnDistance": 3800, "type": "soccer_goal" },
+    { "id": 11, "spawnDistance": 4200, "type": "goalkeeper", "speed": 0.0 },
+    { "id": 12, "spawnDistance": 4600, "type": "soccer_ball", "speed": 4.0 },
+    { "id": 13, "spawnDistance": 5000, "type": "soccer_ball", "speed": 3.0 },
+    { "id": 14, "spawnDistance": 5500, "type": "soccer_goal" },
+    { "id": 15, "spawnDistance": 6000, "type": "striker", "speed": 2.5 },
+    { "id": 16, "spawnDistance": 6500, "type": "soccer_ball", "speed": 4.5 },
+    { "id": 17, "spawnDistance": 7000, "type": "soccer_goal" }
+]
