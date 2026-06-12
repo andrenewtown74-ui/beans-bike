@@ -424,14 +424,15 @@ function updateFlyingObjects(timeScale, moveScale) {
         }
 
         if (obj.type === 'soccer_ball') {
-            obj.vy += player.gravity * 0.5 * timeScale; 
+            obj.vy += player.gravity * 0.4 * timeScale; 
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y += obj.vy * timeScale;
             
             let tY = getTerrainY(worldDistance + obj.x);
             if (obj.y > tY - 7) {
                 obj.y = tY - 7;
-                obj.vy = -Math.abs(obj.vy) * 0.8; 
+                obj.vy = -Math.abs(obj.vy) * (0.7 + Math.random() * 0.25); 
+                obj.vx += (Math.random() - 0.5) * 0.5;
             }
 
             let rDist = Math.hypot(player.rearWheel.x - obj.x, player.rearWheel.y - obj.y);

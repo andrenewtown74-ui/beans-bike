@@ -668,16 +668,16 @@ function spawnObstaclesFromData(timeScale, moveScale) {
                 } else if (nextObs.type === 'striker') {
                     vxVal = -speedVal; 
                     startY = getTerrainY(worldDistance + spawnX);
-                } else if (nextObs.type === 'soccer_ball') {
+               } else if (nextObs.type === 'soccer_ball') {
                     if (Math.random() > 0.5) {
-                        spawnX = -100; 
-                        vxVal = gameSpeed + speedVal * 1.5;
+                        spawnX = -100 - (Math.random() * 150); 
+                        vxVal = gameSpeed + (speedVal * 0.6); 
                     } else {
-                        spawnX = canvas.width + 100; 
-                        vxVal = -speedVal * 1.5;
+                        spawnX = canvas.width + 100 + (Math.random() * 150); 
+                        vxVal = -(speedVal * 0.7); 
                     }
-                    startY = getTerrainY(worldDistance + spawnX) - 20 - Math.random() * 60; 
-                    vyVal = -2 + Math.random() * 4;
+                    startY = getTerrainY(worldDistance + spawnX) - 20 - (Math.random() * 100); 
+                    vyVal = -1 + (Math.random() * 3);
                 } else {
                     let tY = getTerrainY(worldDistance + canvas.width);
                     startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
