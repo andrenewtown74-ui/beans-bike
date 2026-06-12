@@ -4,7 +4,7 @@
         "groundColor": "#32CD32",
         "surfaceColor": "#FFFFFF",
         "music": "Wucht_in_der_Mitte.mp3",
-        "sun": { "active": true, "color": "#FFFFFe", "size": 35, "xOffset": 150, "y": 40 }
+        "sun": { "active": true, "color": "#FFFFFF", "size": 35, "xOffset": 150, "y": 40 }
     },
     "physics": {
         "terrainType": "flat",
@@ -13,6 +13,6 @@
         "levelDistance": 8000
     },
     "objects": [
-        { "type": "stadium_stand", "count": 15, "minWidth": 120, "maxWidth": 200, "minHeight": 80, "maxHeight": 110, "speedModifier": 0.2, "color1": "#BF0A30", "color2": "#FFFFFF" }
+        { "type": "stadium_stand", "count": 25, "minWidth": 180, "maxWidth": 300, "minHeight": 90, "maxHeight": 120, "speedModifier": 0.2, "color1": "#111111", "color2": "#FFFFFF" }
     ]
 }

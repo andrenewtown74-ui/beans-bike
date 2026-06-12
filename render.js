@@ -47,9 +47,11 @@ function drawEnvironment(moveScale) {
                 ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
                 ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
-            } else if (bg.type === 'stadium_stand') {
+           } else if (bg.type === 'stadium_stand') {
                 let ty = getTerrainY(worldDistance + bg.x);
-                ctx.fillStyle = bg.color1;
+                
+                // Basis der Tribüne (dunkler Hintergrund)
+                ctx.fillStyle = bg.color1 || '#111';
                 ctx.beginPath();
                 ctx.moveTo(bg.x, ty);
                 ctx.lineTo(bg.x - 20, ty - bg.height);
@@ -57,13 +59,47 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(bg.x + bg.width, ty);
                 ctx.fill();
                 
-                ctx.fillStyle = bg.color2;
-                for(let p = 0; p < 25; p++) {
-                    let px = bg.x + Math.random() * bg.width;
-                    let py = ty - 10 - Math.random() * (bg.height - 20);
-                    ctx.fillRect(px, py, 2, 2);
-                }
-            } else if (bg.type === 'palm_tree') {
+                // Werbebande / Spielfeldbegrenzung
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(bg.x - 2, ty - 12, bg.width + 4, 12);
+                ctx.fillStyle = '#BF0A30'; 
+                ctx.fillRect(bg.x, ty - 10, bg.width, 8);
+                
+                // Animiertes Publikum (USA-Farben + La-Ola-Welle)
+                let time = performance.now();
+                let colors = ['#BF0A30', '#FFFFFF', '#002868', '#FFD700', '#FFFFFF'];
+                
+                for (let row = 0; row < 6; row++) {
+                    let rowY = ty - 20 - (row * 15);
+                    let rowWidth = bg.width + (row * 6); 
+                    let startX = bg.x - (row * 3);
+                    
+                    for (let col = 0; col < 18; col++) {
+                        let pX = startX + (col * (rowWidth / 18));
+                        
+                        // La-Ola-Welle basierend auf Position und Zeit
+                        let wave = Math.sin((worldDistance + pX) * 0.01 - time * 0.005) * 8;
+                        let jump = Math.max(0, wave); // Nur nach oben springen
+                        
+                        // Feste Farbe pro Sitzplatz berechnen
+                        let colorIndex = Math.floor(Math.abs(pX * 7 + row * 11)) % colors.length;
+                        ctx.fillStyle = colors[colorIndex];
+                        
+                        // Zuschauer (Kopf/Körper) zeichnen
+                        ctx.beginPath();
+                        ctx.arc(pX, rowY - jump, 3.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // Zufälliges Blitzlicht / Kameras im Publikum
+                        if (Math.random() < 0.002) {
+                            ctx.fillStyle = '#FFF';
+                            ctx.beginPath();
+                            ctx.arc(pX, rowY - jump, 10, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                } 
+                }else if (bg.type === 'palm_tree') {
                 ctx.fillStyle = bg.color1 || '#8B4513';
                 ctx.beginPath();
                 ctx.moveTo(bg.x + bg.width/2 - 4, canvas.height); 
@@ -783,20 +819,50 @@ function drawFlyingObjects() {
             ctx.beginPath(); ctx.arc(-3, 4, 1.5, 0, Math.PI*2); ctx.fill();
         } 
         else if (obj.type === 'striker' || obj.type === 'goalkeeper') {
+            // Schatten unter dem Spieler
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath(); ctx.ellipse(0, 2, 10, 3, 0, 0, Math.PI*2); ctx.fill();
+
+            // Trikot (Stürmer Rot, Torwart Gelb)
             ctx.fillStyle = (obj.type === 'goalkeeper') ? '#FFFF00' : '#BF0A30'; 
-            ctx.fillRect(-8, -25, 16, 15);
+            ctx.fillRect(-8, -25, 16, 16);
             
+            // Rückennummer
+            ctx.fillStyle = (obj.type === 'goalkeeper') ? '#000' : '#FFF';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText((obj.type === 'goalkeeper') ? '1' : '10', 0, -14);
+            ctx.textAlign = 'left';
+            
+            // Kopf
             ctx.fillStyle = '#FFDAB9';
-            ctx.beginPath(); ctx.arc(0, -30, 6, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -32, 7, 0, Math.PI*2); ctx.fill();
             
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(-8, -10, 16, 5);
+            // Hose (Blau für USA, Schwarz für Torwart)
+            ctx.fillStyle = (obj.type === 'goalkeeper') ? '#222' : '#002868';
+            ctx.fillRect(-8, -9, 16, 6);
             
-            ctx.strokeStyle = '#FFDAB9'; 
+            // Dynamische Bewegung (Torwart wippt, Stürmer rennt)
+            let runOffset = 0;
+            if (!obj.crashed) {
+                runOffset = (obj.type === 'striker') ? Math.sin(performance.now() * 0.015 + obj.id) * 6 : 0;
+            }
+
+            // Arme
+            ctx.strokeStyle = '#FFDAB9';
             ctx.lineWidth = 3;
-            let runOffset = (!obj.crashed && obj.type === 'striker') ? Math.sin(performance.now() * 0.015 + obj.id) * 6 : 0;
-            ctx.beginPath(); ctx.moveTo(-4, -5); ctx.lineTo(-4 + runOffset, 0); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(4, -5); ctx.lineTo(4 - runOffset, 0); ctx.stroke();
+            ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(-9, -23); ctx.lineTo(-12, -15 + runOffset); ctx.stroke(); // Linker Arm
+            ctx.beginPath(); ctx.moveTo(9, -23); ctx.lineTo(12, -15 - runOffset); ctx.stroke(); // Rechter Arm
+
+            // Beine
+            ctx.beginPath(); ctx.moveTo(-4, -3); ctx.lineTo(-4 + runOffset, 4); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(4, -3); ctx.lineTo(4 - runOffset, 4); ctx.stroke();
+            
+            // Schuhe
+            ctx.fillStyle = '#000';
+            ctx.fillRect(-7 + runOffset, 4, 6, 3);
+            ctx.fillRect(1 - runOffset, 4, 6, 3);
         }
         else if (obj.type === 'pigeon_poop') {
             ctx.fillStyle = '#E8E8E8';
