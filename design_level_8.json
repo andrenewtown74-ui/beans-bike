@@ -3,7 +3,7 @@
         "skyColor": "#002868",
         "groundColor": "#32CD32",
         "surfaceColor": "#FFFFFF",
-        "music": "Soccer_Anthem.mp3",
+        "music": "Overtime_Rush.mp3",
         "sun": { "active": true, "color": "#FFFFFF", "size": 35, "xOffset": 150, "y": 40 }
     },
     "physics": {
