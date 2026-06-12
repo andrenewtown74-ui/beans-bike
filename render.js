@@ -803,46 +803,48 @@ function drawFlyingObjects() {
             for(let j=-45; j<=0; j+=10) { ctx.moveTo(0, j); ctx.lineTo(60, j); }
             ctx.stroke();
         } 
-        else if (obj.type === 'soccer_ball') {
-            let rot = obj.x * 0.1;
-            ctx.rotate(rot);
+        else if (obj.type === 'soccer_goal') {
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 4;
+            // Pfosten & Latte (an die neuen 35 Pixel Hoehe angepasst)
+            ctx.beginPath();
+            ctx.moveTo(0, 0); ctx.lineTo(0, -35);
+            ctx.lineTo(60, -35); ctx.lineTo(60, 0);
+            ctx.stroke();
             
-            ctx.fillStyle = '#FFF';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(-4, -3, 1.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(4, 3, 1.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(-3, 4, 1.5, 0, Math.PI*2); ctx.fill();
+            // Tornetz
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let i=0; i<=60; i+=10) { ctx.moveTo(i, 0); ctx.lineTo(i, -35); }
+            for(let j=-35; j<=0; j+=10) { ctx.moveTo(0, j); ctx.lineTo(60, j); }
+            ctx.stroke();
         } 
         else if (obj.type === 'striker' || obj.type === 'goalkeeper') {
             // Schatten unter dem Spieler
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.beginPath(); ctx.ellipse(0, 2, 10, 3, 0, 0, Math.PI*2); ctx.fill();
 
-            // Trikot (Stürmer Rot, Torwart Gelb)
+            // Trikot (etwas kuerzer)
             ctx.fillStyle = (obj.type === 'goalkeeper') ? '#FFFF00' : '#BF0A30'; 
-            ctx.fillRect(-8, -25, 16, 16);
+            ctx.fillRect(-8, -20, 16, 12);
             
             // Rückennummer
             ctx.fillStyle = (obj.type === 'goalkeeper') ? '#000' : '#FFF';
-            ctx.font = 'bold 10px Arial';
+            ctx.font = 'bold 9px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText((obj.type === 'goalkeeper') ? '1' : '10', 0, -14);
+            ctx.fillText((obj.type === 'goalkeeper') ? '1' : '10', 0, -10);
             ctx.textAlign = 'left';
             
-            // Kopf
+            // Kopf (etwas tiefer gesetzt)
             ctx.fillStyle = '#FFDAB9';
-            ctx.beginPath(); ctx.arc(0, -32, 7, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -26, 6, 0, Math.PI*2); ctx.fill();
             
-            // Hose (Blau für USA, Schwarz für Torwart)
+            // Hose
             ctx.fillStyle = (obj.type === 'goalkeeper') ? '#222' : '#002868';
-            ctx.fillRect(-8, -9, 16, 6);
+            ctx.fillRect(-8, -8, 16, 5);
             
-            // Dynamische Bewegung (Torwart wippt, Stürmer rennt)
+            // Dynamische Bewegung
             let runOffset = 0;
             if (!obj.crashed) {
                 runOffset = (obj.type === 'striker') ? Math.sin(performance.now() * 0.015 + obj.id) * 6 : 0;
@@ -852,14 +854,13 @@ function drawFlyingObjects() {
             ctx.strokeStyle = '#FFDAB9';
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.moveTo(-9, -23); ctx.lineTo(-12, -15 + runOffset); ctx.stroke(); // Linker Arm
-            ctx.beginPath(); ctx.moveTo(9, -23); ctx.lineTo(12, -15 - runOffset); ctx.stroke(); // Rechter Arm
+            ctx.beginPath(); ctx.moveTo(-9, -18); ctx.lineTo(-12, -10 + runOffset); ctx.stroke(); 
+            ctx.beginPath(); ctx.moveTo(9, -18); ctx.lineTo(12, -10 - runOffset); ctx.stroke(); 
 
-            // Beine
+            // Beine & Schuhe
             ctx.beginPath(); ctx.moveTo(-4, -3); ctx.lineTo(-4 + runOffset, 4); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(4, -3); ctx.lineTo(4 - runOffset, 4); ctx.stroke();
             
-            // Schuhe
             ctx.fillStyle = '#000';
             ctx.fillRect(-7 + runOffset, 4, 6, 3);
             ctx.fillRect(1 - runOffset, 4, 6, 3);

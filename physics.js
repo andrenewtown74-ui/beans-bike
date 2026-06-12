@@ -324,12 +324,13 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
 
-        if (obj.type === 'soccer_goal') {
+       if (obj.type === 'soccer_goal') {
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
             obj.y = getTerrainY(worldDistance + obj.x);
             
             let goalW = 60;
-            let goalTop = obj.y - 45;
+            // Tor wurde von 45 auf 35 geschrumpft, damit es fair springbar bleibt
+            let goalTop = obj.y - 35;
             let goalBottom = obj.y;
 
             let rx = player.rearWheel.x, ry = player.rearWheel.y;
@@ -338,9 +339,10 @@ function updateFlyingObjects(timeScale, moveScale) {
 
             let inGoalX = function(x) { return x > obj.x && x < obj.x + goalW; };
 
+            // 1. Tordach-Kollision (Mega-Sprung auf der Latte)
             if (inGoalX(rx) && ry >= goalTop - 15 && ry <= goalTop + 10 && player.rearWheel.vy >= 0) {
                 player.rearWheel.y = goalTop;
-                player.rearWheel.vy = player.jumpStrength * 1.8; 
+                player.rearWheel.vy = player.jumpStrength * 1.8; // EXTRA HOCH!
                 player.rearWheel.isJumping = true;
                 player.rearWheel.onSurface = false;
                 onRoof = true;
@@ -361,6 +363,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                 }
                 if (typeof playJump === 'function') playJump();
             } else if (!isCrashing && !window.isInvincible) {
+                // 2. Pfosten-Crash (Frontal)
                 let hitRear = rx > obj.x && rx < obj.x + 10 && ry > goalTop + 5 && ry <= goalBottom;
                 let hitFront = fx > obj.x && fx < obj.x + 10 && fy > goalTop + 5 && fy <= goalBottom;
                 
@@ -371,12 +374,51 @@ function updateFlyingObjects(timeScale, moveScale) {
                 }
             }
             
+            // Punkte beim Überspringen des Tores
             if (!isCrashing && !obj.passed && obj.x + goalW < player.rearWheel.defaultX) {
                 obj.passed = true;
                 score += 5; 
                 if (typeof playScore === 'function') playScore();
             }
             
+            if (obj.x < -200) flyingObjects.splice(i, 1);
+            continue;
+        }
+
+        if (obj.type === 'striker' || obj.type === 'goalkeeper') {
+            if (!obj.crashed) {
+                obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
+                obj.y = getTerrainY(worldDistance + obj.x);
+                
+                if (obj.type === 'goalkeeper') {
+                    // Torwart hüpft vor dem Tor auf und ab
+                    obj.y -= Math.abs(Math.sin(performance.now() * 0.005 + obj.id)) * 15;
+                }
+                
+                let rx = player.rearWheel.x, ry = player.rearWheel.y;
+                let fx = player.frontWheel.x, fy = player.frontWheel.y;
+
+                // NEU: Exakte Reifen-Abfrage statt unpräziser Center-Abfrage. 
+                // Solange die Reifen höher sind als obj.y - 25, kommst du sicher drüber!
+                let hitRear = Math.abs(rx - obj.x) < 12 && ry > obj.y - 25;
+                let hitFront = Math.abs(fx - obj.x) < 12 && fy > obj.y - 25;
+
+                if (!isCrashing && !window.isInvincible && (hitRear || hitFront)) {
+                    startCrash('flip');
+                    obj.crashed = true;
+                    if (typeof playHit === 'function') playHit();
+                }
+            } else {
+                obj.x -= gameSpeed * moveScale;
+            }
+
+            // Punkte beim Überspringen
+            if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 20) {
+                obj.passed = true;
+                score += 2; 
+                if (typeof playScore === 'function') playScore();
+            }
+
             if (obj.x < -200) flyingObjects.splice(i, 1);
             continue;
         }
