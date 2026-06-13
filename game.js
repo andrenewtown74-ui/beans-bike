@@ -862,12 +862,17 @@ function gameLoop(timestamp) {
                 }
             }
 
+            let targetGameSpeed = 1.5; 
+
             if (player.rearWheel.onUphillLiana && !isAccelerating) {
                 player.targetBikeX -= 3.5 * timeScale;
+                targetGameSpeed = 1.0;
             } else if (onPoop) {
                 player.targetBikeX -= 4.5 * timeScale;
+                targetGameSpeed = 0.5;
                 if (Math.random() < 0.1 && typeof playSqueal === 'function') playSqueal();
             } else if (onMud) {
+                targetGameSpeed = 1.0;
                 if (isAccelerating) {
                     player.targetBikeX -= 0.5 * timeScale;
                 } else if (isBraking) {
@@ -876,6 +881,7 @@ function gameLoop(timestamp) {
                     player.targetBikeX -= 2.0 * timeScale;
                 }
             } else if (inWater) {
+                targetGameSpeed = 1.0;
                 player.underwaterTimer = (player.underwaterTimer || 0) + timeScale;
                 let penaltyThreshold = Math.max(5, 60 - Math.floor(player.underwaterTimer / 10)); 
                 player.underwaterTick = (player.underwaterTick || 0) + timeScale;
@@ -897,14 +903,19 @@ function gameLoop(timestamp) {
                 player.underwaterTick = 0;
                 
                 if (isAccelerating) {
-                    player.targetBikeX += 2.5 * timeScale;
+                    targetGameSpeed = 3.0; 
+                    player.targetBikeX += 2.0 * timeScale;
                 } else if (isBraking) {
+                    targetGameSpeed = 0.8; 
                     player.targetBikeX -= 2.5 * timeScale;
                 } else {
+                    targetGameSpeed = 1.5; 
                     let centerTargetX = canvas.width * 0.4;
                     player.targetBikeX += (centerTargetX - player.targetBikeX) * 0.02 * timeScale;
                 }
             }
+
+            gameSpeed += (targetGameSpeed - gameSpeed) * 0.05 * timeScale;
         } else {
             player.targetBikeX += 2.0 * timeScale;
             if (player.frontWheel.x >= canvas.width / 2) {
