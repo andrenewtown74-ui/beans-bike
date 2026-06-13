@@ -791,28 +791,13 @@ function drawFlyingObjects() {
         else if (obj.type === 'soccer_goal') {
             ctx.strokeStyle = '#FFF';
             ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(0, 0); ctx.lineTo(0, -45);
-            ctx.lineTo(60, -45); ctx.lineTo(60, 0);
-            ctx.stroke();
-            
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            for(let i=0; i<=60; i+=10) { ctx.moveTo(i, 0); ctx.lineTo(i, -45); }
-            for(let j=-45; j<=0; j+=10) { ctx.moveTo(0, j); ctx.lineTo(60, j); }
-            ctx.stroke();
-        } 
-        else if (obj.type === 'soccer_goal') {
-            ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 4;
-            // Pfosten & Latte (an die neuen 35 Pixel Hoehe angepasst)
+            // pfosten und latte
             ctx.beginPath();
             ctx.moveTo(0, 0); ctx.lineTo(0, -35);
             ctx.lineTo(60, -35); ctx.lineTo(60, 0);
             ctx.stroke();
             
-            // Tornetz
+            // tornetz
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -820,44 +805,61 @@ function drawFlyingObjects() {
             for(let j=-35; j<=0; j+=10) { ctx.moveTo(0, j); ctx.lineTo(60, j); }
             ctx.stroke();
         } 
+        else if (obj.type === 'soccer_ball') {
+            // rotation des balls anhand der x-achse
+            let rot = obj.x * 0.1;
+            ctx.rotate(rot);
+            
+            ctx.fillStyle = '#FFF';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            
+            // schwarze muster
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-4, -3, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(4, 3, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-3, 4, 1.5, 0, Math.PI*2); ctx.fill();
+        } 
         else if (obj.type === 'striker' || obj.type === 'goalkeeper') {
-            // Schatten unter dem Spieler
+            // schatten
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.beginPath(); ctx.ellipse(0, 2, 10, 3, 0, 0, Math.PI*2); ctx.fill();
 
-            // Trikot (etwas kuerzer)
+            // trikot
             ctx.fillStyle = (obj.type === 'goalkeeper') ? '#FFFF00' : '#BF0A30'; 
             ctx.fillRect(-8, -20, 16, 12);
             
-            // Rückennummer
+            // rueckennummer
             ctx.fillStyle = (obj.type === 'goalkeeper') ? '#000' : '#FFF';
             ctx.font = 'bold 9px Arial';
             ctx.textAlign = 'center';
             ctx.fillText((obj.type === 'goalkeeper') ? '1' : '10', 0, -10);
             ctx.textAlign = 'left';
             
-            // Kopf (etwas tiefer gesetzt)
+            // kopf
             ctx.fillStyle = '#FFDAB9';
             ctx.beginPath(); ctx.arc(0, -26, 6, 0, Math.PI*2); ctx.fill();
             
-            // Hose
+            // hose
             ctx.fillStyle = (obj.type === 'goalkeeper') ? '#222' : '#002868';
             ctx.fillRect(-8, -8, 16, 5);
             
-            // Dynamische Bewegung
+            // bewegungsanimation
             let runOffset = 0;
             if (!obj.crashed) {
                 runOffset = (obj.type === 'striker') ? Math.sin(performance.now() * 0.015 + obj.id) * 6 : 0;
             }
 
-            // Arme
+            // arme
             ctx.strokeStyle = '#FFDAB9';
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.beginPath(); ctx.moveTo(-9, -18); ctx.lineTo(-12, -10 + runOffset); ctx.stroke(); 
             ctx.beginPath(); ctx.moveTo(9, -18); ctx.lineTo(12, -10 - runOffset); ctx.stroke(); 
 
-            // Beine & Schuhe
+            // beine und schuhe
             ctx.beginPath(); ctx.moveTo(-4, -3); ctx.lineTo(-4 + runOffset, 4); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(4, -3); ctx.lineTo(4 - runOffset, 4); ctx.stroke();
             
