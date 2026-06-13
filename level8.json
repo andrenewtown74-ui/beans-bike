@@ -40,5 +40,13 @@
     { "id": 38, "spawnDistance": 6250, "type": "soccer_ball", "speed": 0.9 },
     { "id": 39, "spawnDistance": 6600, "type": "soccer_ball", "speed": 1.5 },
     { "id": 40, "spawnDistance": 6650, "type": "soccer_ball", "speed": 0.7 },
-    { "id": 41, "spawnDistance": 7000, "type": "soccer_goal" }
+    { "id": 41, "spawnDistance": 5500, "type": "soccer_ball", "speed": 1.1 },
+    { "id": 42, "spawnDistance": 5550, "type": "soccer_ball", "speed": 0.8 },
+    { "id": 43, "spawnDistance": 5700, "type": "soccer_ball", "speed": 1.4 },
+    { "id": 44, "spawnDistance": 5750, "type": "soccer_ball", "speed": 0.6 },
+    { "id": 45, "spawnDistance": 6200, "type": "soccer_ball", "speed": 1.2 },
+    { "id": 46, "spawnDistance": 6250, "type": "soccer_ball", "speed": 0.9 },
+    { "id": 47, "spawnDistance": 6600, "type": "soccer_ball", "speed": 1.5 },
+    { "id": 48, "spawnDistance": 6650, "type": "soccer_ball", "speed": 0.7 },
+    { "id": 49, "spawnDistance": 7000, "type": "soccer_goal" }
 ]
