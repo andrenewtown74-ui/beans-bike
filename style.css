@@ -141,6 +141,12 @@ p {
     #credits p {
         font-size: 0.7rem;
     }
+    #pause-btn {
+        top: 5px;
+        right: 175px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
 }
 
 #start-menu-buttons {
@@ -257,4 +263,17 @@ body, #game-container, canvas, #ui-layer {
     -webkit-user-select: none;
     user-select: none;
     touch-action: none;
+}
+#pause-btn {
+    position: absolute;
+    top: 15px;
+    right: 250px; /* Platz neben dem Licht-Button */
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: 2px solid #fff;
+    font-family: 'Courier New', Courier, monospace;
+    cursor: pointer;
+    z-index: 50;
+    pointer-events: auto;
 }
