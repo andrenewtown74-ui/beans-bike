@@ -327,7 +327,7 @@ function updateFlyingObjects(timeScale, moveScale) {
         // --- FUSSBALL WM LOGIK START ---
         if (obj.type === 'soccer_goal') {
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-            obj.y = getTerrainY(worldDistance + obj.x);
+            obj.y = getTerrainY(worldDistance + obj.x)+5;
             
             let goalW = 60;
             let goalTop = obj.y - 35;
@@ -385,7 +385,7 @@ function updateFlyingObjects(timeScale, moveScale) {
        if (obj.type === 'striker' || obj.type === 'goalkeeper') {
             if (!obj.crashed) {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-                obj.y = getTerrainY(worldDistance + obj.x);
+                obj.y = getTerrainY(worldDistance + obj.x)+5;
                 
                 if (obj.type === 'goalkeeper') {
                     // Torwart hüpft vor dem Tor auf und ab
@@ -579,7 +579,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                 if (obj.speechTimer > 0) obj.speechTimer -= timeScale;
             } else {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-                obj.y = getTerrainY(worldDistance + obj.x);
+                obj.y = getTerrainY(worldDistance + obj.x)+5;
 
                 if (!isCrashing && !window.isInvincible && Math.abs(cx - obj.x) < 25 && Math.abs(cy - obj.y) < 30) {
                     startCrash('flip');
