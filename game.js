@@ -284,7 +284,8 @@ function restartLevel() {
     window.rainParticles = [];
     
     window.scoreSubmitted = false; 
-    
+    window.isPaused = false;
+    if (pauseBtn) pauseBtn.innerText = "Pause";
     player.targetBikeX = 30;
     keys.up = false;
     keys.down = false;
