@@ -613,141 +613,139 @@ function spawnObstaclesFromData(timeScale, moveScale) {
     if (finishLineActive) return; 
 
     worldDistance += gameSpeed * moveScale;
-    if (nextObstacleIndex < levelData.length) {
+    
+    // Die while-Schleife erlaubt es, beliebig viele Objekte bei exakt derselben spawnDistance gleichzeitig zu erzeugen
+    while (nextObstacleIndex < levelData.length && worldDistance >= levelData[nextObstacleIndex].spawnDistance) {
         let nextObs = levelData[nextObstacleIndex];
-        if (worldDistance >= nextObs.spawnDistance) {
-            const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
-            
-            // FIX: Array beinhaltet jetzt alle Fussball-Elemente
-            const flyingObjTypes = ['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'pelican', 'soccer_ball', 'striker', 'goalkeeper', 'soccer_goal'];
-            
-            if (flyingObjTypes.concat(vehicleTypes).includes(nextObs.type)) {
-                let startY = 100;
-                let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
-                let vxVal = -speedVal; 
-                let vyVal = 0;
-                let spawnX = canvas.width + 50;
-                let zVal = 0;
+        
+        const vehicleTypes = ['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'];
+        const flyingObjTypes = ['wasp', 'bird', 'meteorite', 'monkey', 'bat', 'fireball', 'falling_rock', 'pigeon', 'pigeon_poop', 'cyclist', 'escooter', 'pelican', 'soccer_ball', 'striker', 'goalkeeper', 'soccer_goal'];
+        
+        if (flyingObjTypes.concat(vehicleTypes).includes(nextObs.type)) {
+            let startY = 100;
+            let speedVal = nextObs.speed !== undefined ? nextObs.speed : 1.0;
+            let vxVal = -speedVal; 
+            let vyVal = 0;
+            let spawnX = canvas.width + 50;
+            let zVal = 0;
 
-                if (vehicleTypes.includes(nextObs.type)) {
-                    spawnX = -150; 
-                    vxVal = gameSpeed + speedVal; 
-                    startY = getTerrainY(worldDistance + spawnX);
-                } else if (['cyclist', 'escooter'].includes(nextObs.type)) {
-                    spawnX = canvas.width + 50; 
-                    vxVal = -(gameSpeed + speedVal); 
-                    startY = getTerrainY(worldDistance + spawnX);
-                } else if (nextObs.type === 'meteorite') {
-                    startY = -20;
-                    vxVal = -speedVal * 0.7; 
-                    vyVal = speedVal * 0.8;
-                } else if (nextObs.type === 'falling_rock') {
-                    startY = -40;
-                    vxVal = 0;
-                    vyVal = speedVal;
-                    spawnX = player.targetBikeX + 150 + Math.random() * 50; 
-                } else if (nextObs.type === 'monkey') {
-                    let tY = getTerrainY(worldDistance + canvas.width);
-                    startY = tY - 100; 
-                    vxVal = -speedVal; 
-                } else if (nextObs.type === 'bat') {
-                    let tY = getTerrainY(worldDistance + canvas.width);
-                    startY = tY - 60;
-                    vxVal = -speedVal; 
-                } else if (nextObs.type === 'fireball') {
-                    startY = canvas.height + 20; 
-                    vxVal = -gameSpeed; 
-                    vyVal = -8; 
-                } else if (nextObs.type === 'pigeon' || nextObs.type === 'pelican') {
-                    startY = nextObs.spawnY !== undefined ? nextObs.spawnY : 50;
-                    vxVal = -speedVal * 1.5;
-                // FIX: Die Fussball-Elemente bekommen ihre physikalischen Startwerte
-                } else if (nextObs.type === 'soccer_goal') {
-                    vxVal = 0; 
-                    startY = getTerrainY(worldDistance + spawnX);
-                } else if (nextObs.type === 'goalkeeper') {
-                    vxVal = 0; 
-                    startY = getTerrainY(worldDistance + spawnX);
-                } else if (nextObs.type === 'striker') {
-                    vxVal = -speedVal; 
-                    startY = getTerrainY(worldDistance + spawnX);
-                } else if (nextObs.type === 'soccer_ball') {
-                    if (Math.random() > 0.5) {
-                        spawnX = -100 - (Math.random() * 150); 
-                        vxVal = gameSpeed + (speedVal * 0.6); 
-                    } else {
-                        spawnX = canvas.width + 100 + (Math.random() * 150); 
-                        vxVal = -(speedVal * 0.7); 
-                    }
-                    startY = getTerrainY(worldDistance + spawnX) - 20 - (Math.random() * 100); 
-                    vyVal = -1 + (Math.random() * 3);
+            if (vehicleTypes.includes(nextObs.type)) {
+                spawnX = -150; 
+                vxVal = gameSpeed + speedVal; 
+                startY = getTerrainY(worldDistance + spawnX);
+            } else if (['cyclist', 'escooter'].includes(nextObs.type)) {
+                spawnX = canvas.width + 50; 
+                vxVal = -(gameSpeed + speedVal); 
+                startY = getTerrainY(worldDistance + spawnX);
+            } else if (nextObs.type === 'meteorite') {
+                startY = -20;
+                vxVal = -speedVal * 0.7; 
+                vyVal = speedVal * 0.8;
+            } else if (nextObs.type === 'falling_rock') {
+                startY = -40;
+                vxVal = 0;
+                vyVal = speedVal;
+                spawnX = player.targetBikeX + 150 + Math.random() * 50; 
+            } else if (nextObs.type === 'monkey') {
+                let tY = getTerrainY(worldDistance + canvas.width);
+                startY = tY - 100; 
+                vxVal = -speedVal; 
+            } else if (nextObs.type === 'bat') {
+                let tY = getTerrainY(worldDistance + canvas.width);
+                startY = tY - 60;
+                vxVal = -speedVal; 
+            } else if (nextObs.type === 'fireball') {
+                startY = canvas.height + 20; 
+                vxVal = -gameSpeed; 
+                vyVal = -8; 
+            } else if (nextObs.type === 'pigeon' || nextObs.type === 'pelican') {
+                startY = nextObs.spawnY !== undefined ? nextObs.spawnY : 50;
+                vxVal = -speedVal * 1.5;
+            } else if (nextObs.type === 'soccer_goal') {
+                vxVal = 0; 
+                startY = getTerrainY(worldDistance + spawnX);
+            } else if (nextObs.type === 'goalkeeper') {
+                vxVal = 0; 
+                startY = getTerrainY(worldDistance + spawnX);
+            } else if (nextObs.type === 'striker') {
+                vxVal = -speedVal; 
+                startY = getTerrainY(worldDistance + spawnX);
+            } else if (nextObs.type === 'soccer_ball') {
+                if (Math.random() > 0.5) {
+                    spawnX = -100 - (Math.random() * 150); 
+                    vxVal = gameSpeed + (speedVal * 0.6); 
                 } else {
-                    let tY = getTerrainY(worldDistance + canvas.width);
-                    startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
+                    spawnX = canvas.width + 100 + (Math.random() * 150); 
+                    vxVal = -(speedVal * 0.7); 
                 }
-
-                flyingObjects.push({
-                    id: nextObs.id,
-                    x: spawnX,
-                    y: startY,
-                    spawnY: startY,
-                    vx: vxVal,
-                    vy: vyVal,
-                    z: zVal,
-                    type: nextObs.type,
-                    speed: speedVal,
-                    color: nextObs.color,
-                    deflected: false,
-                    passed: false,
-                    crashed: false,
-                    smokeTimer: 0,
-                    speechTimer: 0,
-                    engineStarted: false
-                });
+                startY = getTerrainY(worldDistance + spawnX) - 20 - (Math.random() * 100); 
+                vyVal = -1 + (Math.random() * 3);
             } else {
                 let tY = getTerrainY(worldDistance + canvas.width);
-                obstacles.push({
-                    id: nextObs.id,
-                    x: canvas.width,
-                    y: tY + 5 - (nextObs.height || 0), 
-                    baseY: tY + 5 - (nextObs.height || 0),
-                    width: nextObs.width,
-                    height: nextObs.height || 0,
-                    type: nextObs.type,
-                    color: nextObs.color,
-                    passed: false
+                startY = nextObs.spawnY !== undefined ? nextObs.spawnY : tY - 40;
+            }
+
+            flyingObjects.push({
+                id: nextObs.id,
+                x: spawnX,
+                y: startY,
+                spawnY: startY,
+                vx: vxVal,
+                vy: vyVal,
+                z: zVal,
+                type: nextObs.type,
+                speed: speedVal,
+                color: nextObs.color,
+                deflected: false,
+                passed: false,
+                crashed: false,
+                smokeTimer: 0,
+                speechTimer: 0,
+                engineStarted: false
+            });
+        } else {
+            let tY = getTerrainY(worldDistance + canvas.width);
+            obstacles.push({
+                id: nextObs.id,
+                x: canvas.width,
+                y: tY + 5 - (nextObs.height || 0), 
+                baseY: tY + 5 - (nextObs.height || 0),
+                width: nextObs.width,
+                height: nextObs.height || 0,
+                type: nextObs.type,
+                color: nextObs.color,
+                passed: false
+            });
+
+            if (nextObs.type === 'water') {
+                let spawnX = canvas.width + nextObs.width / 2; 
+
+                flyingObjects.push({
+                    id: nextObs.id + 10000,
+                    x: spawnX,
+                    y: canvas.height + 50, 
+                    vx: -1.5, 
+                    vy: 0,
+                    type: 'shark',
+                    state: 'patrol',
+                    minX: canvas.width + 30, 
+                    maxX: canvas.width + nextObs.width - 30, 
+                    deflected: false, passed: false, crashed: false
                 });
 
-                if (nextObs.type === 'water') {
-                    let spawnX = canvas.width + nextObs.width / 2; 
-
-                    flyingObjects.push({
-                        id: nextObs.id + 10000,
-                        x: spawnX,
-                        y: canvas.height + 50, 
-                        vx: -1.5, 
-                        vy: 0,
-                        type: 'shark',
-                        state: 'patrol',
-                        minX: canvas.width + 30, 
-                        maxX: canvas.width + nextObs.width - 30, 
-                        deflected: false, passed: false, crashed: false
-                    });
-
-                    flyingObjects.push({
-                        id: nextObs.id + 20000,
-                        x: spawnX,
-                        y: getHorizonY(),
-                        vx: 0, 
-                        vy: 0,
-                        type: 'motorboat',
-                        crashed: false,
-                        speechTimer: 0
-                    });
-                }
+                flyingObjects.push({
+                    id: nextObs.id + 20000,
+                    x: spawnX,
+                    y: getHorizonY(),
+                    vx: 0, 
+                    vy: 0,
+                    type: 'motorboat',
+                    crashed: false,
+                    speechTimer: 0
+                });
             }
-            nextObstacleIndex++;
         }
+        nextObstacleIndex++;
     }
 }
 
