@@ -467,13 +467,24 @@ window.addEventListener('keydown', function(e) {
         return;
     }
     
-    if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) {
+    // Ueberprueft nun auch Space, ArrowUp und KeyW fuer das handleInputEvent
+    if (['Space', 'KeyN', 'KeyM', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'ArrowUp', 'KeyW'].includes(e.code)) {
         if (handleInputEvent()) { e.preventDefault(); return; }
     }
     if (isLevelComplete) return;
 
     if (e.code === 'KeyN') { keys.rearJump = true; jump('rear'); e.preventDefault(); }
     if (e.code === 'KeyM') { keys.frontJump = true; jump('front'); e.preventDefault(); }
+    
+    // Globale Sprungtasten fuer beide Raeder gleichzeitig (verhindert Tastatur-Ghosting)
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { 
+        keys.rearJump = true; 
+        keys.frontJump = true; 
+        jump('rear'); 
+        jump('front'); 
+        e.preventDefault(); 
+    }
+    
     if (e.code === 'KeyD' || e.code === 'ArrowRight') { keys.up = true; e.preventDefault(); }
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.down = true; e.preventDefault(); }
 });
@@ -484,6 +495,10 @@ window.addEventListener('keyup', function(e) {
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.down = false;
     if (e.code === 'KeyN') keys.rearJump = false;
     if (e.code === 'KeyM') keys.frontJump = false;
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { 
+        keys.rearJump = false; 
+        keys.frontJump = false; 
+    }
 });
 
 function handleTouch(e) {
@@ -506,13 +521,11 @@ function handleTouch(e) {
             const tx = (t.clientX - rect.left) * scaleX;
             const ty = (t.clientY - rect.top) * scaleY;
 
-            const distFront = Math.hypot(tx - player.frontWheel.x, ty - player.frontWheel.y);
-            const distRear = Math.hypot(tx - player.rearWheel.x, ty - player.rearWheel.y);
-
-            if (distFront < 50) {
-                activeTouches[t.identifier] = { startX: tx, wheel: 'front', isDrag: false };
-            } else if (distRear < 50) {
-                activeTouches[t.identifier] = { startX: tx, wheel: 'rear', isDrag: false };
+            // Touch-Zonen auf Bildschirmhaelften aufgeteilt fuer fehlerfreie Erkennung
+            if (tx >= canvas.width / 2) {
+                activeTouches[t.identifier] = { startX: tx, startY: ty, wheel: 'front', isDrag: false, hasJumped: false };
+            } else {
+                activeTouches[t.identifier] = { startX: tx, startY: ty, wheel: 'rear', isDrag: false, hasJumped: false };
             }
         }
     }
@@ -527,16 +540,23 @@ function handleTouch(e) {
         const data = activeTouches[t.identifier];
         if (data) {
             const tx = (t.clientX - rect.left) * scaleX;
+            const ty = (t.clientY - rect.top) * scaleY;
             const dx = tx - data.startX;
+            const dy = ty - data.startY;
 
-            if (Math.abs(dx) > 10) {
+            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
                 data.isDrag = true;
             }
 
-            if (data.isDrag) {
-                if (data.wheel === 'front' && dx > 10) touchGas = true;
-                if (data.wheel === 'rear' && dx < -10) touchBrake = true;
-            } else {
+            if (data.wheel === 'front' && dx > 15) touchGas = true;
+            if (data.wheel === 'rear' && dx < -15) touchBrake = true;
+            
+            // Ermoeglicht den Sprung durch nach-oben-wischen, auch waehrend Gas gegeben wird
+            if (dy < -20) {
+                if (!data.hasJumped) {
+                    jump(data.wheel);
+                    data.hasJumped = true; 
+                }
                 if (data.wheel === 'front') touchFrontJump = true;
                 if (data.wheel === 'rear') touchRearJump = true;
             }
@@ -548,8 +568,11 @@ function handleTouch(e) {
             const t = e.changedTouches[i];
             const data = activeTouches[t.identifier];
             if (data) {
-                if (!data.isDrag && !isCrashing) {
+                // Ein einfaches Tippen loest weiterhin einen regulueren Sprung aus
+                if (!data.isDrag && !data.hasJumped && !isCrashing) {
                     jump(data.wheel);
+                    if (data.wheel === 'front') touchFrontJump = true;
+                    if (data.wheel === 'rear') touchRearJump = true;
                 }
                 delete activeTouches[t.identifier];
             }
