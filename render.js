@@ -47,10 +47,9 @@ function drawEnvironment(moveScale) {
                 ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
                 ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
-           } else if (bg.type === 'stadium_stand') {
+          } else if (bg.type === 'stadium_stand') {
                 let ty = getTerrainY(worldDistance + bg.x);
                 
-                // Basis der Tribüne (dunkler Hintergrund)
                 ctx.fillStyle = bg.color1 || '#111';
                 ctx.beginPath();
                 ctx.moveTo(bg.x, ty);
@@ -59,13 +58,22 @@ function drawEnvironment(moveScale) {
                 ctx.lineTo(bg.x + bg.width, ty);
                 ctx.fill();
                 
-                // Werbebande / Spielfeldbegrenzung
                 ctx.fillStyle = '#FFF';
                 ctx.fillRect(bg.x - 2, ty - 12, bg.width + 4, 12);
-                ctx.fillStyle = '#BF0A30'; 
-                ctx.fillRect(bg.x, ty - 10, bg.width, 8);
                 
-                // Animiertes Publikum (USA-Farben + La-Ola-Welle)
+                if (adImage.complete && adImage.naturalHeight !== 0) {
+                    ctx.drawImage(adImage, bg.x, ty - 11, bg.width, 10);
+                } else {
+                    ctx.fillStyle = '#BF0A30'; 
+                    ctx.fillRect(bg.x, ty - 10, bg.width, 8);
+                    
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = 'bold 8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('BGH EDELSTAHLWERKE', bg.x + bg.width / 2, ty - 3);
+                    ctx.textAlign = 'left';
+                }
+                
                 let time = performance.now();
                 let colors = ['#BF0A30', '#FFFFFF', '#002868', '#FFD700', '#FFFFFF'];
                 
@@ -76,21 +84,16 @@ function drawEnvironment(moveScale) {
                     
                     for (let col = 0; col < 18; col++) {
                         let pX = startX + (col * (rowWidth / 18));
-                        
-                        // La-Ola-Welle basierend auf Position und Zeit
                         let wave = Math.sin((worldDistance + pX) * 0.01 - time * 0.005) * 8;
-                        let jump = Math.max(0, wave); // Nur nach oben springen
+                        let jump = Math.max(0, wave); 
                         
-                        // Feste Farbe pro Sitzplatz berechnen
                         let colorIndex = Math.floor(Math.abs(pX * 7 + row * 11)) % colors.length;
                         ctx.fillStyle = colors[colorIndex];
                         
-                        // Zuschauer (Kopf/Körper) zeichnen
                         ctx.beginPath();
                         ctx.arc(pX, rowY - jump, 3.5, 0, Math.PI * 2);
                         ctx.fill();
                         
-                        // Zufälliges Blitzlicht / Kameras im Publikum
                         if (Math.random() < 0.002) {
                             ctx.fillStyle = '#FFF';
                             ctx.beginPath();
@@ -98,8 +101,9 @@ function drawEnvironment(moveScale) {
                             ctx.fill();
                         }
                     }
-                } 
-                }else if (bg.type === 'palm_tree') {
+                }
+             
+            }else if (bg.type === 'palm_tree') {
                 ctx.fillStyle = bg.color1 || '#8B4513';
                 ctx.beginPath();
                 ctx.moveTo(bg.x + bg.width/2 - 4, canvas.height); 
