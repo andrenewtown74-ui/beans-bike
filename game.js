@@ -6,11 +6,12 @@ instructionEl = document.getElementById('instruction');
 fullscreenBtn = document.getElementById('fullscreen-btn');
 headlightBtn = document.getElementById('headlight-btn');
 
+
 namePopup = document.getElementById('name-popup');
 popupScore = document.getElementById('popup-score');
 playerNameInput = document.getElementById('player-name-input');
 saveScoreBtn = document.getElementById('save-score-btn');
-
+const pauseBtn = document.getElementById('pause-btn');
 const btnStartGame = document.getElementById('btn-start-game');
 const btnToggleMusic = document.getElementById('btn-toggle-music');
 const btnShowHighscores = document.getElementById('btn-show-highscores');
@@ -19,7 +20,7 @@ const closeHighscoreBtn = document.getElementById('close-highscore-btn');
 const fullHighscoreList = document.getElementById('full-highscore-list');
 
 let isMenuMusicPlaying = false;
-
+window.isPaused = false;
 window.weatherParticles = window.weatherParticles || [];
 window.rainParticles = window.rainParticles || [];
 
@@ -83,7 +84,31 @@ if (headlightBtn) {
         headlightBtn.innerText = isHeadlightOn ? "Licht: AN" : "Licht: AUS";
     });
 }
+function togglePause() {
+    if (!isGameRunning || isGameOver || isLevelComplete) return;
+    window.isPaused = !window.isPaused;
+    
+    if (pauseBtn) {
+        pauseBtn.innerText = window.isPaused ? "Weiter" : "Pause";
+    }
+    
+    if (window.isPaused) {
+        if (typeof bgMusic !== 'undefined' && !bgMusic.paused) bgMusic.pause();
+        if (window.audioCtx && window.audioCtx.state === 'running') window.audioCtx.suspend();
+    } else {
+        if (typeof bgMusic !== 'undefined' && isMenuMusicPlaying) bgMusic.play().catch(function(){});
+        if (window.audioCtx && window.audioCtx.state === 'suspended') window.audioCtx.resume();
+        lastTime = performance.now(); 
+    }
+}
 
+if (pauseBtn) {
+    pauseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePause();
+    });
+}
 if (btnStartGame) {
     btnStartGame.addEventListener('click', function(e) {
         e.preventDefault();
@@ -487,6 +512,11 @@ window.addEventListener('keydown', function(e) {
     
     if (e.code === 'KeyD' || e.code === 'ArrowRight') { keys.up = true; e.preventDefault(); }
     if (e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.down = true; e.preventDefault(); }
+    if (e.code === 'KeyP') {
+            togglePause();
+            e.preventDefault();
+            return;
+    }
 });
 
 window.addEventListener('keyup', function(e) {
@@ -777,6 +807,17 @@ function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
     let deltaTime = timestamp - lastTime;
     lastTime = timestamp;
+    if (window.isPaused) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 30px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAUSE', canvas.width / 2, canvas.height / 2);
+        ctx.textAlign = 'left';
+        animationFrameId = requestAnimationFrame(gameLoop);
+        return;
+    }
     if (deltaTime > 100) deltaTime = 16.66;
     const timeScale = deltaTime / 16.666;
 

@@ -3,9 +3,20 @@ function drawEnvironment(moveScale) {
     else ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (designData && designData.theme && designData.theme.sun && designData.theme.sun.active) {
-        ctx.fillStyle = designData.theme.sun.color;
-        ctx.fillRect(canvas.width - designData.theme.sun.xOffset, designData.theme.sun.y, designData.theme.sun.size, designData.theme.sun.size);
+   if (designData && designData.theme && designData.theme.sun && designData.theme.sun.active) {
+        let r = designData.theme.sun.size;
+        let cx = canvas.width - designData.theme.sun.xOffset + r / 2;
+        let cy = designData.theme.sun.y + r / 2;
+        
+        let grad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 2.5);
+        grad.addColorStop(0, '#FFFFFF');
+        grad.addColorStop(0.3, designData.theme.sun.color);
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 2.5, 0, Math.PI * 2);
+        ctx.fill();
     }
 
     const drawOrder = ['star', 'planet', 'eiffel', 'mountain', 'tree', 'palm_tree', 'building', 'stadium_stand'];

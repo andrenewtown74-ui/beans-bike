@@ -13,6 +13,6 @@
         "levelDistance": 8000
     },
     "objects": [
-        { "type": "stadium_stand", "count": 25, "minWidth": 180, "maxWidth": 300, "minHeight": 90, "maxHeight": 120, "speedModifier": 0.2, "color1": "#111111", "color2": "#FFFFFF" }
+        { "type": "stadium_stand", "count": 10, "minWidth": 120, "maxWidth": 180, "minHeight": 90, "maxHeight": 120, "speedModifier": 0.2, "color1": "#111111", "color2": "#FFFFFF" }
     ]
 }
