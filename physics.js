@@ -382,30 +382,59 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
 
-        if (obj.type === 'striker' || obj.type === 'goalkeeper') {
+       if (obj.type === 'striker' || obj.type === 'goalkeeper') {
             if (!obj.crashed) {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 obj.y = getTerrainY(worldDistance + obj.x);
                 
                 if (obj.type === 'goalkeeper') {
+                    // Torwart hüpft vor dem Tor auf und ab
                     obj.y -= Math.abs(Math.sin(performance.now() * 0.005 + obj.id)) * 15;
                 }
                 
                 let rx = player.rearWheel.x, ry = player.rearWheel.y;
                 let fx = player.frontWheel.x, fy = player.frontWheel.y;
 
-                let hitRear = Math.abs(rx - obj.x) < 12 && ry > obj.y - 25;
-                let hitFront = Math.abs(fx - obj.x) < 12 && fy > obj.y - 25;
+                let inPlayerX = Math.abs(rx - obj.x) < 15 || Math.abs(fx - obj.x) < 15;
 
-                if (!isCrashing && !window.isInvincible && (hitRear || hitFront)) {
-                    startCrash('flip');
-                    obj.crashed = true;
-                    if (typeof playHit === 'function') playHit();
+                if (!isCrashing && !window.isInvincible && inPlayerX) {
+                    // Pruefen, ob ein Reifen von oben auf den Kopf trifft (Sinkflug vy >= 0)
+                    let hitTopRear = Math.abs(rx - obj.x) < 15 && ry <= obj.y - 15 && player.rearWheel.vy >= 0;
+                    let hitTopFront = Math.abs(fx - obj.x) < 15 && fy <= obj.y - 15 && player.frontWheel.vy >= 0;
+
+                    if (hitTopRear || hitTopFront) {
+                        // Spieler besiegen (verwandelt sich in Blase)
+                        obj.type = 'bubble';
+                        obj.vx = -gameSpeed * 0.5;
+                        obj.vy = -2.0;
+                        score += 5;
+                        if (typeof playScore === 'function') playScore();
+                        if (typeof playJump === 'function') playJump();
+
+                        // Fahrrad nach oben abfedern lassen
+                        if (hitTopRear) {
+                            player.rearWheel.vy = player.jumpStrength * 1.3;
+                            player.rearWheel.isJumping = true;
+                            player.rearWheel.onSurface = false;
+                        }
+                        if (hitTopFront) {
+                            player.frontWheel.vy = player.jumpStrength * 1.3;
+                            player.frontWheel.isJumping = true;
+                            player.frontWheel.onSurface = false;
+                        }
+                        continue;
+                    } else if (ry > obj.y - 20 || fy > obj.y - 20) {
+                        // Seitlicher Treffer fuehrt zum Crash
+                        startCrash('flip');
+                        obj.crashed = true;
+                        if (typeof playHit === 'function') playHit();
+                    }
                 }
             } else {
                 obj.x -= gameSpeed * moveScale;
             }
 
+            // Punkte beim Ueberspringen
             if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 20) {
                 obj.passed = true;
                 score += 2; 

@@ -847,7 +847,8 @@ function gameLoop(timestamp) {
                 if (!hasPlayedFanfare) {
                     if (typeof playFanfare === 'function') playFanfare();
                     hasPlayedFanfare = true;
-                    
+                    // Ein Leben hochzaehlen bei erfolgreichem Levelabschluss
+                    lives++;
                     if (currentLevel >= 8) { 
                         titleEl.innerText = "Herzlichen Glückwunsch!";
                         if (!window.scoreSubmitted && score > 0) {
