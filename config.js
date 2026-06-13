@@ -72,3 +72,6 @@ let isPopupOpen = false;
 
 let canvas, ctx, uiLayer, titleEl, instructionEl, touchControls, fullscreenBtn, headlightBtn;
 let namePopup, popupScore, playerNameInput, saveScoreBtn;
+
+const adImage = new Image();
+adImage.src = 'werbung.png';
