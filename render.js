@@ -113,7 +113,8 @@ function drawEnvironment(moveScale) {
                         let wave = Math.sin((worldDistance + pX) * 0.01 - time * 0.005) * 8;
                         let jump = Math.max(0, wave); 
                         
-                        let colorIndex = Math.floor(Math.abs(pX * 7 + row * 11)) % colors.length;
+                        // Feste Farbe anhand von Spalte, Reihe und Tribuenenbreite
+                        let colorIndex = Math.floor(col * 7 + row * 11 + bg.width) % colors.length;
                         ctx.fillStyle = colors[colorIndex];
                         
                         ctx.beginPath();
