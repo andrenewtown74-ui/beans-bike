@@ -58,7 +58,7 @@ function drawEnvironment(moveScale) {
                 ctx.fillRect(bg.x + bg.width/3, horizon - 15, bg.width/3, 20);
                 ctx.fillStyle = bg.color2;
                 ctx.fillRect(bg.x, horizon - bg.height + 5, bg.width, bg.height - 20);
-          } else if (bg.type === 'stadium_stand') {
+            } else if (bg.type === 'stadium_stand') {
                 let ty = getTerrainY(worldDistance + bg.x);
                 
                 ctx.fillStyle = bg.color1 || '#111';
@@ -73,7 +73,22 @@ function drawEnvironment(moveScale) {
                 ctx.fillRect(bg.x - 2, ty - 12, bg.width + 4, 12);
                 
                 if (adImage.complete && adImage.naturalHeight !== 0) {
-                    ctx.drawImage(adImage, bg.x, ty - 11, bg.width, 10);
+                    /* Original-Seitenverhaeltnis berechnen und skalieren */
+                    let adH = 10;
+                    let scale = adH / adImage.naturalHeight;
+                    let adW = adImage.naturalWidth * scale;
+                    
+                    /* Beschraenkt den Zeichenbereich exakt auf die Tribuenenbreite */
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(bg.x, ty - 11, bg.width, adH);
+                    ctx.clip();
+                    
+                    /* Bild auf der Bande wiederholen (Tiling-Effekt) mit 10 Pixel Abstand */
+                    for (let px = bg.x; px < bg.x + bg.width; px += adW + 10) {
+                        ctx.drawImage(adImage, px, ty - 11, adW, adH);
+                    }
+                    ctx.restore();
                 } else {
                     ctx.fillStyle = '#BF0A30'; 
                     ctx.fillRect(bg.x, ty - 10, bg.width, 8);
@@ -113,8 +128,8 @@ function drawEnvironment(moveScale) {
                         }
                     }
                 }
-             
-            }else if (bg.type === 'palm_tree') {
+            
+            } else if (bg.type === 'palm_tree') {
                 ctx.fillStyle = bg.color1 || '#8B4513';
                 ctx.beginPath();
                 ctx.moveTo(bg.x + bg.width/2 - 4, canvas.height); 
