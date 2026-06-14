@@ -485,6 +485,37 @@ function updateFlyingObjects(timeScale, moveScale) {
                 startEngineSound(obj);
             }
 
+            let carW = 50;
+            let roofYOffset = 25;
+            if (obj.type === 'snowcat') { carW = 60; roofYOffset = 30; }
+            else if (obj.type === 'rover') { carW = 55; roofYOffset = 25; }
+            else if (obj.type === 'jeep') { carW = 55; roofYOffset = 35; }
+            else if (obj.type === 'borer') { carW = 80; roofYOffset = 40; }
+
+            // pruefung auf toedliche level-hindernisse fuer fahrzeuge
+            let centerCarX = obj.x + carW / 2;
+            let fatalObstacle = null;
+            for (let obs of obstacles) {
+                if (centerCarX > obs.x && centerCarX < obs.x + obs.width) {
+                    if (['chasm', 'lava', 'water', 'crater', 'block', 'ice_block'].includes(obs.type)) {
+                        fatalObstacle = obs;
+                        break;
+                    }
+                }
+            }
+
+            if (fatalObstacle && !obj.crashed) {
+                obj.crashed = true;
+                obj.speechTimer = 100;
+                if (['block', 'ice_block'].includes(fatalObstacle.type)) {
+                    obj.vx = 0;
+                } else {
+                    obj.vx *= 0.5; 
+                }
+                if (typeof stopEngineSound === 'function') stopEngineSound(obj);
+                if (typeof playHit === 'function') playHit();
+            }
+
             if (obj.crashed) {
                 if (obj.vx > 0) {
                     obj.vx -= 0.1 * timeScale; 
@@ -495,7 +526,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                         obj.smokeTimer = 0;
                         window.weatherParticles.push({
                             x: obj.x + 20 + Math.random() * 20, 
-                            y: getTerrainY(worldDistance + obj.x) - 5,
+                            y: obj.y - 15,
                             vx: -0.5 + Math.random(),
                             vy: -1 - Math.random(),
                             type: 'smoke',
@@ -504,25 +535,34 @@ function updateFlyingObjects(timeScale, moveScale) {
                         });
                     }
                 }
-                if (obj.speechTimer > 0) {
-                    obj.speechTimer -= timeScale;
-                }
+                if (obj.speechTimer > 0) obj.speechTimer -= timeScale;
                 
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-                obj.y = getTerrainY(worldDistance + obj.x);
+                
+                // gravitations-logik ueber abgruenden
+                let overHole = false;
+                for (let obs of obstacles) {
+                    if (obj.x + carW / 2 > obs.x && obj.x + carW / 2 < obs.x + obs.width) {
+                        if (['chasm', 'lava', 'water'].includes(obs.type)) {
+                            overHole = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (overHole) {
+                    obj.vy = (obj.vy || 0) + player.gravity * timeScale;
+                    obj.y += obj.vy * timeScale;
+                } else {
+                    obj.y = getTerrainY(worldDistance + obj.x);
+                    obj.vy = 0;
+                }
 
             } else {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 obj.y = getTerrainY(worldDistance + obj.x);
+                let roofY = obj.y - roofYOffset;
                 
-                let carW = 50;
-                let roofY = obj.y - 25;
-                
-                if (obj.type === 'snowcat') { carW = 60; roofY = obj.y - 30; }
-                else if (obj.type === 'rover') { carW = 55; roofY = obj.y - 25; }
-                else if (obj.type === 'jeep') { carW = 55; roofY = obj.y - 35; }
-                else if (obj.type === 'borer') { carW = 80; roofY = obj.y - 40; }
-
                 let rx = player.rearWheel.x, ry = player.rearWheel.y;
                 let fx = player.frontWheel.x, fy = player.frontWheel.y;
                 let onRoof = false;
@@ -559,7 +599,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                         if (typeof stopEngineSound === 'function') stopEngineSound(obj);
                         if (typeof playSqueal === 'function') playSqueal();
                         setTimeout(function() { if (typeof playYell === 'function') playYell(); }, 400);
-                        
                         continue;
                     }
                 }
@@ -570,7 +609,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                 }
             }
             
-            if (obj.x > canvas.width + 200 || obj.x < -200) {
+            if (obj.x > canvas.width + 200 || obj.x < -200 || obj.y > canvas.height + 100) {
                 if (typeof stopEngineSound === 'function') stopEngineSound(obj);
                 flyingObjects.splice(i, 1);
             }
@@ -578,12 +617,48 @@ function updateFlyingObjects(timeScale, moveScale) {
         }
 
         if (['cyclist', 'escooter'].includes(obj.type)) {
+            let fatalObstacle = null;
+            for (let obs of obstacles) {
+                if (obj.x > obs.x && obj.x < obs.x + obs.width) {
+                    if (['chasm', 'lava', 'water', 'crater', 'block', 'ice_block'].includes(obs.type)) {
+                        fatalObstacle = obs;
+                        break;
+                    }
+                }
+            }
+
+            if (fatalObstacle && !obj.crashed) {
+                obj.crashed = true;
+                obj.speechTimer = 100;
+                obj.vx = 0; 
+                if (typeof playHit === 'function') playHit();
+            }
+
             if (obj.crashed) {
                 obj.x -= gameSpeed * moveScale;
                 if (obj.speechTimer > 0) obj.speechTimer -= timeScale;
+                
+                let overHole = false;
+                for (let obs of obstacles) {
+                    if (obj.x > obs.x && obj.x < obs.x + obs.width) {
+                        if (['chasm', 'lava', 'water'].includes(obs.type)) {
+                            overHole = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (overHole) {
+                    obj.vy = (obj.vy || 0) + player.gravity * timeScale;
+                    obj.y += obj.vy * timeScale;
+                } else {
+                    obj.y = getTerrainY(worldDistance + obj.x);
+                    obj.vy = 0;
+                }
+
             } else {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-                obj.y = getTerrainY(worldDistance + obj.x)+5;
+                obj.y = getTerrainY(worldDistance + obj.x);
 
                 if (!isCrashing && !window.isInvincible && Math.abs(cx - obj.x) < 25 && Math.abs(cy - obj.y) < 30) {
                     startCrash('flip');
@@ -592,7 +667,7 @@ function updateFlyingObjects(timeScale, moveScale) {
                     if (typeof playYell === 'function') setTimeout(playYell, 100);
                 }
             }
-            if (obj.x < -200 || obj.x > canvas.width + 200) {
+            if (obj.x < -200 || obj.x > canvas.width + 200 || obj.y > canvas.height + 100) {
                 flyingObjects.splice(i, 1);
             }
             continue;
