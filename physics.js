@@ -298,7 +298,6 @@ function updateCrashAnimation(timeScale) {
                 if (typeof respawnPlayer === 'function') respawnPlayer();
             } else {
                 isGameOver = true;
-                // Musikwiedergabe beenden, wenn alle Leben aufgebraucht sind
                 if (typeof bgMusic !== 'undefined') {
                     bgMusic.pause();
                 }
@@ -328,10 +327,9 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
 
-        // --- FUSSBALL WM LOGIK START ---
         if (obj.type === 'soccer_goal') {
             obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-            obj.y = getTerrainY(worldDistance + obj.x)+5;
+            obj.y = getTerrainY(worldDistance + obj.x) + 10; 
             
             let goalW = 60;
             let goalTop = obj.y - 35;
@@ -386,13 +384,12 @@ function updateFlyingObjects(timeScale, moveScale) {
             continue;
         }
 
-       if (obj.type === 'striker' || obj.type === 'goalkeeper') {
+        if (obj.type === 'striker' || obj.type === 'goalkeeper') {
             if (!obj.crashed) {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-                obj.y = getTerrainY(worldDistance + obj.x)+5;
+                obj.y = getTerrainY(worldDistance + obj.x) + 10;
                 
                 if (obj.type === 'goalkeeper') {
-                    // Torwart hüpft vor dem Tor auf und ab
                     obj.y -= Math.abs(Math.sin(performance.now() * 0.005 + obj.id)) * 15;
                 }
                 
@@ -402,12 +399,10 @@ function updateFlyingObjects(timeScale, moveScale) {
                 let inPlayerX = Math.abs(rx - obj.x) < 15 || Math.abs(fx - obj.x) < 15;
 
                 if (!isCrashing && !window.isInvincible && inPlayerX) {
-                    // Pruefen, ob ein Reifen von oben auf den Kopf trifft (Sinkflug vy >= 0)
                     let hitTopRear = Math.abs(rx - obj.x) < 15 && ry <= obj.y - 15 && player.rearWheel.vy >= 0;
                     let hitTopFront = Math.abs(fx - obj.x) < 15 && fy <= obj.y - 15 && player.frontWheel.vy >= 0;
 
                     if (hitTopRear || hitTopFront) {
-                        // Spieler besiegen (verwandelt sich in Blase)
                         obj.type = 'bubble';
                         obj.vx = -gameSpeed * 0.5;
                         obj.vy = -2.0;
@@ -415,7 +410,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                         if (typeof playScore === 'function') playScore();
                         if (typeof playJump === 'function') playJump();
 
-                        // Fahrrad nach oben abfedern lassen
                         if (hitTopRear) {
                             player.rearWheel.vy = player.jumpStrength * 1.3;
                             player.rearWheel.isJumping = true;
@@ -428,7 +422,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                         }
                         continue;
                     } else if (ry > obj.y - 20 || fy > obj.y - 20) {
-                        // Seitlicher Treffer fuehrt zum Crash
                         startCrash('flip');
                         obj.crashed = true;
                         if (typeof playHit === 'function') playHit();
@@ -438,7 +431,6 @@ function updateFlyingObjects(timeScale, moveScale) {
                 obj.x -= gameSpeed * moveScale;
             }
 
-            // Punkte beim Ueberspringen
             if (!isCrashing && !obj.passed && obj.x < player.rearWheel.defaultX - 20) {
                 obj.passed = true;
                 score += 2; 
@@ -478,7 +470,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             if (obj.x < -200 || obj.x > canvas.width + 200) flyingObjects.splice(i, 1);
             continue;
         }
-        // --- FUSSBALL WM LOGIK ENDE ---
 
         if (vehicleTypes.includes(obj.type)) {
             if (!obj.engineStarted && typeof startEngineSound === 'function') {
@@ -495,33 +486,49 @@ function updateFlyingObjects(timeScale, moveScale) {
             let carLeft = obj.x;
             let carRight = obj.x + carW;
             let centerCarX = obj.x + carW / 2;
-            let currentSurfaceY = getTerrainY(worldDistance + centerCarX);
+            
+            let currentSurfaceY = getTerrainY(worldDistance + carLeft);
+            let yRight = getTerrainY(worldDistance + carRight);
+            
             let fatalWall = false;
             let overHole = false;
             let onRamp = false;
 
             for (let obs of obstacles) {
-                // Kollisionspruefung mit festen Hindernissen und Abgruenden
                 if (carRight > obs.x && carLeft < obs.x + obs.width) {
                     if (['chasm', 'lava', 'water'].includes(obs.type)) {
                         if (centerCarX > obs.x && centerCarX < obs.x + obs.width) {
                             overHole = true;
                             let surface = getObstacleSurface(centerCarX, obs);
-                            if (surface !== null) currentSurfaceY = surface;
+                            if (surface !== null) {
+                                currentSurfaceY = surface;
+                                yRight = surface;
+                            }
                         }
                     } else if (['crater', 'block', 'ice_block'].includes(obs.type)) {
                         fatalWall = true;
                     }
                 }
                 
-                // Berechnung der befahrbaren Oberflaeche (Rampen, Huegel)
-                let surface = getObstacleSurface(centerCarX, obs);
-                if (surface !== null && !['chasm', 'lava', 'water', 'block', 'ice_block', 'crater'].includes(obs.type)) {
-                    if (surface < currentSurfaceY) {
-                        currentSurfaceY = surface;
+                let sLeft = getObstacleSurface(carLeft, obs);
+                if (sLeft !== null && !['chasm', 'lava', 'water', 'block', 'ice_block', 'crater'].includes(obs.type)) {
+                    if (sLeft < currentSurfaceY) {
+                        currentSurfaceY = sLeft;
                         if (['ramp', 'hill', 'round'].includes(obs.type)) onRamp = true;
                     }
                 }
+                
+                let sRight = getObstacleSurface(carRight, obs);
+                if (sRight !== null && !['chasm', 'lava', 'water', 'block', 'ice_block', 'crater'].includes(obs.type)) {
+                    if (sRight < yRight) {
+                        yRight = sRight;
+                    }
+                }
+            }
+
+            if (!overHole) {
+                let targetRot = Math.atan2(yRight - currentSurfaceY, carW);
+                obj.rotation = (obj.rotation || 0) + (targetRot - (obj.rotation || 0)) * 0.2;
             }
 
             if ((fatalWall || overHole) && !obj.crashed) {
@@ -570,7 +577,6 @@ function updateFlyingObjects(timeScale, moveScale) {
             } else {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 
-                // Sprung- und Gravitationslogik fuer Rampen
                 obj.vy = (obj.vy || 0) + player.gravity * timeScale;
                 obj.y += obj.vy * timeScale;
 
@@ -583,19 +589,30 @@ function updateFlyingObjects(timeScale, moveScale) {
                     }
                 }
                 
-                let roofY = obj.y - roofYOffset;
-                
                 let rx = player.rearWheel.x, ry = player.rearWheel.y;
                 let fx = player.frontWheel.x, fy = player.frontWheel.y;
                 let onRoof = false;
                 
-                if (rx > obj.x - 5 && rx < obj.x + carW + 5 && ry >= roofY - 15 && ry <= roofY + 5 && player.rearWheel.vy >= 0) {
+                let R = obj.rotation || 0;
+                let cosR = Math.cos(R);
+                let sinR = Math.sin(R);
+                
+                let localRx = (rx - obj.x) * cosR + (ry - obj.y) * sinR;
+                let localRy = -(rx - obj.x) * sinR + (ry - obj.y) * cosR;
+                
+                let localFx = (fx - obj.x) * cosR + (fy - obj.y) * sinR;
+                let localFy = -(fx - obj.x) * sinR + (fy - obj.y) * cosR;
+                
+                let localRoofTop = -roofYOffset - 15;
+                let localRoofBottom = -roofYOffset + 5;
+                
+                if (localRx > -5 && localRx < carW + 5 && localRy >= localRoofTop && localRy <= localRoofBottom && player.rearWheel.vy >= 0) {
                     player.rearWheel.vy = player.jumpStrength * 1.5; 
                     player.rearWheel.isJumping = true;
                     player.rearWheel.onSurface = false;
                     onRoof = true;
                 }
-                if (fx > obj.x - 5 && fx < obj.x + carW + 5 && fy >= roofY - 15 && fy <= roofY + 5 && player.frontWheel.vy >= 0) {
+                if (localFx > -5 && localFx < carW + 5 && localFy >= localRoofTop && localFy <= localRoofBottom && player.frontWheel.vy >= 0) {
                     player.frontWheel.vy = player.jumpStrength * 1.5;
                     player.frontWheel.isJumping = true;
                     player.frontWheel.onSurface = false;
@@ -610,9 +627,12 @@ function updateFlyingObjects(timeScale, moveScale) {
                     }
                     if (typeof playJump === 'function') playJump();
                 } else if (!isCrashing && !window.isInvincible) {
-                    if ((rx > obj.x && rx < obj.x + carW && ry > roofY + 5) || 
-                        (fx > obj.x && fx < obj.x + carW && fy > roofY + 5) ||
-                        (beanX > obj.x && beanX < obj.x + carW && beanY > roofY + 5)) {
+                    let localBeanX = (beanX - obj.x) * cosR + (beanY - obj.y) * sinR;
+                    let localBeanY = -(beanX - obj.x) * sinR + (beanY - obj.y) * cosR;
+                    
+                    if ((localRx > 0 && localRx < carW && localRy > localRoofBottom) || 
+                        (localFx > 0 && localFx < carW && localFy > localRoofBottom) ||
+                        (localBeanX > 0 && localBeanX < carW && localBeanY > localRoofBottom)) {
                         
                         startCrash('flip');
                         

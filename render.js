@@ -1010,6 +1010,11 @@ function drawFlyingObjects() {
             ctx.fill();
         }
         else if (['car', 'snowcat', 'rover', 'jeep', 'borer', 'taxi', 'uber'].includes(obj.type)) {
+
+            // Rotation visuell anwenden
+            if (obj.rotation) {
+                ctx.rotate(obj.rotation);
+            }
             if (obj.type === 'car' || obj.type === 'taxi' || obj.type === 'uber') {
                 ctx.fillStyle = obj.type === 'taxi' ? '#FFFFFF' : (obj.type === 'uber' ? '#111111' : (obj.color || '#B22222'));
                 ctx.fillRect(0, -20, 50, 15); 
