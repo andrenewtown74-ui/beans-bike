@@ -190,6 +190,8 @@ async function loadLevelData(levelNum) {
 function updateMusic() {
     if (designData && designData.theme && designData.theme.music) {
         if (typeof bgMusic !== 'undefined' && !bgMusic.src.endsWith(designData.theme.music)) {
+            // Aktuelle Musik stoppen, bevor die Quelle geaendert wird
+            bgMusic.pause();
             bgMusic.src = designData.theme.music;
             if (isGameRunning && !isLevelComplete) {
                 bgMusic.play().catch(function(err) {});
@@ -198,12 +200,29 @@ function updateMusic() {
     }
 }
 
-function updatePhysicsConfig() {
-    if (designData && designData.physics) {
-        player.gravity = designData.physics.gravity !== undefined ? designData.physics.gravity : 0.35;
-        player.jumpStrength = designData.physics.jumpStrength !== undefined ? designData.physics.jumpStrength : -6.5;
-        levelDistance = designData.physics.levelDistance !== undefined ? designData.physics.levelDistance : 6000;
+function showMainMenu() {
+    isGameRunning = false;
+    window.hasInteracted = false;
+    isMenuMusicPlaying = false;
+    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+    
+    // Level-Musik explizit stoppen beim Zurueckkehren ins Menue
+    if (typeof bgMusic !== 'undefined') {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
     }
+    
+    if (btnToggleMusic) btnToggleMusic.innerText = "Musik: AUS";
+    
+    titleEl.innerText = "Bohnen-Bike";
+    instructionEl.classList.add('hidden');
+    document.getElementById('start-menu-buttons').classList.remove('hidden');
+    uiLayer.classList.remove('hidden');
+    
+    player.rearWheel.y = getTerrainY(30);
+    player.frontWheel.y = getTerrainY(90);
+    cancelAnimationFrame(animationFrameId);
+    requestAnimationFrame(idleLoop);
 }
 
 function initBackground() {
@@ -534,7 +553,7 @@ window.addEventListener('keyup', function(e) {
 
 function handleTouch(e) {
     if (isPopupOpen) return; 
-    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
+    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn' || e.target.id === 'pause-btn') return;
     
     if (handleInputEvent()) {
         if (e.cancelable) e.preventDefault();
@@ -621,7 +640,7 @@ window.addEventListener('touchcancel', handleTouch, { passive: false });
 window.addEventListener('mousedown', function(e) {
     if (isPopupOpen) return; 
 
-    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn') return;
+    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn' || e.target.id === 'pause-btn') return;
 
     if (handleInputEvent()) return;
     if (isLevelComplete || !isGameRunning) return;

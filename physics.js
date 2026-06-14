@@ -298,6 +298,10 @@ function updateCrashAnimation(timeScale) {
                 if (typeof respawnPlayer === 'function') respawnPlayer();
             } else {
                 isGameOver = true;
+                // Musikwiedergabe beenden, wenn alle Leben aufgebraucht sind
+                if (typeof bgMusic !== 'undefined') {
+                    bgMusic.pause();
+                }
             }
         }
     }
