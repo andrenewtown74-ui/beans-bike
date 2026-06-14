@@ -492,23 +492,43 @@ function updateFlyingObjects(timeScale, moveScale) {
             else if (obj.type === 'jeep') { carW = 55; roofYOffset = 35; }
             else if (obj.type === 'borer') { carW = 80; roofYOffset = 40; }
 
-            // pruefung auf toedliche level-hindernisse fuer fahrzeuge
+            let carLeft = obj.x;
+            let carRight = obj.x + carW;
             let centerCarX = obj.x + carW / 2;
-            let fatalObstacle = null;
+            let currentSurfaceY = getTerrainY(worldDistance + centerCarX);
+            let fatalWall = false;
+            let overHole = false;
+            let onRamp = false;
+
             for (let obs of obstacles) {
-                if (centerCarX > obs.x && centerCarX < obs.x + obs.width) {
-                    if (['chasm', 'lava', 'water', 'crater', 'block', 'ice_block'].includes(obs.type)) {
-                        fatalObstacle = obs;
-                        break;
+                // Kollisionspruefung mit festen Hindernissen und Abgruenden
+                if (carRight > obs.x && carLeft < obs.x + obs.width) {
+                    if (['chasm', 'lava', 'water'].includes(obs.type)) {
+                        if (centerCarX > obs.x && centerCarX < obs.x + obs.width) {
+                            overHole = true;
+                            let surface = getObstacleSurface(centerCarX, obs);
+                            if (surface !== null) currentSurfaceY = surface;
+                        }
+                    } else if (['crater', 'block', 'ice_block'].includes(obs.type)) {
+                        fatalWall = true;
+                    }
+                }
+                
+                // Berechnung der befahrbaren Oberflaeche (Rampen, Huegel)
+                let surface = getObstacleSurface(centerCarX, obs);
+                if (surface !== null && !['chasm', 'lava', 'water', 'block', 'ice_block', 'crater'].includes(obs.type)) {
+                    if (surface < currentSurfaceY) {
+                        currentSurfaceY = surface;
+                        if (['ramp', 'hill', 'round'].includes(obs.type)) onRamp = true;
                     }
                 }
             }
 
-            if (fatalObstacle && !obj.crashed) {
+            if ((fatalWall || overHole) && !obj.crashed) {
                 obj.crashed = true;
                 obj.speechTimer = 100;
-                if (['block', 'ice_block'].includes(fatalObstacle.type)) {
-                    obj.vx = 0;
+                if (fatalWall) {
+                    obj.vx = 0; 
                 } else {
                     obj.vx *= 0.5; 
                 }
@@ -539,28 +559,30 @@ function updateFlyingObjects(timeScale, moveScale) {
                 
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
                 
-                // gravitations-logik ueber abgruenden
-                let overHole = false;
-                for (let obs of obstacles) {
-                    if (obj.x + carW / 2 > obs.x && obj.x + carW / 2 < obs.x + obs.width) {
-                        if (['chasm', 'lava', 'water'].includes(obs.type)) {
-                            overHole = true;
-                            break;
-                        }
-                    }
-                }
-
                 if (overHole) {
                     obj.vy = (obj.vy || 0) + player.gravity * timeScale;
                     obj.y += obj.vy * timeScale;
                 } else {
-                    obj.y = getTerrainY(worldDistance + obj.x);
+                    obj.y = currentSurfaceY;
                     obj.vy = 0;
                 }
 
             } else {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-                obj.y = getTerrainY(worldDistance + obj.x);
+                
+                // Sprung- und Gravitationslogik fuer Rampen
+                obj.vy = (obj.vy || 0) + player.gravity * timeScale;
+                obj.y += obj.vy * timeScale;
+
+                if (obj.y >= currentSurfaceY && !overHole) {
+                    obj.y = currentSurfaceY;
+                    if (onRamp) {
+                        obj.vy = -gameSpeed * 1.2; 
+                    } else {
+                        obj.vy = 0;
+                    }
+                }
+                
                 let roofY = obj.y - roofYOffset;
                 
                 let rx = player.rearWheel.x, ry = player.rearWheel.y;
@@ -617,17 +639,37 @@ function updateFlyingObjects(timeScale, moveScale) {
         }
 
         if (['cyclist', 'escooter'].includes(obj.type)) {
-            let fatalObstacle = null;
+            let centerBikeX = obj.x;
+            let bikeLeft = obj.x - 15;
+            let bikeRight = obj.x + 15;
+            let currentSurfaceY = getTerrainY(worldDistance + centerBikeX);
+            let fatalWall = false;
+            let overHole = false;
+            let onRamp = false;
+
             for (let obs of obstacles) {
-                if (obj.x > obs.x && obj.x < obs.x + obs.width) {
-                    if (['chasm', 'lava', 'water', 'crater', 'block', 'ice_block'].includes(obs.type)) {
-                        fatalObstacle = obs;
-                        break;
+                if (bikeRight > obs.x && bikeLeft < obs.x + obs.width) {
+                    if (['chasm', 'lava', 'water'].includes(obs.type)) {
+                        if (centerBikeX > obs.x && centerBikeX < obs.x + obs.width) {
+                            overHole = true;
+                            let surface = getObstacleSurface(centerBikeX, obs);
+                            if (surface !== null) currentSurfaceY = surface;
+                        }
+                    } else if (['crater', 'block', 'ice_block'].includes(obs.type)) {
+                        fatalWall = true;
+                    }
+                }
+                
+                let surface = getObstacleSurface(centerBikeX, obs);
+                if (surface !== null && !['chasm', 'lava', 'water', 'block', 'ice_block', 'crater'].includes(obs.type)) {
+                    if (surface < currentSurfaceY) {
+                        currentSurfaceY = surface;
+                        if (['ramp', 'hill', 'round'].includes(obs.type)) onRamp = true;
                     }
                 }
             }
 
-            if (fatalObstacle && !obj.crashed) {
+            if ((fatalWall || overHole) && !obj.crashed) {
                 obj.crashed = true;
                 obj.speechTimer = 100;
                 obj.vx = 0; 
@@ -638,27 +680,28 @@ function updateFlyingObjects(timeScale, moveScale) {
                 obj.x -= gameSpeed * moveScale;
                 if (obj.speechTimer > 0) obj.speechTimer -= timeScale;
                 
-                let overHole = false;
-                for (let obs of obstacles) {
-                    if (obj.x > obs.x && obj.x < obs.x + obs.width) {
-                        if (['chasm', 'lava', 'water'].includes(obs.type)) {
-                            overHole = true;
-                            break;
-                        }
-                    }
-                }
-
                 if (overHole) {
                     obj.vy = (obj.vy || 0) + player.gravity * timeScale;
                     obj.y += obj.vy * timeScale;
                 } else {
-                    obj.y = getTerrainY(worldDistance + obj.x);
+                    obj.y = currentSurfaceY;
                     obj.vy = 0;
                 }
 
             } else {
                 obj.x += (obj.vx * timeScale) - (gameSpeed * moveScale);
-                obj.y = getTerrainY(worldDistance + obj.x);
+                
+                obj.vy = (obj.vy || 0) + player.gravity * timeScale;
+                obj.y += obj.vy * timeScale;
+
+                if (obj.y >= currentSurfaceY && !overHole) {
+                    obj.y = currentSurfaceY;
+                    if (onRamp) {
+                        obj.vy = -gameSpeed * 1.2; 
+                    } else {
+                        obj.vy = 0;
+                    }
+                }
 
                 if (!isCrashing && !window.isInvincible && Math.abs(cx - obj.x) < 25 && Math.abs(cy - obj.y) < 30) {
                     startCrash('flip');
