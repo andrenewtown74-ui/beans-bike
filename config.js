@@ -75,6 +75,3 @@ let namePopup, popupScore, playerNameInput, saveScoreBtn;
 
 const adImage = new Image();
 adImage.src = 'werbung.png';
-// --- LIGHTNING CONFIG ---
-const ALBY_LIGHTNING_ADDRESS = "feastnebular46104@getalby.com";
-window.isPlayingForPot = false;
