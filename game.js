@@ -1234,6 +1234,10 @@ function fetchTop20Highscores() {
 
 async function saveHighscore(playerName, finalScore) {
     if (!db) return;
+    
+    // WICHTIG: Wir merken uns den Status HIER, bevor das Skript auf die IP wartet!
+    let playedForPotStatus = window.isPlayingForPot === true;
+
     let playerIP = "Unbekannt";
     try {
         const response = await fetch('https://api.ipify.org?format=json');
@@ -1243,16 +1247,17 @@ async function saveHighscore(playerName, finalScore) {
         console.log("IP konnte nicht abgerufen werden");
     }
 
-    db.collection("highscores").add({
-        name: playerName,
-        score: finalScore,
-        ip: playerIP,
-        playedForPot: window.isPlayingForPot || false, // NEU: Vermerkt, ob gezahlt wurde
-        date: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function() {
-    }).catch(function(error) {
+    try {
+        await db.collection("highscores").add({
+            name: playerName,
+            score: finalScore,
+            ip: playerIP,
+            playedForPot: playedForPotStatus, // Hier nutzen wir den gemerkten Status
+            date: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch(error) {
         console.error("Fehler beim Speichern in Firebase:", error);
-    });
+    }
 }
 
 function showNamePopup() {
@@ -1268,14 +1273,15 @@ function showNamePopup() {
 }
 
 if (saveScoreBtn) {
-    saveScoreBtn.addEventListener('click', function(e) {
+    saveScoreBtn.addEventListener('click', async function(e) { // 'async' hinzugefügt
         e.preventDefault();
         e.stopPropagation();
         
         let pName = playerNameInput.value.trim();
         if (pName === "") pName = "Bohne";
         
-        saveHighscore(pName.substring(0, 15), score);
+        // Wir WARTEN hier, bis Firebase den Eintrag sicher gespeichert hat
+        await saveHighscore(pName.substring(0, 15), score);
         
         namePopup.classList.add('hidden');
         playerNameInput.value = '';
