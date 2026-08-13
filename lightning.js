@@ -4,36 +4,48 @@ window.isPlayingForPot = false;
 
 // Pott und Spenden aus der Firestore-Datenbank berechnen
 async function updateLightningStats() {
-    if (typeof db === 'undefined') return;
+    console.log("⚡ Starte Lightning-Stats Update...");
+    if (typeof db === 'undefined') {
+        console.error("⚡ Fehler: Datenbank (db) ist noch nicht bereit!");
+        return;
+    }
 
     let totalGames = 0;
     let directDonations = 0;
 
-    // 1. Hole alle Pott-Spiele (einzeln absichern)
+    // 1. Hole alle Pott-Spiele
     try {
+        console.log("⚡ Lade Pott-Spiele aus Firebase...");
         let potSnapshot = await db.collection("highscores").where("playedForPot", "==", true).get();
         totalGames = potSnapshot.size;
+        console.log("⚡ " + totalGames + " Pott-Spiele gefunden.");
     } catch (e) {
-        console.warn("Konnte Pott-Spiele nicht laden:", e);
+        console.error("⚡ Fehler beim Laden der Pott-Spiele (Rechte?):", e);
     }
 
-    // 2. Hole alle direkten Spenden (einzeln absichern)
+    // 2. Hole alle direkten Spenden
     try {
+        console.log("⚡ Lade Spenden aus Firebase...");
         let donSnapshot = await db.collection("donations").get();
+        console.log("⚡ " + donSnapshot.size + " Spenden-Einträge gefunden.");
+        
         donSnapshot.forEach(doc => {
             let data = doc.data();
+            console.log("⚡ Gefundene Spende:", data);
             if (data.amount) {
                 directDonations += data.amount;
             }
         });
     } catch (e) {
-        console.warn("Konnte Spenden nicht laden:", e);
+        console.error("⚡ Fehler beim Laden der Spenden (Rechte?):", e);
     }
 
     // Berechnung
     let currentPot = totalGames * 10;
     let devFromGames = totalGames * 11;
     let totalDev = devFromGames + directDonations;
+
+    console.log("⚡ Ergebnis Berechnung -> Pott:", currentPot, "Dev:", totalDev);
 
     // Ins HTML schreiben
     let potEl = document.getElementById('pot-amount');
