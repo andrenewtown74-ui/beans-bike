@@ -21,7 +21,23 @@
                 <button id="btn-toggle-music" class="menu-btn">Musik: AUS</button>
                 <button id="btn-show-highscores" class="menu-btn">Top 20 Highscore</button>
             </div>
-            
+                <!-- Lightning Arcade Sektion -->
+            <div id="lightning-stats" style="margin-top: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: #FFF; font-family: 'Courier New', Courier, monospace; border: 2px solid #f7931a;">
+                <h3 style="margin-top: 0; color: #f7931a; text-align: center; font-size: 1.2rem;">⚡ Lightning Arcade</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem;">
+                    <div>🏆 Pott: <strong id="pot-amount" style="color: #FFD700;">...</strong> Sats</div>
+                    <div>☕ Dev-Kasse: <strong id="dev-amount" style="color: #FFD700;">...</strong> Sats</div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button id="btn-play-pot" class="ui-button" style="background: #f7931a; color: #000; border-color: #f7931a; font-size: 0.9rem;">
+                        ⚡ Um den Pott spielen (21 Sats)
+                    </button>
+                    <button id="btn-donate" class="ui-button" style="background: #333; color: #fff; border-color: #f7931a; font-size: 0.9rem;">
+                        ☕ Spenden (Freiwillig)
+                    </button>
+                </div>
+            </div>
             <div id="keyboard-instructions">
                 <p><b>Steuerung:</b></p>
                 <p><b>A / D</b> oder <b>Pfeiltasten</b>: Bremsen / Beschleunigen</p>

@@ -242,6 +242,8 @@ function showMainMenu() {
     player.frontWheel.y = getTerrainY(90);
     cancelAnimationFrame(animationFrameId);
     requestAnimationFrame(idleLoop);
+    window.isPlayingForPot = false; // Status für nächstes Spiel zurücksetzen
+    if (typeof updateLightningStats === 'function') updateLightningStats(); // Pott aktualisieren
 }
 
 async function startNewGame() {
@@ -1246,6 +1248,7 @@ async function saveHighscore(playerName, finalScore) {
         name: playerName,
         score: finalScore,
         ip: playerIP,
+        playedForPot: window.isPlayingForPot || false, // NEU: Vermerkt, ob gezahlt wurde
         date: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
     }).catch(function(error) {
@@ -1296,3 +1299,90 @@ player.rearWheel.y = getTerrainY(30);
 player.frontWheel.y = getTerrainY(90);
 
 requestAnimationFrame(idleLoop);
+// --- LIGHTNING & WEBLN LOGIK ---
+
+function updateLightningStats() {
+    // Pott aus der Firestore-Datenbank berechnen
+    if (typeof db !== 'undefined') {
+        db.collection("highscores").where("playedForPot", "==", true).get()
+        .then(snapshot => {
+            let totalGames = snapshot.size;
+            let currentPot = totalGames * 10;
+            let currentDev = totalGames * 11;
+            
+            document.getElementById('pot-amount').innerText = currentPot;
+            document.getElementById('dev-amount').innerText = currentDev;
+        })
+        .catch(err => {
+            console.error("Fehler beim Laden des Potts:", err);
+            document.getElementById('pot-amount').innerText = "0";
+            document.getElementById('dev-amount').innerText = "0";
+        });
+    }
+}
+
+// 21 Sats für den Pott zahlen
+document.getElementById('btn-play-pot').addEventListener('click', async () => {
+    if (typeof window.webln === 'undefined') {
+        alert("Bitte installiere eine WebLN-Wallet wie die Alby Browser-Erweiterung, um um den Pott zu spielen!");
+        return;
+    }
+
+    try {
+        await window.webln.enable();
+        
+        // LNURLp Aufruf, um eine Invoice über 21 Sats (21000 Milli-Sats) zu generieren
+        const username = ALBY_LIGHTNING_ADDRESS.split('@')[0];
+        const lnurlpUrl = `https://getalby.com/lnurlp/${username}/callback?amount=21000&comment=Bohnen-Bike%20Pott`;
+        
+        let res = await fetch(lnurlpUrl);
+        let data = await res.json();
+        
+        if (data.pr) { 
+            let payment = await window.webln.sendPayment(data.pr);
+            if (payment.preimage) {
+                window.isPlayingForPot = true;
+                document.getElementById('lightning-stats').innerHTML = "<h3 style='color:#0f0; text-align:center;'>Zahlung erfolgreich! Viel Glück!</h3>";
+                
+                // Nach 1.5 Sekunden das Spiel starten
+                setTimeout(() => {
+                    startNewGame();
+                }, 1500);
+            }
+        } else {
+            alert("Fehler: Konnte keine Rechnung von der Node abrufen.");
+        }
+    } catch (err) {
+        console.error("Zahlung fehlgeschlagen:", err);
+    }
+});
+
+// Spenden
+document.getElementById('btn-donate').addEventListener('click', async () => {
+    if (typeof window.webln === 'undefined') {
+        alert("Bitte installiere eine WebLN-Wallet wie Alby zum Spenden!");
+        return;
+    }
+    
+    let amount = prompt("Wie viele Sats möchtest du spenden?", "21");
+    if (!amount || isNaN(amount) || amount <= 0) return;
+
+    try {
+        await window.webln.enable();
+        const username = ALBY_LIGHTNING_ADDRESS.split('@')[0];
+        const amountMsat = parseInt(amount) * 1000;
+        const lnurlpUrl = `https://getalby.com/lnurlp/${username}/callback?amount=${amountMsat}&comment=Bohnen-Bike%20Spende`;
+        
+        let res = await fetch(lnurlpUrl);
+        let data = await res.json();
+        
+        if (data.pr) {
+            let payment = await window.webln.sendPayment(data.pr);
+            if (payment.preimage) {
+                alert("Vielen Dank für deine Spende! ☕");
+            }
+        }
+    } catch (err) {
+        console.error("Spende fehlgeschlagen:", err);
+    }
+});
