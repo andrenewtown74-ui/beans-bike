@@ -3,54 +3,52 @@ const ALBY_LIGHTNING_ADDRESS = "feastnebular46104@getalby.com";
 window.isPlayingForPot = false;
 
 // Pott und Spenden aus der Firestore-Datenbank berechnen
-function updateLightningStats() {
-    if (typeof db !== 'undefined') {
-        // 1. Hole alle Pott-Spiele
-        let potPromise = db.collection("highscores").where("playedForPot", "==", true).get();
-        // 2. Hole alle direkten Spenden
-        let donationPromise = db.collection("donations").get();
+async function updateLightningStats() {
+    if (typeof db === 'undefined') return;
 
-        // Wenn beides geladen ist:
-        Promise.all([potPromise, donationPromise])
-        .then(results => {
-            let highscoresSnapshot = results[0];
-            let donationsSnapshot = results[1];
+    let totalGames = 0;
+    let directDonations = 0;
 
-            // Berechnung für den Pott
-            let totalGames = highscoresSnapshot.size;
-            let currentPot = totalGames * 10;
-            let devFromGames = totalGames * 11;
-
-            // Berechnung für direkte Spenden
-            let directDonations = 0;
-            donationsSnapshot.forEach(doc => {
-                let data = doc.data();
-                if (data.amount) {
-                    directDonations += data.amount;
-                }
-            });
-
-            let totalDev = devFromGames + directDonations;
-            
-            // Ins HTML schreiben
-            let potEl = document.getElementById('pot-amount');
-            let devEl = document.getElementById('dev-amount');
-            if (potEl) potEl.innerText = currentPot;
-            if (devEl) devEl.innerText = totalDev;
-        })
-        .catch(err => {
-            console.error("Fehler beim Laden der Lightning-Stats:", err);
-            let potEl = document.getElementById('pot-amount');
-            let devEl = document.getElementById('dev-amount');
-            if (potEl) potEl.innerText = "0";
-            if (devEl) devEl.innerText = "0";
-        });
+    // 1. Hole alle Pott-Spiele (einzeln absichern)
+    try {
+        let potSnapshot = await db.collection("highscores").where("playedForPot", "==", true).get();
+        totalGames = potSnapshot.size;
+    } catch (e) {
+        console.warn("Konnte Pott-Spiele nicht laden:", e);
     }
+
+    // 2. Hole alle direkten Spenden (einzeln absichern)
+    try {
+        let donSnapshot = await db.collection("donations").get();
+        donSnapshot.forEach(doc => {
+            let data = doc.data();
+            if (data.amount) {
+                directDonations += data.amount;
+            }
+        });
+    } catch (e) {
+        console.warn("Konnte Spenden nicht laden:", e);
+    }
+
+    // Berechnung
+    let currentPot = totalGames * 10;
+    let devFromGames = totalGames * 11;
+    let totalDev = devFromGames + directDonations;
+
+    // Ins HTML schreiben
+    let potEl = document.getElementById('pot-amount');
+    let devEl = document.getElementById('dev-amount');
+    
+    if (potEl) potEl.innerText = currentPot;
+    if (devEl) devEl.innerText = totalDev;
 }
 
 // Warten, bis das HTML vollständig geladen ist
 document.addEventListener('DOMContentLoaded', () => {
     
+    // Direkt beim Start einmal abrufen (1 Sekunde Verzögerung, damit Firebase sicher bereit ist)
+    setTimeout(updateLightningStats, 1000);
+
     // 1. Button: 21 Sats für den Pott zahlen
     const btnPlayPot = document.getElementById('btn-play-pot');
     if (btnPlayPot) {
@@ -75,9 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     let payment = await window.webln.sendPayment(data.pr);
                     if (payment.preimage) {
                         window.isPlayingForPot = true;
-                        document.getElementById('lightning-stats').innerHTML = "<h3 style='color:#0f0; text-align:center; margin:0;'>Zahlung erfolgreich! Viel Glück!</h3>";
+                        
+                        // NUR den Button-Text ändern, um das HTML nicht zu zerstören!
+                        let originalText = btnPlayPot.innerText;
+                        btnPlayPot.innerText = "Zahlung erfolgreich! Startet...";
+                        btnPlayPot.style.backgroundColor = "#0f0";
                         
                         setTimeout(() => {
+                            btnPlayPot.innerText = originalText;
+                            btnPlayPot.style.backgroundColor = "#f7931a";
                             if (typeof startNewGame === 'function') startNewGame();
                         }, 1500);
                     }
@@ -118,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (payment.preimage) {
                         alert("Vielen Dank für deine Spende! ☕");
                         
-                        // NEU: Spende in die Firebase Datenbank eintragen!
+                        // Spende in die Firebase Datenbank eintragen
                         if (typeof db !== 'undefined') {
                             await db.collection("donations").add({
                                 amount: parseInt(amount),
@@ -126,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                         }
                         
-                        // Stats direkt danach aktualisieren
+                        // Anzeige direkt danach aktualisieren
                         updateLightningStats();
                     }
                 }
