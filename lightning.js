@@ -2,22 +2,44 @@
 const ALBY_LIGHTNING_ADDRESS = "feastnebular46104@getalby.com";
 window.isPlayingForPot = false;
 
-// Pott aus der Firestore-Datenbank berechnen
+// Pott und Spenden aus der Firestore-Datenbank berechnen
 function updateLightningStats() {
     if (typeof db !== 'undefined') {
-        db.collection("highscores").where("playedForPot", "==", true).get()
-        .then(snapshot => {
-            let totalGames = snapshot.size;
+        // 1. Hole alle Pott-Spiele
+        let potPromise = db.collection("highscores").where("playedForPot", "==", true).get();
+        // 2. Hole alle direkten Spenden
+        let donationPromise = db.collection("donations").get();
+
+        // Wenn beides geladen ist:
+        Promise.all([potPromise, donationPromise])
+        .then(results => {
+            let highscoresSnapshot = results[0];
+            let donationsSnapshot = results[1];
+
+            // Berechnung für den Pott
+            let totalGames = highscoresSnapshot.size;
             let currentPot = totalGames * 10;
-            let currentDev = totalGames * 11;
+            let devFromGames = totalGames * 11;
+
+            // Berechnung für direkte Spenden
+            let directDonations = 0;
+            donationsSnapshot.forEach(doc => {
+                let data = doc.data();
+                if (data.amount) {
+                    directDonations += data.amount;
+                }
+            });
+
+            let totalDev = devFromGames + directDonations;
             
+            // Ins HTML schreiben
             let potEl = document.getElementById('pot-amount');
             let devEl = document.getElementById('dev-amount');
             if (potEl) potEl.innerText = currentPot;
-            if (devEl) devEl.innerText = currentDev;
+            if (devEl) devEl.innerText = totalDev;
         })
         .catch(err => {
-            console.error("Fehler beim Laden des Potts:", err);
+            console.error("Fehler beim Laden der Lightning-Stats:", err);
             let potEl = document.getElementById('pot-amount');
             let devEl = document.getElementById('dev-amount');
             if (potEl) potEl.innerText = "0";
@@ -33,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPlayPot = document.getElementById('btn-play-pot');
     if (btnPlayPot) {
         btnPlayPot.addEventListener('click', async (e) => {
-            e.stopPropagation(); // WICHTIG: Verhindert, dass das Spiel den Klick abfängt!
+            e.stopPropagation();
             
             if (typeof window.webln === 'undefined') {
                 alert("Bitte installiere eine WebLN-Wallet wie die Alby Browser-Erweiterung, um um den Pott zu spielen!");
@@ -43,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await window.webln.enable();
                 
-                // LNURLp Aufruf, um eine Invoice über 21 Sats (21000 Milli-Sats) zu generieren
                 const username = ALBY_LIGHTNING_ADDRESS.split('@')[0];
                 const lnurlpUrl = `https://getalby.com/lnurlp/${username}/callback?amount=21000&comment=Bohnen-Bike%20Pott`;
                 
@@ -56,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.isPlayingForPot = true;
                         document.getElementById('lightning-stats').innerHTML = "<h3 style='color:#0f0; text-align:center; margin:0;'>Zahlung erfolgreich! Viel Glück!</h3>";
                         
-                        // Nach 1.5 Sekunden das Spiel starten
                         setTimeout(() => {
                             if (typeof startNewGame === 'function') startNewGame();
                         }, 1500);
@@ -74,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDonate = document.getElementById('btn-donate');
     if (btnDonate) {
         btnDonate.addEventListener('click', async (e) => {
-            e.stopPropagation(); // WICHTIG!
+            e.stopPropagation();
             
             if (typeof window.webln === 'undefined') {
                 alert("Bitte installiere eine WebLN-Wallet wie Alby zum Spenden!");
@@ -97,6 +117,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     let payment = await window.webln.sendPayment(data.pr);
                     if (payment.preimage) {
                         alert("Vielen Dank für deine Spende! ☕");
+                        
+                        // NEU: Spende in die Firebase Datenbank eintragen!
+                        if (typeof db !== 'undefined') {
+                            await db.collection("donations").add({
+                                amount: parseInt(amount),
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                        
+                        // Stats direkt danach aktualisieren
+                        updateLightningStats();
                     }
                 }
             } catch (err) {
