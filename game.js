@@ -537,7 +537,8 @@ window.addEventListener('keyup', function(e) {
 
 function handleTouch(e) {
     if (isPopupOpen) return; 
-    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn' || e.target.id === 'pause-btn' || e.target.id === 'btn-play-pot' || e.target.id === 'btn-donate') return;
+ // Verhindert, dass Touch auf Menü-Buttons als "Sprung" gewertet wird
+    if (e.target.id === 'btn-start-game' || e.target.id === 'btn-toggle-music' || e.target.id === 'btn-show-highscores' || e.target.id === 'close-highscore-btn' || e.target.id === 'btn-play-pot' || e.target.id === 'btn-donate' || e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn' || e.target.id === 'pause-btn') return;
     if (handleInputEvent()) {
         if (e.cancelable) e.preventDefault();
         return;
@@ -622,8 +623,8 @@ window.addEventListener('touchcancel', handleTouch, { passive: false });
 
 window.addEventListener('mousedown', function(e) {
     if (isPopupOpen) return; 
-
-    if (e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn' || e.target.id === 'pause-btn' || e.target.id === 'btn-play-pot' || e.target.id === 'btn-donate') return;
+    // Verhindert, dass Klicks auf Menü-Buttons als "Sprung" gewertet werden
+    if (e.target.id === 'btn-start-game' || e.target.id === 'btn-toggle-music' || e.target.id === 'btn-show-highscores' || e.target.id === 'close-highscore-btn' || e.target.id === 'btn-play-pot' || e.target.id === 'btn-donate' || e.target.id === 'headlight-btn' || e.target.id === 'fullscreen-btn' || e.target.id === 'pause-btn') return;
     if (handleInputEvent()) return;
     if (isLevelComplete || !isGameRunning) return;
 
