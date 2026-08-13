@@ -78,18 +78,35 @@ document.addEventListener('DOMContentLoaded', () => {
     
     setTimeout(updateLightningStats, 1000);
 
-    // 1. Button: Um den Pott spielen (21 Sats)
+// 1. Button: Um den Pott spielen (21 Sats)
     const btnPlayPot = document.getElementById('btn-play-pot');
     if (btnPlayPot) {
         btnPlayPot.addEventListener('click', async (e) => {
             e.stopPropagation();
             
+            // NEU: Adresse VOR der Zahlung abfragen
+            let userLnAddress = prompt("Bitte gib deine Lightning-Adresse ein, damit wir dich bei einem Gewinn auszahlen können:", "");
+            if (userLnAddress === null) return; // Wenn der Spieler auf "Abbrechen" klickt
+
             let success = await requestAndPayInvoice(21, "Bohnen-Bike Pott");
             if (success) {
                 window.isPlayingForPot = true;
                 
+                // NEU: Den Einzahler sofort in Firebase speichern!
+                if (typeof db !== 'undefined') {
+                    try {
+                        await db.collection("pot_contributors").add({
+                            address: userLnAddress.trim() || "Anonym",
+                            amount: 21,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } catch (err) {
+                        console.error("Konnte Einzahler nicht speichern:", err);
+                    }
+                }
+                
                 let originalText = btnPlayPot.innerText;
-                btnPlayPot.innerText = "Zahlung gestartet!";
+                btnPlayPot.innerText = "Zahlung erfolgreich! Startet...";
                 btnPlayPot.style.backgroundColor = "#0f0";
                 
                 setTimeout(() => {
