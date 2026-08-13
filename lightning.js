@@ -1,53 +1,41 @@
-// --- LIGHTNING CONFIG ---
+// Konfiguration fuer Alby Lightning
 const ALBY_LIGHTNING_ADDRESS = "feastnebular46104@getalby.com";
 window.isPlayingForPot = false;
 
 // Pott und Spenden aus der Firestore-Datenbank berechnen
 async function updateLightningStats() {
-    console.log("⚡ Starte Lightning-Stats Update...");
+    console.log("Starte Lightning-Stats Update...");
     if (typeof db === 'undefined') {
-        console.error("⚡ Fehler: Datenbank (db) ist noch nicht bereit!");
+        console.error("Fehler: Datenbank (db) ist noch nicht bereit!");
         return;
     }
 
     let totalGames = 0;
     let directDonations = 0;
 
-    // 1. Hole alle Pott-Spiele
     try {
-        console.log("⚡ Lade Pott-Spiele aus Firebase...");
         let potSnapshot = await db.collection("highscores").where("playedForPot", "==", true).get();
         totalGames = potSnapshot.size;
-        console.log("⚡ " + totalGames + " Pott-Spiele gefunden.");
     } catch (e) {
-        console.error("⚡ Fehler beim Laden der Pott-Spiele (Rechte?):", e);
+        console.error("Fehler beim Laden der Pott-Spiele:", e);
     }
 
-    // 2. Hole alle direkten Spenden
     try {
-        console.log("⚡ Lade Spenden aus Firebase...");
         let donSnapshot = await db.collection("donations").get();
-        console.log("⚡ " + donSnapshot.size + " Spenden-Einträge gefunden.");
-        
         donSnapshot.forEach(doc => {
             let data = doc.data();
-            console.log("⚡ Gefundene Spende:", data);
             if (data.amount) {
                 directDonations += data.amount;
             }
         });
     } catch (e) {
-        console.error("⚡ Fehler beim Laden der Spenden (Rechte?):", e);
+        console.error("Fehler beim Laden der Spenden:", e);
     }
 
-    // Berechnung
     let currentPot = totalGames * 10;
     let devFromGames = totalGames * 11;
     let totalDev = devFromGames + directDonations;
 
-    console.log("⚡ Ergebnis Berechnung -> Pott:", currentPot, "Dev:", totalDev);
-
-    // Ins HTML schreiben
     let potEl = document.getElementById('pot-amount');
     let devEl = document.getElementById('dev-amount');
     
@@ -55,53 +43,60 @@ async function updateLightningStats() {
     if (devEl) devEl.innerText = totalDev;
 }
 
-// Warten, bis das HTML vollständig geladen ist
+// Hilfsfunktion zur Abwicklung von Zahlungen fuer Desktop (WebLN) und Smartphone (Deep Link)
+async function requestAndPayInvoice(amountSat, comment) {
+    const username = ALBY_LIGHTNING_ADDRESS.split('@')[0];
+    const amountMsat = amountSat * 1000;
+    const lnurlpUrl = `https://getalby.com/lnurlp/${username}/callback?amount=${amountMsat}&comment=${encodeURIComponent(comment)}`;
+
+    const res = await fetch(lnurlpUrl);
+    const data = await res.json();
+
+    if (!data.pr) {
+        alert("Fehler: Konnte keine Rechnung von der Node abrufen.");
+        return false;
+    }
+
+    // Abfrage ob WebLN vorhanden ist (Desktop Browser mit Extension)
+    if (typeof window.webln !== 'undefined') {
+        try {
+            await window.webln.enable();
+            let payment = await window.webln.sendPayment(data.pr);
+            return !!payment.preimage;
+        } catch (err) {
+            console.error("WebLN-Zahlung fehlgeschlagen oder abgebrochen:", err);
+            return false;
+        }
+    } else {
+        // Fallback fuer Smartphones ohne WebLN: Deep-Link Oeffnung fuer Alby Go / Mobile Wallet
+        window.location.href = `lightning:${data.pr}`;
+        return true;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Direkt beim Start einmal abrufen (1 Sekunde Verzögerung, damit Firebase sicher bereit ist)
     setTimeout(updateLightningStats, 1000);
 
-    // 1. Button: 21 Sats für den Pott zahlen
+    // 1. Button: Um den Pott spielen (21 Sats)
     const btnPlayPot = document.getElementById('btn-play-pot');
     if (btnPlayPot) {
         btnPlayPot.addEventListener('click', async (e) => {
             e.stopPropagation();
             
-            if (typeof window.webln === 'undefined') {
-                alert("Bitte installiere eine WebLN-Wallet wie die Alby Browser-Erweiterung, um um den Pott zu spielen!");
-                return;
-            }
-
-            try {
-                await window.webln.enable();
+            let success = await requestAndPayInvoice(21, "Bohnen-Bike Pott");
+            if (success) {
+                window.isPlayingForPot = true;
                 
-                const username = ALBY_LIGHTNING_ADDRESS.split('@')[0];
-                const lnurlpUrl = `https://getalby.com/lnurlp/${username}/callback?amount=21000&comment=Bohnen-Bike%20Pott`;
+                let originalText = btnPlayPot.innerText;
+                btnPlayPot.innerText = "Zahlung gestartet!";
+                btnPlayPot.style.backgroundColor = "#0f0";
                 
-                let res = await fetch(lnurlpUrl);
-                let data = await res.json();
-                
-                if (data.pr) { 
-                    let payment = await window.webln.sendPayment(data.pr);
-                    if (payment.preimage) {
-                        window.isPlayingForPot = true;
-                        
-                        // NUR den Button-Text ändern, um das HTML nicht zu zerstören!
-                        let originalText = btnPlayPot.innerText;
-                        btnPlayPot.innerText = "Zahlung erfolgreich! Startet...";
-                        btnPlayPot.style.backgroundColor = "#0f0";
-                        
-                        setTimeout(() => {
-                            btnPlayPot.innerText = originalText;
-                            btnPlayPot.style.backgroundColor = "#f7931a";
-                            if (typeof startNewGame === 'function') startNewGame();
-                        }, 1500);
-                    }
-                } else {
-                    alert("Fehler: Konnte keine Rechnung von der Node abrufen.");
-                }
-            } catch (err) {
-                console.error("Zahlung fehlgeschlagen:", err);
+                setTimeout(() => {
+                    btnPlayPot.innerText = originalText;
+                    btnPlayPot.style.backgroundColor = "#f7931a";
+                    if (typeof startNewGame === 'function') startNewGame();
+                }, 1500);
             }
         });
     }
@@ -112,42 +107,21 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDonate.addEventListener('click', async (e) => {
             e.stopPropagation();
             
-            if (typeof window.webln === 'undefined') {
-                alert("Bitte installiere eine WebLN-Wallet wie Alby zum Spenden!");
-                return;
-            }
-            
-            let amount = prompt("Wie viele Sats möchtest du spenden?", "21");
+            let amount = prompt("Wie viele Sats moechtest du spenden?", "21");
             if (!amount || isNaN(amount) || amount <= 0) return;
 
-            try {
-                await window.webln.enable();
-                const username = ALBY_LIGHTNING_ADDRESS.split('@')[0];
-                const amountMsat = parseInt(amount) * 1000;
-                const lnurlpUrl = `https://getalby.com/lnurlp/${username}/callback?amount=${amountMsat}&comment=Bohnen-Bike%20Spende`;
-                
-                let res = await fetch(lnurlpUrl);
-                let data = await res.json();
-                
-                if (data.pr) {
-                    let payment = await window.webln.sendPayment(data.pr);
-                    if (payment.preimage) {
-                        alert("Vielen Dank für deine Spende! ☕");
-                        
-                        // Spende in die Firebase Datenbank eintragen
-                        if (typeof db !== 'undefined') {
-                            await db.collection("donations").add({
-                                amount: parseInt(amount),
-                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        }
-                        
-                        // Anzeige direkt danach aktualisieren
-                        updateLightningStats();
-                    }
+            let amountInt = parseInt(amount);
+            let success = await requestAndPayInvoice(amountInt, "Bohnen-Bike Spende");
+
+            if (success) {
+                // Eintrag in Firebase vornehmen
+                if (typeof db !== 'undefined') {
+                    await db.collection("donations").add({
+                        amount: amountInt,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                 }
-            } catch (err) {
-                console.error("Spende fehlgeschlagen:", err);
+                updateLightningStats();
             }
         });
     }
