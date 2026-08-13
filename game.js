@@ -1298,24 +1298,3 @@ player.rearWheel.y = getTerrainY(30);
 player.frontWheel.y = getTerrainY(90);
 
 requestAnimationFrame(idleLoop);
-// --- LIGHTNING & WEBLN LOGIK ---
-
-function updateLightningStats() {
-    // Pott aus der Firestore-Datenbank berechnen
-    if (typeof db !== 'undefined') {
-        db.collection("highscores").where("playedForPot", "==", true).get()
-        .then(snapshot => {
-            let totalGames = snapshot.size;
-            let currentPot = totalGames * 10;
-            let currentDev = totalGames * 11;
-            
-            document.getElementById('pot-amount').innerText = currentPot;
-            document.getElementById('dev-amount').innerText = currentDev;
-        })
-        .catch(err => {
-            console.error("Fehler beim Laden des Potts:", err);
-            document.getElementById('pot-amount').innerText = "0";
-            document.getElementById('dev-amount').innerText = "0";
-        });
-    }
-}
